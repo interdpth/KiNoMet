@@ -1,4 +1,4 @@
-#include "CVideo.h"
+/*#include "CVideo.h"
 
 //cinepak
 bool __thiscall CVideo::ImageProcessing( DWORD_PTR a2)
@@ -212,4 +212,4 @@ bool __thiscall CVideo::ImageProcessing( DWORD_PTR a2)
         result = 0;
     }
     return result;
-}
+}*/

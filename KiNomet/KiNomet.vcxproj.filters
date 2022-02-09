@@ -18,7 +18,7 @@
     <ClCompile Include="KiNomet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CVideo.cpp">
+    <ClCompile Include="CVideo.interesting">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -26,5 +26,8 @@
     <ClInclude Include="CVideo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Documentation.txt" />
   </ItemGroup>
 </Project>
