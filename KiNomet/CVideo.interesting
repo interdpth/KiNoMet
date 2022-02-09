@@ -1,0 +1,215 @@
+#include "CVideo.h"
+
+//cinepak
+bool __thiscall CVideo::ImageProcessing( DWORD_PTR a2)
+{
+    double v3; // st7
+    int v4; // eax
+    int v5; // eax
+    int v6; // edx
+    int v7; // ecx
+    int v8; // ecx
+    int v9; // eax
+    double v10; // st7
+    HANDLE v11; // eax
+    bool result; // al
+    int compressionHandler; // eax
+    int v14; // eax
+    void* v15; // eax
+    int v16; // ecx
+    int v17; // edi
+    void* v18; // eax
+    int v19; // edx
+    int v20; // eax
+    int v21; // edx
+    __int64 v22; // rax
+    int v23; // eax
+    int v24; // ecx
+    int v25; // edx
+    int framesiz; // eax
+    int v27; // edi
+    void* v28; // ebx
+    int v29; // eax
+    int v30; // [esp-10h] [ebp-2A0h]
+    int v31; // [esp-10h] [ebp-2A0h]
+    struct tagBITMAPINFOHEADER* v32; // [esp-Ch] [ebp-29Ch]
+    int NumberOfBytesWritten; // [esp+10h] [ebp-280h] BYREF
+    int Buffer; // [esp+14h] [ebp-27Ch] BYREF
+    DWORD_PTR dw1[16]; // [esp+18h] [ebp-278h] BYREF
+    ICINFO picinfo; // [esp+58h] [ebp-238h] BYREF
+
+    this->dword68 = a2;
+    if (this->dword14 == -1)
+    {
+        v3 = (double)this->int20 / (double)this->int24;
+        if (v3 > 15.0)
+            this->dword18 = (__int64)(v3 * 0.06666666666666667 + 0.75);
+        else
+            this->dword14 = 0;
+    }
+    switch (this->dword14)
+    {
+    case 0xFFFFFFFF:
+        this->int24 *= this->dword18;
+        break;
+    case 1:
+        v4 = 5 * this->int24;
+        this->int20 *= 4;
+        this->int24 = v4;
+        break;
+    case 2:
+        v5 = this->int24;
+        this->int20 *= 2;
+        v6 = 3 * v5;
+        goto LABEL_15;
+    case 3:
+        this->int24 *= 2;
+        break;
+    case 4:
+        this->int20 *= 2;
+        goto LABEL_14;
+    case 5:
+        this->int24 *= 3;
+        break;
+    case 6:
+        v7 = this->int24;
+        this->dword14 = -1;
+        this->dword18 = 4;
+        this->int24 = 4 * v7;
+        break;
+    case 7:
+        this->dword14 = -1;
+        this->dword18 = 5;
+    LABEL_14:
+        v6 = 5 * this->int24;
+    LABEL_15:
+        this->int24 = v6;
+        break;
+    default:
+        break;
+    }
+    v8 = this->int24;
+    v9 = v8 * this->dwordD0;
+    Buffer = this->int20;
+    NumberOfBytesWritten = v8;
+    v10 = (double)Buffer * 65536.0 / ((double)v8 * 59.727);
+    this->dwordD4 = (v9 << 10) / Buffer;
+    *(_DWORD*)&this->char70 = (__int64)v10;
+    if (!this->pcharC)
+        return 0;
+    if (this->pvoid10)
+        CloseHandle(this->pvoid10);
+    v11 = CreateFileA(this->pcharC, 0x40000000u, 0, 0, 2u, 0x80u, 0);
+    this->pvoid10 = v11;
+    if (v11 == (HANDLE)-1)
+    {
+        this->pvoid10 = 0;
+        return 0;
+    }
+    Buffer = 0;
+    if (!WriteFile(v11, &Buffer, 4u, &NumberOfBytesWritten, 0))
+        return 0;
+    if (NumberOfBytesWritten != 4)
+        return 0;
+    if (!WriteFile(this->pvoid10, &this->char70, 4u, &NumberOfBytesWritten, 0))
+        return 0;
+    if (NumberOfBytesWritten != 4)
+        return 0;
+    Buffer = this->dword44 | (this->dword48 << 16);
+    if (!WriteFile(this->pvoid10, &Buffer, 4u, &NumberOfBytesWritten, 0))
+        return 0;
+    if (NumberOfBytesWritten != 4)
+        return 0;
+    v32 = this->ptagbitmapinfoheader2C;
+    this->dword64 = 0;
+    this->dword6C = 0;
+    this->dword1C = 0;
+    this->dwordEC = 0;
+    compressionHandler = ICLocate(0x63646976u, 0x64697663u, v32, 0, 1u);
+    this->compressionHandler = compressionHandler;
+    if (!compressionHandler)
+        return 0;
+    if (!ICGetInfo(compressionHandler, &picinfo, 0x238u))
+    {
+        ICClose(this->compressionHandler);
+        return 0;
+    }
+    if (picinfo.fccHandler == 0x64697663)
+    {
+        v14 = ICSendMessage(this->compressionHandler, 0x4004u, (DWORD_PTR)this->ptagbitmapinfoheader2C, 0);
+        v15 = m_malloc(v14);
+        v16 = this->compressionHandler;
+        this->dword28 = v15;
+        this->dwordA4 = v15;
+        ICSendMessage(v16, 0x4004u, (DWORD_PTR)this->ptagbitmapinfoheader2C, (DWORD_PTR)v15);
+        v17 = ICSendMessage(this->compressionHandler, 0x4005u, (DWORD_PTR)this->ptagbitmapinfoheader2C, this->dword28);
+        if (this->pvoid9C)
+            sub_413F5B(this->pvoid9C);
+        v18 = m_malloc(v17);
+        this->pvoid9C = v18;
+        this->dwordA8 = v18;
+        v19 = this->dword28;
+        memset(dw1, 0, sizeof(dw1));
+        dw1[3] = (DWORD_PTR)this->ptagbitmapinfoheader2C;
+        v20 = this->dword14 + 1;
+        dw1[1] = v19;
+        switch (v20)
+        {
+        case 0:
+            a2 /= this->dword18;
+            break;
+        case 2:
+            v21 = 4 * a2 / 5;
+            goto LABEL_43;
+        case 3:
+            v22 = 0x155555556i64 * a2;
+            goto LABEL_42;
+        case 4:
+            a2 >>= 1;
+            break;
+        case 5:
+            v21 = 2 * a2 / 5;
+            goto LABEL_43;
+        case 6:
+            v22 = 0xAAAAAAABi64 * a2;
+        LABEL_42:
+            v21 = HIDWORD(v22) >> 1;
+        LABEL_43:
+            a2 = v21;
+            break;
+        default:
+            break;
+        }
+        v23 = this->int20;
+        v24 = this->int24;
+        dw1[6] = a2;
+        v25 = this->dwordD0;
+        dw1[10] = v23;
+        v30 = this->compressionHandler;
+        dw1[11] = v24;
+        dw1[8] = v25 << 10;
+        ICSendMessage(v30, 0x501Eu, (DWORD_PTR)&dword_426D30, 4u);
+        v31 = this->compressionHandler;
+        dw1[7] = dword_426D30;
+        this->dwordC4 = dword_426D30;
+        if (ICSendMessage(v31, 0x4046u, (DWORD_PTR)dw1, 0x40u))
+            return 0;
+        framesiz = ICSendMessage(this->compressionHandler, 0x5000u, 0, 0);
+        v27 = framesiz;
+        if (framesiz > 0)
+        {
+            v28 = m_malloc(framesiz);
+            v29 = ICSendMessage(this->compressionHandler, 0x5000u, (DWORD_PTR)v28, v27);
+            if (v29)
+                ICSendMessage(this->compressionHandler, 0x5001u, (DWORD_PTR)v28, v29);
+            sub_413F5B(v28);
+        }
+        result = ICSendMessage(this->compressionHandler, 0x4007u, (DWORD_PTR)this->ptagbitmapinfoheader2C, this->dword28) == 0;
+    }
+    else
+    {
+        ICClose(this->compressionHandler);
+        result = 0;
+    }
+    return result;
+}

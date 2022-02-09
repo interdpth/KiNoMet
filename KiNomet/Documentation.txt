@@ -1,0 +1,13 @@
+.\ffmpeg.exe -i Alie.avi -c:v cinepak -an -q 25 -s 240x160 -c:a pcm_s8 Alie2.avi
+
+meteo uses cinepak, by limiting fps to 20
+
+hit list: 
+unlike meteo that uses windows media library Converters, we will just take input video
+set audio into one file
+add video to another 
+remux manually
+
+make player
+
+port to C
