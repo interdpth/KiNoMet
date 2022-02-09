@@ -3,6 +3,14 @@
 meteo uses cinepak, by limiting fps to 20
 
 hit list: 
+maybe look into setting pixel type from rgb to 
+
+ AV_PIX_FMT_RGB555BE,  ///< packed RGB 5:5:5, 16bpp, (msb)1X 5R 5G 5B(lsb), big-endian   , X=unused/undefined
+    AV_PIX_FMT_RGB555LE,  ///< packed RGB 5:5:5, 16bpp, (msb)1X 5R 5G 5B(lsb), little-endian, X=unused/undefined
+
+    could literally be 1 to 1 with gba, just have to & 0x7FFF before it hits pal? 
+
+    make a slow version first that translates the whole frame from 24 to 16bit on console. 
 unlike meteo that uses windows media library Converters, we will just take input video
 set audio into one file
 add video to another 
