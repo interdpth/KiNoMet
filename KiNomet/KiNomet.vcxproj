@@ -139,11 +139,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Cinepak.cpp" />
     <ClCompile Include="CVideo.interesting" />
     <ClCompile Include="KiNomet.cpp" />
+    <ClCompile Include="SmallBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Cinepak.h" />
     <ClInclude Include="CVideo.h" />
+    <ClInclude Include="SmallBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Documentation.txt" />

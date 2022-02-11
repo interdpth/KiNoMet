@@ -21,9 +21,21 @@
     <ClCompile Include="CVideo.interesting">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Cinepak.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SmallBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CVideo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Cinepak.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SmallBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
