@@ -13,8 +13,11 @@
 #include <stdio.h>
 #include <Windows.h>
 #include "SmallBuffer.h"
+#include "Cinepak.h"
 #pragma pack(1)
-
+#define 	AVIIF_LIST   0x00000001
+#define 	AVIIF_KEYFRAME   0x00000010
+#define 	AVIIF_NO_TIME   0x00000100
 //https://cdn.hackaday.io/files/274271173436768/avi.pdf
 /*
 A chunk containing video, audio or subtitle data uses a dwFourCC containing 2 hexadecimal
@@ -74,6 +77,13 @@ typedef struct
 	DWORD dwReserved[4];
 } MainAVIHeader;
 
+typedef struct {
+	unsigned int FourCC;
+	unsigned int dwFlags;
+	unsigned int dwOffset;
+	unsigned int dwSize;
+}_avioldindex_entry;
+
 CHUNK* getCHUNK(SmallBuffer * fp)
 {
 	CHUNK* me = new RIFF();
@@ -97,11 +107,17 @@ CHUNK* getCHUNK(SmallBuffer * fp)
 #define TAG_STRF 0x66727473
 #define TAG_JUNK 0x4B4E554A
 #define TAG_VPRP 0x70727076
+#define TAG_MOVI 0x69766F6D
+#define TAG_00DC 0x63643030
+#define TAG_IDX1 0x31786469
+
 void error(char* str)
 {
 	printf("%s",str);
 	exit(-1);
 }
+
+
 void loader(unsigned char* file, int size)
 {
 	SmallBuffer* buf = new SmallBuffer(file, size);
@@ -193,27 +209,67 @@ void loader(unsigned char* file, int size)
 	buf->Read(&tagList, 4);
 	buf->Read(&size, 4);
 	if (tagList != LIST_LIST)  error((char*)"Invalid avi");
-	buf->Seek(size, SEEK_CUR);
+	int tagMovi = 0;
+	buf->Read(&tagMovi, 4);
+
+	if (tagMovi != TAG_MOVI)  error((char*)"Invalid avi");
+	unsigned char* moviPointer = buf->GetCurrentBuffer();
+	buf->Seek(size - 4, SEEK_CUR);
+	//buf->Seek(size, SEEK_CUR);
 	//Once again a list? 
 	//hello movi
 
+	//we should be at idx1 
+	int tagIdx1 = 0;
+	buf->Read(&tagIdx1, 4);
+
+	if (tagIdx1 != TAG_IDX1)  error((char*)"Invalid avi");
+	buf->Read(&size, 4);
 
 
-	while (buf->Pos()<size)
+	int numFrames = size/sizeof(_avioldindex_entry);
+	unsigned char* rgb = (unsigned char*)malloc(hdrz->dwWidth * hdrz->dwHeight * 2);
+	cinepak_info* ci = decode_cinepak_init();
+	//It's frame time.
+	_avioldindex_entry* cur = (_avioldindex_entry * )buf->GetCurrentBuffer();
+	for (int i = 0; i < numFrames; i++)
 	{
-		 //deterime
-		unsigned int tag = 0;
-		buf->Read(&tag, 4);
-		switch (tag)
-		{
-		//	case
-		}
-	   
+		//so we will point to
+		//hello what are we
+		if (cur->FourCC != TAG_00DC) continue;
 
+		//sanity stuff.
+		unsigned char* frame = moviPointer + cur->dwOffset-4;
+		int fourcc = *(unsigned long*)frame; frame += 4;
+
+		int framesize = *(unsigned long*)frame; frame += 4;
+
+		
+
+		if (fourcc != cur->FourCC) continue;
+		if (framesize != cur->dwSize) continue;
+	
+		char buff[256];
+		//sprintf(buff, "rawfilecinepakc%d", i);
+		//FILE* fp = fopen(buff, "wb");
+		//
+		//fclose(fp);
+
+		sprintf(buff, "rawfilecinepaku%d", i);
+		FILE* fp = fopen(buff, "wb");
+		//we are for now rgb16 :(
+		if (fp) {
+			decode_cinepak(ci, frame, size, rgb, hdrz->dwWidth, hdrz->dwHeight, 16);
+
+			fwrite(rgb, 1, hdrz->dwWidth * hdrz->dwHeight * 2, fp);
+
+			fclose(fp);
+		}
+		cur++;
 
 	}
-
-
+		free(rgb);
+		free_cvinfo(ci);
 	//fseek(fp,riffHeader->dwSize, SEEK_SET);
 	//fread(&hdr, 0, sizeof(MainAVIHeader), fp);
 	printf("lol");
@@ -233,6 +289,6 @@ void main()
 	
 
 	loader(buffer, bufsize);
-	free(buffer);
+	delete[] buffer;
 }
 

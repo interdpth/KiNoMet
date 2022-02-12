@@ -3,52 +3,38 @@
 #define CINEPAK_H__
 
 #include <stdint.h>
+#define ICCVID_MAGIC mmioFOURCC('c', 'v', 'i', 'd')
+#define compare_fourcc(fcc1, fcc2) (((fcc1)^(fcc2))&~0x20202020)
 
-struct Cinepak_YUV_Vector {
-	uint8_t y[4];
-	uint8_t u, v;
-};
+#define DBUG    0
+#define MAX_STRIPS 32
 
-enum {
-	kCinepakV1 = 0,
-	kCinepakV4 = 1
-};
+#define ERR printf
+#define WARN printf
+#define TRACE printf
+/* ------------------------------------------------------------------------ */
+typedef struct
+{
+    unsigned char y0, y1, y2, y3;
+    char u, v;
+    unsigned char r[4], g[4], b[4];
+} cvid_codebook;
 
-struct CinepakDecoder {
-	enum {
-		kMaxStrips = 2,
-		kMaxVectors = 2048
-	};
+typedef struct {
+    cvid_codebook* v4_codebook[MAX_STRIPS];
+    cvid_codebook* v1_codebook[MAX_STRIPS];
+    unsigned int strip_num;
+} cinepak_info;
 
-	uint8_t readByte() {
-		return *_data++;
-	}
+typedef struct _ICCVID_Info
+{
+    int         dwMagic;
+    int           bits_per_pixel;
+    cinepak_info* cvinfo;
+} ICCVID_Info;
 
-	uint16_t readWord() {
-		uint16_t value = (_data[0] << 8) | _data[1];
-		_data += 2;
-		return value;
-	}
-
-	uint32_t readLong() {
-		uint32_t value = (_data[0] << 24) | (_data[1] << 16) | (_data[2] << 8) | _data[3];
-		_data += 4;
-		return value;
-	}
-
-	void decodeFrameV4(Cinepak_YUV_Vector* v0, Cinepak_YUV_Vector* v1, Cinepak_YUV_Vector* v2, Cinepak_YUV_Vector* v3);
-	void decodeFrameV1(Cinepak_YUV_Vector* v);
-	void decodeVector(Cinepak_YUV_Vector* v);
-	void decode(const uint8_t* data, int dataSize);
-
-	const uint8_t* _data;
-	Cinepak_YUV_Vector _vectors[2][kMaxStrips][kMaxVectors];
-	int _w, _h;
-	int _xPos, _yPos, _yMax;
-
-	uint8_t* _yuvFrame;
-	int _yuvPitch;
-	int _yuvW, _yuvH;
-};
-
+void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size,
+    unsigned char* frame, unsigned int width, unsigned int height, int bit_per_pixel);
+cinepak_info* decode_cinepak_init(void);
+void free_cvinfo(cinepak_info* cvinfo);
 #endif

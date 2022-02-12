@@ -111,7 +111,7 @@ namespace KiNoMetSharp
 
             string videoFile = "Alie.avi";
             uint fr = (ShellFile.FromFilePath(videoFile).Properties.System.Video.FrameRate.Value == null ? 0 : ShellFile.FromFilePath(videoFile).Properties.System.Video.FrameRate.Value.Value) / 1000;
-            int targetFps = 5;
+            int targetFps = 20;
 
             var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -crf 31 -filter:v fps=fps={targetFps} {Processing}\\{videoFile}" };
 
