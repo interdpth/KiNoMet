@@ -80,10 +80,8 @@ static unsigned char* in_buffer, uiclip[1024], * uiclp = NULL;
 
 #define get_byte() *(in_buffer++)
 #define skip_byte() in_buffer++
-#define get_word() ((unsigned short)(in_buffer += 2, \
-    (in_buffer[-2] << 8 | in_buffer[-1])))
-#define get_long() ((unsigned long)(in_buffer += 4, \
-    (in_buffer[-4] << 24 | in_buffer[-3] << 16 | in_buffer[-2] << 8 | in_buffer[-1])))
+#define get_word() ((unsigned short)(in_buffer += 2,  (in_buffer[-2] << 8 | in_buffer[-1])))
+#define get_long() ((unsigned long)(in_buffer += 4,  (in_buffer[-4] << 24 | in_buffer[-3] << 16 | in_buffer[-2] << 8 | in_buffer[-1])))
 
 
 /* ---------------------------------------------------------------------- */

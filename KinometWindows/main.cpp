@@ -1,6 +1,6 @@
 #include "KiNoMet.h"
 #include "gbavideo.h"
-
+#include <stdio.h>
 int frameHandled;
 void handleFrame(unsigned char* framePointer)
 {

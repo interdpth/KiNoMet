@@ -143,14 +143,18 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 	if (tagIdx1 != TAG_IDX1)  error((char*)"Invalid avi");
 	buf->Read(&size, 4);
 
-
+	//Do we make it here? 
+	int debug = 0xFFFF1Daa;
+	
 	int numFrames = size / sizeof(_avioldindex_entry);
-	unsigned char* rgb = (unsigned char*)malloc(hdrz->dwWidth * hdrz->dwHeight * 2);
+	int sizescr = hdrz->dwWidth * hdrz->dwHeight * 2;
+	unsigned char* rgb = (unsigned char*)malloc(sizescr);
 	cinepak_info* ci = decode_cinepak_init();
 	//It's frame time.
-	_avioldindex_entry* cur = (_avioldindex_entry*)buf->GetCurrentBuffer();
+	_avioldindex_entry* idxList = (_avioldindex_entry*)buf->GetCurrentBuffer();
 	for (int i = 0; i < numFrames; i++)
 	{
+		_avioldindex_entry* cur = &idxList[i];
 		//so we will point to
 		//hello what are we
 		if (cur->FourCC != TAG_00DC) continue;
@@ -178,6 +182,7 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 		cur++;
 
 	}
+	free(rgb);
 	free_cvinfo(ci);
 	//fseek(fp,riffHeader->dwSize, SEEK_SET);
 	//fread(&hdr, 0, sizeof(MainAVIHeader), fp);
