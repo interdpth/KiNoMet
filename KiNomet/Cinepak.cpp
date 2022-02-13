@@ -49,12 +49,25 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <io.h>
-#include <stdio.h>
 
 #include "Cinepak.h"
 
 
+void Trace(char* a, ...)
+{
+}
+
+void ERR(char* a, ...)
+
+{
+}
+#ifdef GBA
+    void memcpy(void* a, void* b, int len)
+{
+    for (int i = 0; i < len; i++) ((unsigned char*)b)[i] = ((unsigned char*)a)[i];
+
+}
+#endif
 /* ------------------------------------------------------------------------ */
 static unsigned char* in_buffer, uiclip[1024], * uiclp = NULL;
 

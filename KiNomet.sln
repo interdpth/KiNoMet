@@ -5,7 +5,11 @@ VisualStudioVersion = 16.0.31702.278
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KiNomet", "KiNomet\KiNomet.vcxproj", "{580CD733-5928-44C9-A293-234A8D0D0590}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KiNoMetSharp", "KiNoMetSharp\KiNoMetSharp.csproj", "{F43A8B8E-23AA-4E16-BB8A-2C3B6D1CDA48}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KiNoMetSharp", "KiNoMetSharp\KiNoMetSharp.csproj", "{F43A8B8E-23AA-4E16-BB8A-2C3B6D1CDA48}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KinoMetGBA", "KinoMetGBA\KinoMetGBA.vcxproj", "{B10989DB-225E-4085-AEB7-69CF4E013FDC}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KinometWindows", "KinometWindows\KinometWindows.vcxproj", "{E67D0175-528B-426F-B79D-2735F00E68AF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +43,26 @@ Global
 		{F43A8B8E-23AA-4E16-BB8A-2C3B6D1CDA48}.Release|x64.Build.0 = Release|Any CPU
 		{F43A8B8E-23AA-4E16-BB8A-2C3B6D1CDA48}.Release|x86.ActiveCfg = Release|Any CPU
 		{F43A8B8E-23AA-4E16-BB8A-2C3B6D1CDA48}.Release|x86.Build.0 = Release|Any CPU
+		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Debug|x64.ActiveCfg = Debug|x64
+		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Debug|x64.Build.0 = Debug|x64
+		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Debug|x86.ActiveCfg = Debug|Win32
+		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Debug|x86.Build.0 = Debug|Win32
+		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Release|Any CPU.ActiveCfg = Release|Win32
+		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Release|x64.ActiveCfg = Release|x64
+		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Release|x64.Build.0 = Release|x64
+		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Release|x86.ActiveCfg = Release|Win32
+		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Release|x86.Build.0 = Release|Win32
+		{E67D0175-528B-426F-B79D-2735F00E68AF}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{E67D0175-528B-426F-B79D-2735F00E68AF}.Debug|x64.ActiveCfg = Debug|x64
+		{E67D0175-528B-426F-B79D-2735F00E68AF}.Debug|x64.Build.0 = Debug|x64
+		{E67D0175-528B-426F-B79D-2735F00E68AF}.Debug|x86.ActiveCfg = Debug|Win32
+		{E67D0175-528B-426F-B79D-2735F00E68AF}.Debug|x86.Build.0 = Debug|Win32
+		{E67D0175-528B-426F-B79D-2735F00E68AF}.Release|Any CPU.ActiveCfg = Release|Win32
+		{E67D0175-528B-426F-B79D-2735F00E68AF}.Release|x64.ActiveCfg = Release|x64
+		{E67D0175-528B-426F-B79D-2735F00E68AF}.Release|x64.Build.0 = Release|x64
+		{E67D0175-528B-426F-B79D-2735F00E68AF}.Release|x86.ActiveCfg = Release|Win32
+		{E67D0175-528B-426F-B79D-2735F00E68AF}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

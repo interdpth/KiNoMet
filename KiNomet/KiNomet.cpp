@@ -1,94 +1,11 @@
 // KiNomet.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
-
-#include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <io.h>
-#include <stdio.h>
-#include <Windows.h>
-#include "SmallBuffer.h"
-#include "Cinepak.h"
-#pragma pack(1)
-#define 	AVIIF_LIST   0x00000001
-#define 	AVIIF_KEYFRAME   0x00000010
-#define 	AVIIF_NO_TIME   0x00000100
-//https://cdn.hackaday.io/files/274271173436768/avi.pdf
-/*
-A chunk containing video, audio or subtitle data uses a dwFourCC containing 2 hexadecimal
-digits specifying the stream number and 2 letters specifying the data type (dc = video, wb
-= audio, tx = text). The values dwFourCC and dwSize have the same meaning in both of
-the structures:
-dwFourCC describes the type of the chunk (for example 'hdrl' for 'header list'), and dwSize
-contains the size of the chunk or list, including the rst byte after the dwSize value. In the
-case of Lists, this includes the 4 bytes taken by dwFourCC!
-The value of dwList can be 'RIFF' ('RIFF-List') or 'LIST' ('List').
-
-
-*/
-/*a. The data is always padded to nearest WORD boundary. ckSize gives the size of the valid data in the chunk; it does not include the padding, the size of ckID, or the size of ckSize.*/
-typedef struct {
-
-	DWORD dwFourCC;
-	DWORD dwSize;
-	BYTE* data;// [dwSize] ; // contains headers or video/audio data
-} RIFF, CHUNK;
-
-typedef struct {
-	DWORD dwList;
-	DWORD dwSize;
-	DWORD dwFourCC;
-	BYTE* data;// [dwSize - 4] ; // contains Lists and Chunks
-} LIST;
-typedef struct {
-	FOURCC fccType;
-	FOURCC fccHandler;
-	DWORD  dwFlags;
-	WORD   wPriority;
-	WORD   wLanguage;
-	DWORD  dwInitialFrames;
-	DWORD  dwScale;
-	DWORD  dwRate;
-	DWORD  dwStart;
-	DWORD  dwLength;
-	DWORD  dwSuggestedBufferSize;
-	DWORD  dwQuality;
-	DWORD  dwSampleSize;
-	RECT   rcFrame;
-} AVIStreamHeader;
-typedef struct
-{
-	DWORD dwMicroSecPerFrame; // frame display rate (or 0)
-	DWORD dwMaxBytesPerSec; // max. transfer rate
-	DWORD dwPaddingGranularity; // pad to multiples of this
-	// size;
-	DWORD dwFlags; // the ever-present flags
-	DWORD dwTotalFrames; // # frames in file
-	DWORD dwInitialFrames;
-	DWORD dwStreams;
-	DWORD dwSuggestedBufferSize;
-	DWORD dwWidth;
-	DWORD dwHeight;
-	DWORD dwReserved[4];
-} MainAVIHeader;
-
-typedef struct {
-	unsigned int FourCC;
-	unsigned int dwFlags;
-	unsigned int dwOffset;
-	unsigned int dwSize;
-}_avioldindex_entry;
-
-CHUNK* getCHUNK(SmallBuffer * fp)
+#include "KiNoMet.h"
+CHUNK* getCHUNK(SmallBuffer* fp)
 {
 	CHUNK* me = new RIFF();
 	fp->Read(&me->dwFourCC, 4);
-	
+
 	fp->Read(&me->dwSize, 4);
 	me->data = fp->GetCurrentBuffer();
 
@@ -113,18 +30,18 @@ CHUNK* getCHUNK(SmallBuffer * fp)
 
 void error(char* str)
 {
-	printf("%s",str);
+	printf("%s", str);
 	exit(-1);
 }
 
 
-void loader(unsigned char* file, int size)
+void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 {
 	SmallBuffer* buf = new SmallBuffer(file, size);
-	MainAVIHeader *hdr;
+	MainAVIHeader* hdr;
 	//memset(&hdr, 0, sizeof(MainAVIHeader));
 	bool bValid = false;
-	int pos = 0; 
+	int pos = 0;
 
 	unsigned int tag = 0;
 	buf->Read(&tag, 4);
@@ -150,7 +67,7 @@ void loader(unsigned char* file, int size)
 	size = 0;
 	buf->Read(&size, 4);
 
-	MainAVIHeader* hdrz = (MainAVIHeader * )buf->GetCurrentBuffer();
+	MainAVIHeader* hdrz = (MainAVIHeader*)buf->GetCurrentBuffer();
 	buf->Seek(size, SEEK_CUR);
 	tagList = 0;
 	buf->Read(&tagList, 4);
@@ -158,20 +75,20 @@ void loader(unsigned char* file, int size)
 	buf->Read(&size, 4);
 	unsigned int strlTag = 0;
 	buf->Read(&strlTag, 4);
-	
+
 	if (strlTag != TAG_STRL)  error((char*)"Invalid avi");
 
 	unsigned int strhTag = 0;
 	buf->Read(&strhTag, 4);
 	buf->Read(&size, 4);
 	if (strhTag != TAG_STRH)  error((char*)"Invalid avi");
-	AVIStreamHeader* sthread = (AVIStreamHeader * )buf->GetCurrentBuffer();
+	AVIStreamHeader* sthread = (AVIStreamHeader*)buf->GetCurrentBuffer();
 	buf->Seek(size, SEEK_CUR);
 	unsigned int strfTag = 0;
 	buf->Read(&strfTag, 4);
 	buf->Read(&size, 4);
 	if (strfTag != TAG_STRF)  error((char*)"Invalid avi");
-	BITMAPINFOHEADER* bmpinf = (BITMAPINFOHEADER * )buf->GetCurrentBuffer();
+	BITMAPINFOHEADER* bmpinf = (BITMAPINFOHEADER*)buf->GetCurrentBuffer();
 	buf->Seek(size, SEEK_CUR);
 	//should be junk? 
 
@@ -227,11 +144,11 @@ void loader(unsigned char* file, int size)
 	buf->Read(&size, 4);
 
 
-	int numFrames = size/sizeof(_avioldindex_entry);
+	int numFrames = size / sizeof(_avioldindex_entry);
 	unsigned char* rgb = (unsigned char*)malloc(hdrz->dwWidth * hdrz->dwHeight * 2);
 	cinepak_info* ci = decode_cinepak_init();
 	//It's frame time.
-	_avioldindex_entry* cur = (_avioldindex_entry * )buf->GetCurrentBuffer();
+	_avioldindex_entry* cur = (_avioldindex_entry*)buf->GetCurrentBuffer();
 	for (int i = 0; i < numFrames; i++)
 	{
 		//so we will point to
@@ -239,56 +156,32 @@ void loader(unsigned char* file, int size)
 		if (cur->FourCC != TAG_00DC) continue;
 
 		//sanity stuff.
-		unsigned char* frame = moviPointer + cur->dwOffset-4;
+		unsigned char* frame = moviPointer + cur->dwOffset - 4;
 		int fourcc = *(unsigned long*)frame; frame += 4;
 
 		int framesize = *(unsigned long*)frame; frame += 4;
 
-		
+
 
 		if (fourcc != cur->FourCC) continue;
 		if (framesize != cur->dwSize) continue;
-	
-		char buff[256];
-		//sprintf(buff, "rawfilecinepakc%d", i);
-		//FILE* fp = fopen(buff, "wb");
-		//
-		//fclose(fp);
 
-		sprintf(buff, "rawfilecinepaku%d", i);
-		FILE* fp = fopen(buff, "wb");
+
 		//we are for now rgb16 :(
-		if (fp) {
-			decode_cinepak(ci, frame, size, rgb, hdrz->dwWidth, hdrz->dwHeight, 16);
 
-			fwrite(rgb, 1, hdrz->dwWidth * hdrz->dwHeight * 2, fp);
+		decode_cinepak(ci, frame, size, rgb, hdrz->dwWidth, hdrz->dwHeight, 16);
 
-			fclose(fp);
-		}
+		//Hello we have a full framedata 
+		callback(rgb);
+
+
 		cur++;
 
 	}
-		free(rgb);
-		free_cvinfo(ci);
+	free(rgb);
+	free_cvinfo(ci);
 	//fseek(fp,riffHeader->dwSize, SEEK_SET);
 	//fread(&hdr, 0, sizeof(MainAVIHeader), fp);
 	printf("lol");
-}
-
-void main()
-{
-	//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
-
-	FILE* fp = fopen((char*)"F:\\Processing\\alie2.avi", "rb");
-	fseek(fp, 0, SEEK_END);
-	int bufsize = ftell(fp);
-	unsigned char* buffer = new unsigned char[bufsize];
-	fseek(fp, 0, SEEK_SET);
-	fread(buffer, 1, bufsize, fp);
-	fclose(fp);
-	
-
-	loader(buffer, bufsize);
-	delete[] buffer;
 }
 

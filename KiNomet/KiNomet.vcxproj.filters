@@ -38,6 +38,9 @@
     <ClInclude Include="SmallBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="KiNoMet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Documentation.txt" />
