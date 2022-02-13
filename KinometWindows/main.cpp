@@ -14,6 +14,8 @@ void handleFrame(unsigned char* framePointer)
 		fclose(fp);
 	}
 }
+
+
 int main(int arc, char* argv[])
 {
 	//this will be on gba, so we're just gonna load the whole thing in and work with pointers.

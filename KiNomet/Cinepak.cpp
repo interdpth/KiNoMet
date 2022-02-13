@@ -130,7 +130,7 @@ static inline void read_codebook(cvid_codebook* c, int mode)
 //#define MAKECOLOUR16(r,g,b) (((r) >> 3) << 11)| (((g) >> 2) << 5)| (((b) >> 3) << 0)
 //#define MAKECOLOUR15(r,g,b) (((r) >> 3) << 10)| (((g) >> 3) << 5)| (((b) >> 3) << 0)
 unsigned short MAKECOLOUR16(int r, int g, int b) {
-	return (((b >> 3) & 31) | (((g >> 3) & 31) << 5) | (((r >> 3) & 31) << 10));
+	return (((r >> 3) & 31) | (((g >> 3) & 31) << 5) | (((b >> 3) & 31) << 10));
 }
 unsigned short MAKECOLOUR15(int r, int g, int b) {
 	return MAKECOLOUR16(r, g, b) & 0x7FFF;
@@ -164,7 +164,7 @@ static void cvid_v4_32(unsigned char* frm, unsigned char* limit, int stride, cvi
 #ifndef ORIGINAL
 	int row_inc = -stride / 4;
 #else
-	int row_inc = stride / 4;
+	int row_inc =-stride / 4;
 #endif
 	int x, y;
 	cvid_codebook* cb[] = { cb0,cb1,cb2,cb3 };
