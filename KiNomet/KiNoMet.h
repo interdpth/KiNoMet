@@ -5,6 +5,7 @@
 #ifndef GBA
 #include <Windows.h>
 #else
+#include "Gba.h"
 typedef unsigned long       DWORD;
 typedef unsigned long       LONG;
 typedef int                 BOOL;

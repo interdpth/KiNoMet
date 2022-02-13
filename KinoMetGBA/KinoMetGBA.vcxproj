@@ -18,6 +18,13 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="gbavideo.cpp" />
+    <ClCompile Include="kinomet.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="gbavideo.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>

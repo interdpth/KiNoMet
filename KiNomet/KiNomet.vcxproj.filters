@@ -30,6 +30,9 @@
     <ClCompile Include="SmallBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Gba.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cinepak.h">
@@ -42,6 +45,9 @@
       <Filter>Includes</Filter>
     </ClInclude>
     <ClInclude Include="SmallBuffer.h">
+      <Filter>Includes</Filter>
+    </ClInclude>
+    <ClInclude Include="Gba.h">
       <Filter>Includes</Filter>
     </ClInclude>
   </ItemGroup>

@@ -141,12 +141,14 @@
   <ItemGroup>
     <ClCompile Include="Cinepak.cpp" />
     <ClCompile Include="CVideo.interesting" />
+    <ClCompile Include="Gba.c" />
     <ClCompile Include="KiNomet.cpp" />
     <ClCompile Include="SmallBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cinepak.h" />
     <ClInclude Include="CVideo.h" />
+    <ClInclude Include="Gba.h" />
     <ClInclude Include="KiNoMet.h" />
     <ClInclude Include="SmallBuffer.h" />
   </ItemGroup>

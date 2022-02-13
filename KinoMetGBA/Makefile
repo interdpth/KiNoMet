@@ -26,6 +26,7 @@ SOURCES		:=.
 INCLUDES	:= include
 INCLUDES    += "C:\devkitPro\devkitARM\arm-none-eabi\include\machine"
 INCLUDES    += "C:\Users\Endeavor3\Documents\GitHub\KiNoMet\KiNomet"
+INCLUDES    += .
 DATA		:= data
 MUSIC		:=
 

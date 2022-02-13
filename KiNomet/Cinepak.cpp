@@ -49,7 +49,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
+#include "Gba.h"
 #include "Cinepak.h"
 
 
@@ -64,10 +64,9 @@ void ERR(char* a, ...)
 #ifdef GBA
 void memcpy(void* src, void* dst, int len)
 {
-
-	//okay whatever
-
-	for (int i = 0; i < len / 2; i++) { ((unsigned short*)dst)[i] = ((unsigned short*)src)[i]; }
+	*dma3_source = (unsigned int)src;
+	*dma3_destination = (unsigned int)dst;
+	*dma3_control = DMA_ENABLE | DMA_16 | len>>1;
 	if (len & 1)
 	{
 		((unsigned char*)dst)[len - 1] = ((unsigned char*)src)[len - 1];
