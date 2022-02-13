@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="audio.cpp" />
     <ClCompile Include="gbavideo.cpp" />
     <ClCompile Include="kinomet.cpp" />
   </ItemGroup>

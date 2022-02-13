@@ -148,7 +148,13 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 	
 	int numFrames = size / sizeof(_avioldindex_entry);
 	int sizescr = hdrz->dwWidth * hdrz->dwHeight * 2;
+//#ifndef  GBA
 	unsigned char* rgb = (unsigned char*)malloc(sizescr);
+//#else 
+//	unsigned char* rgb = (unsigned char*)0x6000000;
+//#endif // ! GBA
+
+
 	cinepak_info* ci = decode_cinepak_init();
 	//It's frame time.
 	_avioldindex_entry* idxList = (_avioldindex_entry*)buf->GetCurrentBuffer();
@@ -182,7 +188,10 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 		cur++;
 
 	}
+	//#ifndef  GBA
 	free(rgb);
+
+//#endif // ! GBA
 	free_cvinfo(ci);
 	//fseek(fp,riffHeader->dwSize, SEEK_SET);
 	//fread(&hdr, 0, sizeof(MainAVIHeader), fp);

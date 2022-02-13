@@ -7,7 +7,7 @@
 #define compare_fourcc(fcc1, fcc2) (((fcc1)^(fcc2))&~0x20202020)
 
 #define DBUG    0
-#define MAX_STRIPS 32
+#define MAX_STRIPS 40
 
 #define ERR printf
 #define WARN printf

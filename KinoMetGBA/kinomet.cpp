@@ -83,7 +83,22 @@ void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount) {
 void handleFrame(unsigned char* framePointer)
 {
 	//we are gba so frame is always 240*160*2;
-	memcpy16_dma((unsigned short*)0x6000000, (unsigned short*)framePointer, 240 * 160);
+	//memcpy16_dma((unsigned short*)0x6000000, (unsigned short*)framePointer, 240 * 160);
+
+	/*for (int i = 0; i < 240*160; i++)
+	{
+		((unsigned short*)0x6000000)[i] = ((unsigned short*)framePointer)[240 * 160 - i];
+	}
+*/
+	int index = 0;
+	for (int y = 160 - 1; y >= 0; y--)
+	{
+		for (int x = 0; x < 240; x++)
+		{
+			((unsigned short*)0x6000000)[x + y*240] = ((unsigned short*)framePointer)[index++];
+		}
+	}
+
 	VBlankIntrWait();
 }
 /* play a sound with a number of samples, and sample rate on one channel 'A' or 'B' */
