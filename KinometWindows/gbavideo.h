@@ -4,9 +4,9 @@
 #define _VideoSrc_h_
 
 //---------------------------------------------------------------------------------
-extern  unsigned char VideoSrc[];
+extern  unsigned char Video[];
 
-extern int VideoSrc_size;
+extern int Video_size;
 
 //---------------------------------------------------------------------------------
 #endif //_VideoSrc_h_

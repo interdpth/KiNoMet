@@ -18,7 +18,7 @@ int main(int arc, char* argv[])
 {
 	//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
 	frameHandled = 0;
-	LoadAVI((unsigned char*)VideoSrc, VideoSrc_size, &handleFrame);
+	LoadAVI((unsigned char*)Video, Video_size, &handleFrame);
 	
 }
 
