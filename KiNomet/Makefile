@@ -17,8 +17,8 @@ include $(DEVKITARM)/gba_rules
 # all directories are relative to this makefile
 #---------------------------------------------------------------------------------
 BUILD		?=	release
-SOURCES		:=	../source
-INCLUDES	:=	../include
+SOURCES		:=	.
+INCLUDES	:=	.
 DATA		:=
 LIB		:=	$(TOPDIR)/gba/lib
 
@@ -33,13 +33,13 @@ CFLAGS	:=	-g -Wall -O2\
 		-ffast-math \
 		$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) 
+CFLAGS	+=	$(INCLUDE) -DGBA -shared
 CXXFLAGS	:=	$(CFLAGS)
 
 ASFLAGS	:=	-g $(ARCH)
 
 
-export GBABIN	:=	$(LIB)/KiNoMet.a
+export GBABIN	:=	$(LIB)/libKiNoMet.a
 
 
 

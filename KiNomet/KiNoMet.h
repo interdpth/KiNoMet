@@ -1,17 +1,30 @@
-#ifndef  KINOMET_H
+#ifndef KINOMET_H
 #define KINOMET_H
 
-#include <iostream>
-#include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <io.h>
-#include <stdio.h>
+#ifndef GBA
 #include <Windows.h>
+#else
+typedef unsigned long       DWORD;
+typedef unsigned long       LONG;
+typedef int                 BOOL;
+typedef unsigned char       BYTE;
+typedef unsigned short      WORD;
+typedef struct tagBITMAPINFOHEADER {
+	DWORD biSize;
+	LONG  biWidth;
+	LONG  biHeight;
+	WORD  biPlanes;
+	WORD  biBitCount;
+	DWORD biCompression;
+	DWORD biSizeImage;
+	LONG  biXPelsPerMeter;
+	LONG  biYPelsPerMeter;
+	DWORD biClrUsed;
+	DWORD biClrImportant;
+} BITMAPINFOHEADER, * LPBITMAPINFOHEADER, * PBITMAPINFOHEADER;
+
+#endif
 #include "SmallBuffer.h"
 #include "Cinepak.h"
 #pragma pack(1)
@@ -45,9 +58,19 @@ typedef struct {
 	DWORD dwFourCC;
 	BYTE* data;// [dwSize - 4] ; // contains Lists and Chunks
 } LIST;
+#ifdef GBA
+typedef struct tagRECT
+{
+	unsigned long    left;
+	unsigned long     top;
+	unsigned long     right;
+	unsigned long     bottom;
+} RECT;
+
+#endif
 typedef struct {
-	FOURCC fccType;
-	FOURCC fccHandler;
+	unsigned int fccType;
+	unsigned int fccHandler;
 	DWORD  dwFlags;
 	WORD   wPriority;
 	WORD   wLanguage;

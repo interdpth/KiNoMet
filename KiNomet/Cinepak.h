@@ -2,7 +2,7 @@
 #ifndef CINEPAK_H__
 #define CINEPAK_H__
 
-#include <stdint.h>
+
 #define ICCVID_MAGIC mmioFOURCC('c', 'v', 'i', 'd')
 #define compare_fourcc(fcc1, fcc2) (((fcc1)^(fcc2))&~0x20202020)
 

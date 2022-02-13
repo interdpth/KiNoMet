@@ -70,7 +70,7 @@ void memcpy(void* src, void* dst, int len)
 	for (int i = 0; i < len / 2; i++) { ((unsigned short*)dst)[i] = ((unsigned short*)src)[i]; }
 	if (len & 1)
 	{
-		dst[len - 1] = src[len - 1];
+		((unsigned char*)dst)[len - 1] = ((unsigned char*)src)[len - 1];
 	}
 
 }

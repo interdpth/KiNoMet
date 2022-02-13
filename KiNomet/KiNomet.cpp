@@ -13,6 +13,7 @@ CHUNK* getCHUNK(SmallBuffer* fp)
 	//fp->Read(me->data, me->dwSize);
 	return me;
 }
+
 #define TAG_RIFF 0x46464952//  'RIFF' is 52 49 46 46, but we'll read it as long because costs
 #define LIST_LIST 0x5453494C//  'LIST' is 4C 49 53 54, but we'll read it as long because costs
 
@@ -30,7 +31,7 @@ CHUNK* getCHUNK(SmallBuffer* fp)
 
 void error(char* str)
 {
-	printf("%s", str);
+	//printf("%s", str);
 	exit(-1);
 }
 
@@ -38,7 +39,6 @@ void error(char* str)
 void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 {
 	SmallBuffer* buf = new SmallBuffer(file, size);
-	MainAVIHeader* hdr;
 	//memset(&hdr, 0, sizeof(MainAVIHeader));
 	bool bValid = false;
 	int pos = 0;
@@ -178,10 +178,9 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 		cur++;
 
 	}
-	free(rgb);
 	free_cvinfo(ci);
 	//fseek(fp,riffHeader->dwSize, SEEK_SET);
 	//fread(&hdr, 0, sizeof(MainAVIHeader), fp);
-	printf("lol");
+	//printf("lol");
 }
 
