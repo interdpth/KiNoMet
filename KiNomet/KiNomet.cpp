@@ -151,7 +151,7 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 //#ifndef  GBA
 	unsigned char* rgb = (unsigned char*)malloc(sizescr);
 //#else 
-//	unsigned char* rgb = (unsigned char*)0x6000000;
+	//unsigned char* rgb = (unsigned char*)0x6000000;
 //#endif // ! GBA
 
 

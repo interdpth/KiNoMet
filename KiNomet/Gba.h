@@ -135,4 +135,6 @@ extern unsigned int channel_b_vblanks_remaining;
 #define INT_DMA3 	0x0800
 #define INT_BUTTON 	0x1000
 #define INT_CART 	0x2000
+
+#define IWRAM __attribute__((section(".iwram"), target("arm"), noinline))
 #endif

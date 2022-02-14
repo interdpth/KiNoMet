@@ -6,3 +6,4 @@ x64
 .vs
 KinometWindows\frame*
 *.bin
+/gba/*

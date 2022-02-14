@@ -296,8 +296,14 @@ static void cvid_v1_15(unsigned char* frm, unsigned char* limit, int stride, cvi
 
 
 /* ------------------------------------------------------------------------ */
+#ifdef GBA
+IWRAM static void cvid_v4_15(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb0,
+	cvid_codebook* cb1, cvid_codebook* cb2, cvid_codebook* cb3)
+#else 
 static void cvid_v4_15(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb0,
 	cvid_codebook* cb1, cvid_codebook* cb2, cvid_codebook* cb3)
+#endif
+
 {
 	unsigned short* vptr = (unsigned short*)frm;
 #ifndef ORIGINAL
@@ -372,9 +378,14 @@ typedef void (*fn_cvid_v4)(unsigned char* frm, unsigned char* limit, int stride,
  * bit_per_pixel - the number of bits per pixel allocated to the output
  *   frame (only 24 or 32 bpp are supported)
  */
-
+#ifdef GBA
+IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size,
+	unsigned char* frame, unsigned int width, unsigned int height, int bit_per_pixel)
+#else 
 void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size,
 	unsigned char* frame, unsigned int width, unsigned int height, int bit_per_pixel)
+#endif
+
 {
 	cvid_codebook* v4_codebook, * v1_codebook, * codebook = NULL;
 	unsigned long x, y, y_bottom, frame_flags, strips, cv_width, cv_height,

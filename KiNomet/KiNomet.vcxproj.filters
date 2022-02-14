@@ -38,9 +38,6 @@
     <ClInclude Include="Cinepak.h">
       <Filter>Includes</Filter>
     </ClInclude>
-    <ClInclude Include="CVideo.h">
-      <Filter>Includes</Filter>
-    </ClInclude>
     <ClInclude Include="KiNoMet.h">
       <Filter>Includes</Filter>
     </ClInclude>

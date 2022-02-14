@@ -147,7 +147,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cinepak.h" />
-    <ClInclude Include="CVideo.h" />
     <ClInclude Include="Gba.h" />
     <ClInclude Include="KiNoMet.h" />
     <ClInclude Include="SmallBuffer.h" />
