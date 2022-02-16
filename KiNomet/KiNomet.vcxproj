@@ -141,7 +141,7 @@
   <ItemGroup>
     <ClCompile Include="Cinepak.cpp" />
     <ClCompile Include="CVideo.interesting" />
-    <ClCompile Include="Gba.c" />
+    <ClCompile Include="Gba.cpp" />
     <ClCompile Include="KiNomet.cpp" />
     <ClCompile Include="SmallBuffer.cpp" />
   </ItemGroup>

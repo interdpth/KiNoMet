@@ -1,6 +1,13 @@
 #pragma once
 #ifndef GBA_H
 #define GBA_H
+#ifndef GBA
+#include <stdio.h>
+#include <stdlib.h>
+#else 
+void printf(char* message, ...);
+
+#endif
 extern volatile unsigned long* display_control;
 #define MODE0 0x00
 #define BG0_ENABLE 0x100
@@ -64,11 +71,15 @@ extern volatile unsigned short* timer0_control;
 
 /* this causes the DMA to repeat the transfer automatically on some interval */
 #define DMA_REPEAT 0x2000000
-
+#define VIDEOCAPTURE 0x20000000
 /* this causes the DMA repeat interval to be synced with timer 0 */
 #define DMA_SYNC_TO_TIMER 0x30000000
 
 /* pointers to the DMA source/dest locations and control registers */
+extern volatile unsigned int* dma0_source;
+extern volatile unsigned int* dma0_destination;
+extern volatile unsigned int* dma0_control;
+
 extern volatile unsigned int* dma1_source;
 extern volatile unsigned int* dma1_destination;
 extern volatile unsigned int* dma1_control;
@@ -137,4 +148,5 @@ extern unsigned int channel_b_vblanks_remaining;
 #define INT_CART 	0x2000
 
 #define IWRAM __attribute__((section(".iwram"), target("arm"), noinline))
+void* memcpy(void* dest, const void* src, int olen);
 #endif

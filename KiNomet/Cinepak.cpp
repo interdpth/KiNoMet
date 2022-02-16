@@ -40,15 +40,10 @@
   *       Tim Ferguson: http://www.csse.monash.edu.au/~timf/
   * ------------------------------------------------------------------------ */
 
+//#define ORIGINAL
 
-#include <iostream>
-#include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+
 #include "Gba.h"
 #include "Cinepak.h"
 
@@ -61,30 +56,32 @@ void ERR(char* a, ...)
 
 {
 }
-#ifdef GBA
-void memcpy(void* src, void* dst, int len)
-{
-	*dma3_source = (unsigned int)src;
-	*dma3_destination = (unsigned int)dst;
-	*dma3_control = DMA_ENABLE | DMA_16 | len>>1;
-	if (len & 1)
-	{
-		((unsigned char*)dst)[len - 1] = ((unsigned char*)src)[len - 1];
-	}
 
-}
-#endif
+
 /* ------------------------------------------------------------------------ */
 static unsigned char* in_buffer, uiclip[1024], * uiclp = NULL;
 
 #define get_byte() *(in_buffer++)
 #define skip_byte() in_buffer++
-#define get_word() ((unsigned short)(in_buffer += 2,  (in_buffer[-2] << 8 | in_buffer[-1])))
-#define get_long() ((unsigned long)(in_buffer += 4,  (in_buffer[-4] << 24 | in_buffer[-3] << 16 | in_buffer[-2] << 8 | in_buffer[-1])))
+unsigned short get_word() {//	((unsigned short)(in_buffer += 2, (in_buffer[-2] << 8 | in_buffer[-1])))
+
+	unsigned short val2 = (in_buffer[0] << 8 | in_buffer[1]);
+
+	in_buffer += 2;
+	return val2;
+}
 
 
+unsigned long get_long() {//	((unsigned short)(in_buffer += 2, (in_buffer[-2] << 8 | in_buffer[-1])))
+
+	unsigned long val2 = (in_buffer[0] << 24 | in_buffer[1] << 16 | in_buffer[2] << 8 | in_buffer[3]);
+
+	in_buffer += 4;
+
+	return val2;
+}
 /* ---------------------------------------------------------------------- */
-static inline void read_codebook(cvid_codebook* c, int mode)
+void read_codebook(cvid_codebook* c, int mode)
 {
 	int uvr, uvg, uvb;
 
@@ -137,106 +134,15 @@ unsigned short MAKECOLOUR32(int r, int g, int b) {
 }
 
 
-/* ------------------------------------------------------------------------ */
-static void cvid_v1_32(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb)
-{
-	unsigned long* vptr = (unsigned long*)frm;
-#ifndef ORIGINAL
-	int row_inc = -stride / 4;
-#else
-	int row_inc = stride / 4;
-#endif
-	int x, y;
 
-	/* fill 4x4 block of pixels with colour values from codebook */
-	for (y = 0; y < 4; y++)
-	{
-		if (&vptr[y * row_inc] < (unsigned long*)limit) return;
-		for (x = 0; x < 4; x++)
-			vptr[y * row_inc + x] = MAKECOLOUR32(cb->r[x / 2 + (y / 2) * 2], cb->g[x / 2 + (y / 2) * 2], cb->b[x / 2 + (y / 2) * 2]);
-	}
-}
 
 
 /* ------------------------------------------------------------------------ */
-static void cvid_v4_32(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb0,
-	cvid_codebook* cb1, cvid_codebook* cb2, cvid_codebook* cb3)
-{
-	unsigned long* vptr = (unsigned long*)frm;
-#ifndef ORIGINAL
-	int row_inc = -stride / 4;
-#else
-	int row_inc = stride / 4;
-#endif
-	int x, y;
-	cvid_codebook* cb[] = { cb0,cb1,cb2,cb3 };
-
-	/* fill 4x4 block of pixels with colour values from codebooks */
-	for (y = 0; y < 4; y++)
-	{
-		if (&vptr[y * row_inc] < (unsigned long*)limit) return;
-		for (x = 0; x < 4; x++)
-			vptr[y * row_inc + x] = MAKECOLOUR32(cb[x / 2 + (y / 2) * 2]->r[x % 2 + (y % 2) * 2], cb[x / 2 + (y / 2) * 2]->g[x % 2 + (y % 2) * 2], cb[x / 2 + (y / 2) * 2]->b[x % 2 + (y % 2) * 2]);
-	}
-}
-
-
-/* ------------------------------------------------------------------------ */
-static void cvid_v1_24(unsigned char* vptr, unsigned char* limit, int stride, cvid_codebook* cb)
-{
-#ifndef ORIGINAL
-	int row_inc = -stride;
-#else
-	int row_inc = stride;
-#endif
-	int x, y;
-
-	/* fill 4x4 block of pixels with colour values from codebook */
-	for (y = 0; y < 4; y++)
-	{
-		if (&vptr[y * row_inc] < limit) return;
-		for (x = 0; x < 4; x++)
-		{
-			vptr[y * row_inc + x * 3 + 0] = cb->b[x / 2 + (y / 2) * 2];
-			vptr[y * row_inc + x * 3 + 1] = cb->g[x / 2 + (y / 2) * 2];
-			vptr[y * row_inc + x * 3 + 2] = cb->r[x / 2 + (y / 2) * 2];
-		}
-	}
-}
-
-
-/* ------------------------------------------------------------------------ */
-static void cvid_v4_24(unsigned char* vptr, unsigned char* limit, int stride, cvid_codebook* cb0,
-	cvid_codebook* cb1, cvid_codebook* cb2, cvid_codebook* cb3)
-{
-#ifndef ORIGINAL
-	int row_inc = -stride;
-#else
-	int row_inc = stride;
-#endif
-	cvid_codebook* cb[] = { cb0,cb1,cb2,cb3 };
-	int x, y;
-
-	/* fill 4x4 block of pixels with colour values from codebooks */
-	for (y = 0; y < 4; y++)
-	{
-		if (&vptr[y * row_inc] < limit) return;
-		for (x = 0; x < 4; x++)
-		{
-			vptr[y * row_inc + x * 3 + 0] = cb[x / 2 + (y / 2) * 2]->b[x % 2 + (y % 2) * 2];
-			vptr[y * row_inc + x * 3 + 1] = cb[x / 2 + (y / 2) * 2]->g[x % 2 + (y % 2) * 2];
-			vptr[y * row_inc + x * 3 + 2] = cb[x / 2 + (y / 2) * 2]->r[x % 2 + (y % 2) * 2];
-		}
-	}
-}
-
-
-/* ------------------------------------------------------------------------ */
-static void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb)
+void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb)
 {
 	unsigned short* vptr = (unsigned short*)frm;
 #ifndef ORIGINAL
-	int row_inc = -stride / 2;
+	int row_inc = stride / 2;
 #else
 	int row_inc = stride / 2;
 #endif
@@ -245,7 +151,7 @@ static void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvi
 	/* fill 4x4 block of pixels with colour values from codebook */
 	for (y = 0; y < 4; y++)
 	{
-		if (&vptr[y * row_inc] < (unsigned short*)limit) return;
+		//if (&vptr[y * row_inc] < (unsigned short*)limit) return;
 		for (x = 0; x < 4; x++)
 			vptr[y * row_inc + x] = MAKECOLOUR16(cb->r[x / 2 + (y / 2) * 2], cb->g[x / 2 + (y / 2) * 2], cb->b[x / 2 + (y / 2) * 2]);
 	}
@@ -253,12 +159,12 @@ static void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvi
 
 
 /* ------------------------------------------------------------------------ */
-static void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb0,
+void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb0,
 	cvid_codebook* cb1, cvid_codebook* cb2, cvid_codebook* cb3)
 {
 	unsigned short* vptr = (unsigned short*)frm;
 #ifndef ORIGINAL
-	int row_inc = -stride / 2;
+	int row_inc = stride/2;
 #else
 	int row_inc = stride / 2;
 #endif
@@ -268,60 +174,12 @@ static void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvi
 	/* fill 4x4 block of pixels with colour values from codebooks */
 	for (y = 0; y < 4; y++)
 	{
-		if (&vptr[y * row_inc] < (unsigned short*)limit) return;
+		//if (&vptr[y * row_inc] < (unsigned short*)limit) return;
 		for (x = 0; x < 4; x++)
 			vptr[y * row_inc + x] = MAKECOLOUR16(cb[x / 2 + (y / 2) * 2]->r[x % 2 + (y % 2) * 2], cb[x / 2 + (y / 2) * 2]->g[x % 2 + (y % 2) * 2], cb[x / 2 + (y / 2) * 2]->b[x % 2 + (y % 2) * 2]);
 	}
 }
 
-/* ------------------------------------------------------------------------ */
-static void cvid_v1_15(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb)
-{
-	unsigned short* vptr = (unsigned short*)frm;
-#ifndef ORIGINAL
-	int row_inc = -stride / 2;
-#else
-	int row_inc = stride / 2;
-#endif
-	int x, y;
-
-	/* fill 4x4 block of pixels with colour values from codebook */
-	for (y = 0; y < 4; y++)
-	{
-		if (&vptr[y * row_inc] < (unsigned short*)limit) return;
-		for (x = 0; x < 4; x++)
-			vptr[y * row_inc + x] = MAKECOLOUR15(cb->r[x / 2 + (y / 2) * 2], cb->g[x / 2 + (y / 2) * 2], cb->b[x / 2 + (y / 2) * 2]);
-	}
-}
-
-
-/* ------------------------------------------------------------------------ */
-#ifdef GBA
-IWRAM static void cvid_v4_15(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb0,
-	cvid_codebook* cb1, cvid_codebook* cb2, cvid_codebook* cb3)
-#else 
-static void cvid_v4_15(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb0,
-	cvid_codebook* cb1, cvid_codebook* cb2, cvid_codebook* cb3)
-#endif
-
-{
-	unsigned short* vptr = (unsigned short*)frm;
-#ifndef ORIGINAL
-	int row_inc = -stride / 2;
-#else
-	int row_inc = stride / 2;
-#endif
-	cvid_codebook* cb[] = { cb0,cb1,cb2,cb3 };
-	int x, y;
-
-	/* fill 4x4 block of pixels with colour values from codebooks */
-	for (y = 0; y < 4; y++)
-	{
-		if (&vptr[y * row_inc] < (unsigned short*)limit) return;
-		for (x = 0; x < 4; x++)
-			vptr[y * row_inc + x] = MAKECOLOUR15(cb[x / 2 + (y / 2) * 2]->r[x % 2 + (y % 2) * 2], cb[x / 2 + (y / 2) * 2]->g[x % 2 + (y % 2) * 2], cb[x / 2 + (y / 2) * 2]->b[x % 2 + (y % 2) * 2]);
-	}
-}
 
 
 /* ------------------------------------------------------------------------
@@ -360,6 +218,7 @@ void free_cvinfo(cinepak_info* cvinfo)
 	free(cvinfo);
 }
 
+//current frame pointer, limit is lowest frame pointer can hit, stride is width in bytes, cb is the proper code book to use
 typedef void (*fn_cvid_v1)(unsigned char* frm, unsigned char* limit,
 	int stride, cvid_codebook* cb);
 typedef void (*fn_cvid_v4)(unsigned char* frm, unsigned char* limit, int stride,
@@ -379,10 +238,10 @@ typedef void (*fn_cvid_v4)(unsigned char* frm, unsigned char* limit, int stride,
  *   frame (only 24 or 32 bpp are supported)
  */
 #ifdef GBA
-IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size,
+IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	unsigned char* frame, unsigned int width, unsigned int height, int bit_per_pixel)
 #else 
-void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size,
+void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	unsigned char* frame, unsigned int width, unsigned int height, int bit_per_pixel)
 #endif
 
@@ -393,42 +252,19 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size,
 	long len, top_size, chunk_size;
 	unsigned char* frm_ptr;
 	unsigned int i, cur_strip;
-	int d0, d1, d2, d3, frm_stride, bpp = 3;
-	fn_cvid_v1 cvid_v1 = cvid_v1_24;
-	fn_cvid_v4 cvid_v4 = cvid_v4_24;
-
+	int d0, d1, d2, d3, frm_stride, bpp = 2;
+	fn_cvid_v1 cvid_v1 = cvid_v1_16;
+	fn_cvid_v4 cvid_v4 = cvid_v4_16;
+	unsigned char* frm_end = frame + size;
 	y = 0;
 	y_bottom = 0;
-	in_buffer = buf;
+	in_buffer = inputFrame;
 
 	frame_flags = get_byte();
 	len = get_byte() << 16;
 	len |= get_byte() << 8;
 	len |= get_byte();
 
-	switch (bit_per_pixel)
-	{
-	case 15:
-		bpp = 2;
-		cvid_v1 = cvid_v1_15;
-		cvid_v4 = cvid_v4_15;
-		break;
-	case 16:
-		bpp = 2;
-		cvid_v1 = cvid_v1_16;
-		cvid_v4 = cvid_v4_16;
-		break;
-	case 24:
-		bpp = 3;
-		cvid_v1 = cvid_v1_24;
-		cvid_v4 = cvid_v4_24;
-		break;
-	case 32:
-		bpp = 4;
-		cvid_v1 = cvid_v1_32;
-		cvid_v4 = cvid_v4_32;
-		break;
-	}
 
 	frm_stride = width * bpp;
 	frm_ptr = frame;
@@ -597,7 +433,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size,
 #ifdef ORIGINAL
 							cvid_v4(frm_ptr + (y * frm_stride + x * bpp), frm_end, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3);
 #else
-							cvid_v4(frm_ptr + ((height - 1 - y) * frm_stride + x * bpp), frame, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3);
+							cvid_v4(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3);
 #endif
 						}
 						else        /* 1 byte per block */
@@ -605,7 +441,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size,
 #ifdef ORIGINAL
 							cvid_v1(frm_ptr + (y * frm_stride + x * bpp), frm_end, frm_stride, v1_codebook + get_byte());
 #else
-							cvid_v1(frm_ptr + ((height - 1 - y) * frm_stride + x * bpp), frame, frm_stride, v1_codebook + get_byte());
+							cvid_v1(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v1_codebook + get_byte());
 #endif
 							chunk_size--;
 						}
@@ -653,7 +489,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size,
 #ifdef ORIGINAL
 								cvid_v4(frm_ptr + (y * frm_stride + x * bpp), frm_end, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3);
 #else
-								cvid_v4(frm_ptr + ((height - 1 - y) * frm_stride + x * bpp), frame, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3);
+								cvid_v4(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3);
 #endif
 							}
 							else        /* V1 */
@@ -662,7 +498,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size,
 #ifdef ORIGINAL
 								cvid_v1(frm_ptr + (y * frm_stride + x * bpp), frm_end, frm_stride, v1_codebook + get_byte());
 #else
-								cvid_v1(frm_ptr + ((height - 1 - y) * frm_stride + x * bpp), frame, frm_stride, v1_codebook + get_byte());
+								cvid_v1(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v1_codebook + get_byte());
 #endif
 							}
 						}        /* else SKIP */
@@ -686,7 +522,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size,
 #ifdef ORIGINAL
 					cvid_v1(frm_ptr + (y * frm_stride + x * bpp), frm_end, frm_stride, v1_codebook + get_byte());
 #else
-					cvid_v1(frm_ptr + ((height - 1 - y) * frm_stride + x * bpp), frame, frm_stride, v1_codebook + get_byte());
+					cvid_v1(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v1_codebook + get_byte());
 #endif
 					chunk_size--;
 					x += 4;
@@ -723,7 +559,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size,
 	}
 }
 //
-//static void ICCVID_dump_BITMAPINFO(const BITMAPINFO* bmi)
+//void ICCVID_dump_BITMAPINFO(const BITMAPINFO* bmi)
 //{
 //    TRACE(
 //        "planes = %d\n"

@@ -9,11 +9,11 @@ private:
 	int pos;
 	int max;
 public:
-
+	void SkipByte();
 	SmallBuffer(unsigned char* src, int len);
 	unsigned char* GetCurrentBuffer();
 	void Seek(int offset, int type);
     int Read(void* dst, int len);
 	int Pos();
-	
+	unsigned char GetByte();
 };

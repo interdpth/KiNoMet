@@ -2,12 +2,10 @@
 #define KINOMET_H
 
 #include <stdlib.h>
-#ifndef GBA
-#include <Windows.h>
-#else
+
 #include "Gba.h"
-typedef unsigned long       DWORD;
-typedef unsigned long       LONG;
+typedef unsigned int       DWORD;
+typedef unsigned int       LONG;
 typedef int                 BOOL;
 typedef unsigned char       BYTE;
 typedef unsigned short      WORD;
@@ -25,7 +23,7 @@ typedef struct tagBITMAPINFOHEADER {
 	DWORD biClrImportant;
 } BITMAPINFOHEADER, * LPBITMAPINFOHEADER, * PBITMAPINFOHEADER;
 
-#endif
+
 #include "SmallBuffer.h"
 #include "Cinepak.h"
 #pragma pack(1)
@@ -83,7 +81,12 @@ typedef struct {
 	DWORD  dwSuggestedBufferSize;
 	DWORD  dwQuality;
 	DWORD  dwSampleSize;
-	RECT   rcFrame;
+	typedef struct {
+		short int left;
+		short int top;
+		short int right;
+		short int bottom;
+	}  rcFrame;
 } AVIStreamHeader;
 typedef struct
 {

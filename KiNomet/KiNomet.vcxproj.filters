@@ -30,7 +30,7 @@
     <ClCompile Include="SmallBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Gba.c">
+    <ClCompile Include="Gba.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

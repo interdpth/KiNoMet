@@ -73,7 +73,9 @@ namespace KiNoMetSharp
                         bw.Close();
                     }
 
-                    ROM.MakeSource(fn, data.ToArray(), $"{OutputFolder}");
+                    ROM.MakeSource(fn, data.ToArray(), OutputFolder);
+                    ROM.Write(OutputFolder, fn);
+
                 }
             }
         }
@@ -111,7 +113,7 @@ namespace KiNoMetSharp
 
             string videoFile = "Alie.avi";
             uint fr = (ShellFile.FromFilePath(videoFile).Properties.System.Video.FrameRate.Value == null ? 0 : ShellFile.FromFilePath(videoFile).Properties.System.Video.FrameRate.Value.Value) / 1000;
-            int targetFps = 20;
+            int targetFps = 5;
 
             var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -crf 31 -filter:v fps=fps={targetFps} {Processing}\\{videoFile}" };
 
@@ -137,6 +139,8 @@ namespace KiNoMetSharp
             P = Process.Start(PSI);
             P.WaitForExit();
             RenderAudio($"{Processing}\\alie.wav");
+            ROM.MakeSource("VideoFile", File.ReadAllBytes($"{Processing}\\Alie2.avi"), $"{OutputFolder}");
+            ROM.Write(OutputFolder, "alive");
         }
     }
 }

@@ -10,6 +10,20 @@ unsigned char* SmallBuffer::GetCurrentBuffer()
 {
 	return &start[pos];
 }
+
+unsigned char SmallBuffer::GetByte()
+{
+	return start[pos];
+}
+void SmallBuffer::SkipByte()
+{
+	if (pos + 1 > max)
+	{
+		return;
+	}
+
+	pos++;
+}
 void SmallBuffer::Seek(int offset, int type)
 {
 	switch (type)

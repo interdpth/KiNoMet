@@ -11,7 +11,7 @@ int vblankcounter = 0;
 void VBlankIntrWait()
 {
 
-	asm("swi 0x05");
+	__asm("swi 0x05");
 
 }
 /* this function is called each vblank to get the timing of sounds right */
@@ -29,27 +29,27 @@ ARM
 	if ((*REG_IF & INTERRUPT_VBLANK) == INTERRUPT_VBLANK) {
 
 		/* update channel A */
-		if (channel_a_vblanks_remaining == 0) {
-			/* restart the sound again when it runs out */
-			channel_a_vblanks_remaining = channel_a_total_vblanks;
-			*dma1_control = 0;
-			*dma1_source = (unsigned int)alie;
-			*dma1_control = DMA_DEST_FIXED | DMA_REPEAT | DMA_32 |
-				DMA_SYNC_TO_TIMER | DMA_ENABLE;
-		}
-		else {
-			channel_a_vblanks_remaining--;
-		}
+		//if (channel_a_vblanks_remaining == 0) {
+		//	/* restart the sound again when it runs out */
+		//	channel_a_vblanks_remaining = channel_a_total_vblanks;
+		//	*dma1_control = 0;
+		//	*dma1_source = (unsigned int)alie;
+		//	*dma1_control = DMA_DEST_FIXED | DMA_REPEAT | DMA_32 |
+		//		DMA_SYNC_TO_TIMER | DMA_ENABLE;
+		//}
+		//else {
+		//	channel_a_vblanks_remaining--;
+		//}
 
-		/* update channel B */
-		if (channel_b_vblanks_remaining == 0) {
-			/* disable the sound and DMA transfer on channel B */
-			*sound_control &= ~(SOUND_B_RIGHT_CHANNEL | SOUND_B_LEFT_CHANNEL | SOUND_B_FIFO_RESET);
-			*dma2_control = 0;
-		}
-		else {
-			channel_b_vblanks_remaining--;
-		}
+		///* update channel B */
+		//if (channel_b_vblanks_remaining == 0) {
+		//	/* disable the sound and DMA transfer on channel B */
+		//	*sound_control &= ~(SOUND_B_RIGHT_CHANNEL | SOUND_B_LEFT_CHANNEL | SOUND_B_FIFO_RESET);
+		//	*dma2_control = 0;
+		//}
+		//else {
+		//	channel_b_vblanks_remaining--;
+		//}
 
 	
 	}
@@ -76,33 +76,27 @@ void Setup()
 	*sound_control = 0;
 }
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount) {
-	*dma3_source = (unsigned int)source;
+	/**dma3_source = (unsigned int)source;
 	*dma3_destination = (unsigned int)dest;
-	*dma3_control = DMA_ENABLE | DMA_16 | amount;
+	*dma3_control = DMA_ENABLE | DMA_16 | amount;*/
+	for (int i = 0; i < amount; i++) dest[i] = source[i];
 }
+
 void handleFrame(unsigned char* framePointer)
 {
 	//we are gba so frame is always 240*160*2;
 	//memcpy16_dma((unsigned short*)0x6000000, (unsigned short*)framePointer, 240 * 160);
 
-	/*for (int i = 0; i < 240*160; i++)
-	{
-		((unsigned short*) 0x6000000)[i] = ((unsigned short*)framePointer)[240 * 160 - i];
-	}
-*/
-	int index = 0;
-	for (int y = 160 - 1; y >= 0; y--)
-	{
-		/*for (int x = 0; x < 240; x++)
-		{
-			((unsigned short*)0x6000000)[x + y*240] = ((unsigned short*)framePointer)[index++];
-		}*/
-		memcpy16_dma(
-			&((unsigned short*)0x6000000)[y * 240], &((unsigned short*)framePointer)[index], 240); index += 240;
-	}
+	//unsigned short* srcFrame = (unsigned short*)framePointer;
+	//for (int y = 160 - 1; y >= 0; y--)
+	//{
+	//	memcpy16_dma(
+	//		&((unsigned short*)0x6000000)[y * 240], srcFrame, 240); srcFrame += 240;
+	//}
 
 	VBlankIntrWait();
 }
+
 /* play a sound with a number of samples, and sample rate on one channel 'A' or 'B' */
 void play_sound(const signed char* sound, int total_samples, int sample_rate, char channel) {
 	/* start by disabling the timer and dma controller (to reset a previous sound) */
@@ -168,7 +162,7 @@ int main()
 	frameHandled = 0;
 	(*(unsigned short*)0x4000000) = 0x403;
 	Setup();
-	play_sound((const signed char*)alie, alie_size, 10512, 'A');
+//	play_sound((const signed char*)alie, alie_size, 10512, 'A');
 	LoadAVI((unsigned char*)Video, Video_size, &handleFrame);
 	return 0;
 }

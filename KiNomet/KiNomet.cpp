@@ -1,18 +1,7 @@
 // KiNomet.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 #include "KiNoMet.h"
-CHUNK* getCHUNK(SmallBuffer* fp)
-{
-	CHUNK* me = new RIFF();
-	fp->Read(&me->dwFourCC, 4);
 
-	fp->Read(&me->dwSize, 4);
-	me->data = fp->GetCurrentBuffer();
-
-	//me->data =(BYTE*) malloc(me->dwSize);
-	//fp->Read(me->data, me->dwSize);
-	return me;
-}
 
 #define TAG_RIFF 0x46464952//  'RIFF' is 52 49 46 46, but we'll read it as long because costs
 #define LIST_LIST 0x5453494C//  'LIST' is 4C 49 53 54, but we'll read it as long because costs
@@ -145,53 +134,63 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 
 	//Do we make it here? 
 	int debug = 0xFFFF1Daa;
-	
-	int numFrames = size / sizeof(_avioldindex_entry);
-	int sizescr = hdrz->dwWidth * hdrz->dwHeight * 2;
-//#ifndef  GBA
-	unsigned char* rgb = (unsigned char*)malloc(sizescr);
-//#else 
-	//unsigned char* rgb = (unsigned char*)0x6000000;
-//#endif // ! GBA
 
+	int numFrames = size / sizeof(_avioldindex_entry);
+	int sizescr = hdrz->dwWidth * 2 * hdrz->dwHeight;//Rgb //hdrz->dwWidth * hdrz->dwHeight * 3;
+#ifndef  GBA
+	unsigned char* rgb = (unsigned char*)malloc(sizescr);
+	#else 
+		unsigned char* rgb = (unsigned char*)0x6000000;
+	#endif // ! GBA
 
 	cinepak_info* ci = decode_cinepak_init();
 	//It's frame time.
 	_avioldindex_entry* idxList = (_avioldindex_entry*)buf->GetCurrentBuffer();
+
+	//Wait till a frame is drawn before we adance, there for. 
+
+
 	for (int i = 0; i < numFrames; i++)
 	{
 		_avioldindex_entry* cur = &idxList[i];
 		//so we will point to
 		//hello what are we
-		if (cur->FourCC != TAG_00DC) continue;
+		if (cur->FourCC != TAG_00DC)
+		{
+			int a = 1;
+			int b = 0;
+			a = b;
+		}
 
 		//sanity stuff.
 		unsigned char* frame = moviPointer + cur->dwOffset - 4;
+		//Buffer around the frame.
+
 		int fourcc = *(unsigned long*)frame; frame += 4;
 
 		int framesize = *(unsigned long*)frame; frame += 4;
 
-
-
 		if (fourcc != cur->FourCC) continue;
 		if (framesize != cur->dwSize) continue;
 
-
+		/*
+		#define 	AVIIF_LIST   0x00000001
+#define 	AVIIF_KEYFRAME   0x00000010
+#define 	AVIIF_NO_TIME   0x00000100
+		*/
 		//we are for now rgb16 :(
 
-		decode_cinepak(ci, frame, size, rgb, hdrz->dwWidth, hdrz->dwHeight, 16);
+		decode_cinepak(ci, frame, cur->dwSize, rgb, hdrz->dwWidth, hdrz->dwHeight, 16);
 
 		//Hello we have a full framedata 
 		callback(rgb);
 
 
-		cur++;
-
 	}
-	//#ifndef  GBA
+	#ifndef  GBA
 	free(rgb);
-
-//#endif // ! GBA
+	#endif
+	//#endif // ! GBA
 	free_cvinfo(ci);
 	//fseek(fp,riffHeader->dwSize, SEEK_SET);
 	//fread(&hdr, 0, sizeof(MainAVIHeader), fp);
