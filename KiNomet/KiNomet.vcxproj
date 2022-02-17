@@ -27,7 +27,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
@@ -140,16 +140,21 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Cinepak.cpp" />
-    <ClCompile Include="CVideo.interesting" />
     <ClCompile Include="Gba.cpp" />
+    <ClCompile Include="GbaMem.cpp" />
     <ClCompile Include="KiNomet.cpp" />
     <ClCompile Include="SmallBuffer.cpp" />
+    <ClCompile Include="TextEngine.cpp" />
+    <ClCompile Include="vera.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cinepak.h" />
     <ClInclude Include="Gba.h" />
+    <ClInclude Include="GbaMem.h" />
     <ClInclude Include="KiNoMet.h" />
     <ClInclude Include="SmallBuffer.h" />
+    <ClInclude Include="TextEngine.h" />
+    <ClInclude Include="vera.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Documentation.txt" />

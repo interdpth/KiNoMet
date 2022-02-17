@@ -1,8 +1,10 @@
 // KiNomet.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 #include "KiNoMet.h"
-
-
+#include "../KiNomet/Cinepak.h"
+#include "../KiNomet/TextEngine.h"
+#include "../KiNomet/vera.h"
+#include <stdio.h>
 #define TAG_RIFF 0x46464952//  'RIFF' is 52 49 46 46, but we'll read it as long because costs
 #define LIST_LIST 0x5453494C//  'LIST' is 4C 49 53 54, but we'll read it as long because costs
 
@@ -24,9 +26,164 @@ void error(char* str)
 	exit(-1);
 }
 
+static_assert(sizeof(int)==4, "int size is wrong");
+static_assert(sizeof(char)==1, "char size is wrong");
+static_assert(sizeof(short)==2, "short size is wrong");
+static_assert(sizeof(long)==4, "long size is wrong");
+static_assert(sizeof(unsigned int)==4, "unsigned int in size is wrong");
+static_assert(sizeof(unsigned char)==1, "unsigned char size is wrong");
+static_assert(sizeof(unsigned short)==2, "unsigned short size is wrong");
+static_assert(sizeof(unsigned long)==4, "unsigned long size is wrong");
+static_assert(sizeof(unsigned char*)==4, "unsigned char* size is wrong");
+static_assert(sizeof(unsigned short*)==4, "unsigned short* size is wrong");
+static_assert(sizeof(cvid_codebook)==18, "cvid_codebook size is wrong");
+//static_assert(sizeof(cinepak_info)==260, "cinepak_info size is wrong");
+static_assert(sizeof(BITMAPINFOHEADER)==40, "BITMAPINFOHEADER size is wrong");
+static_assert(sizeof(MainAVIHeader)==56, "MainAVIHeader size is wrong");
+static_assert(sizeof(_avioldindex_entry)==16, "_avioldindex_entry size is wrong");
+static_assert(sizeof(AVIStreamHeader)==56, "AVIStreamHeader size is wrong");
 
-void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
+
+void bmp16_line(int x1, int y1, int x2, int y2, unsigned long clr,
+	void* dstBase, int dstPitch)
 {
+	int ii, dx, dy, xstep, ystep, dd;
+	unsigned short* dst = (unsigned short*)(dstBase) + y1 * dstPitch + x1 * 2;
+	dstPitch /= 2;
+
+	// --- Normalization ---
+	if (x1 > x2)
+	{
+		xstep = -1;  dx = x1 - x2;
+	}
+	else
+	{
+		xstep = +1;  dx = x2 - x1;
+	}
+
+	if (y1 > y2)
+	{
+		ystep = -dstPitch;   dy = y1 - y2;
+	}
+	else
+	{
+		ystep = +dstPitch;   dy = y2 - y1;
+	}
+
+
+	// --- Drawing ---
+
+	if (dy == 0)         // Horizontal
+	{
+		for (ii = 0; ii <= dx; ii++)
+			dst[ii * xstep] = clr;
+	}
+	else if (dx == 0)    // Vertical
+	{
+		for (ii = 0; ii <= dy; ii++)
+			dst[ii * ystep] = clr;
+	}
+	else if (dx >= dy)     // Diagonal, slope <= 1
+	{
+		dd = 2 * dy - dx;
+
+		for (ii = 0; ii <= dx; ii++)
+		{
+			*dst = clr;
+			if (dd >= 0)
+			{
+				dd -= 2 * dx; dst += ystep;
+			}
+
+			dd += 2 * dy;
+			dst += xstep;
+		}
+	}
+	else                // Diagonal, slope > 1
+	{
+		dd = 2 * dx - dy;
+
+		for (ii = 0; ii <= dy; ii++)
+		{
+			*dst = clr;
+			if (dd >= 0)
+			{
+				dd -= 2 * dy; dst += xstep;
+			}
+
+			dd += 2 * dx;
+			dst += ystep;
+		}
+	}
+}
+unsigned short* vid_mem;
+//! Draw a rectangle on a 16bpp canvas
+void bmp16_rect(int left, int top, int right, int bottom, unsigned long clr,
+	void* dstBase, int dstPitch)
+{
+	int ix, iy;
+
+	int width = right - left, height = bottom - top;
+	unsigned short* dst = (unsigned short*)dstBase + top * dstPitch + left * 2;
+	dstPitch /= 2;
+
+	// --- Draw ---
+	for (iy = 0; iy < height; iy++)
+		for (ix = 0; ix < width; ix++)
+			dst[iy * dstPitch + ix] = clr;
+}
+
+//! Draw a frame on a 16bpp canvas
+void bmp16_frame(int left, int top, int right, int bottom, unsigned long clr,
+	void* dstBase, int dstPitch)
+{
+	// Frame is RB exclusive
+	right--;
+	bottom--;
+
+	bmp16_line(left, top, right, top, clr, dstBase, dstPitch);
+	bmp16_line(left, bottom, right, bottom, clr, dstBase, dstPitch);
+
+	bmp16_line(left, top, left, bottom, clr, dstBase, dstPitch);
+	bmp16_line(right, top, right, bottom, clr, dstBase, dstPitch);
+}
+
+//! Plot a single \a clr colored pixel in mode 3 at (\a x, \a y).
+void m3_plot(int x, int y, unsigned short clr)
+{
+	vid_mem[y * 240 + x] = clr;
+}
+
+//! Draw a \a clr colored line in mode 3.
+void m3_line(int x1, int y1, int x2, int y2, unsigned short clr)
+{
+	bmp16_line(x1, y1, x2, y2, clr, vid_mem, 240 * 2);
+}
+
+//! Draw a \a clr colored rectangle in mode 3.
+ void m3_rect(int left, int top, int right, int bottom, unsigned short clr)
+{
+	bmp16_rect(left, top, right, bottom, clr, vid_mem, 240 * 2);
+}
+
+//! Draw a \a clr colored frame in mode 3.
+void m3_frame(int left, int top, int right, int bottom, unsigned short clr)
+{
+	bmp16_frame(left, top, right, bottom, clr, vid_mem, 240 * 2);
+}
+void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
+{	
+	int sizescr = 240 * 2 * 160;//Rgb //hdrz->dwWidth * hdrz->dwHeight * 3;
+
+
+	unsigned char* rgb = (unsigned char*)malloc(sizescr);
+	//Init engine
+#ifdef GBA
+
+#endif
+
+
+	
 	SmallBuffer* buf = new SmallBuffer(file, size);
 	//memset(&hdr, 0, sizeof(MainAVIHeader));
 	bool bValid = false;
@@ -73,6 +230,11 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 	if (strhTag != TAG_STRH)  error((char*)"Invalid avi");
 	AVIStreamHeader* sthread = (AVIStreamHeader*)buf->GetCurrentBuffer();
 	buf->Seek(size, SEEK_CUR);
+	if (size != sizeof(AVIStreamHeader))
+	{
+		int diff = sizeof(AVIStreamHeader);
+		diff=--size;
+	}
 	unsigned int strfTag = 0;
 	buf->Read(&strfTag, 4);
 	buf->Read(&size, 4);
@@ -121,9 +283,7 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 	if (tagMovi != TAG_MOVI)  error((char*)"Invalid avi");
 	unsigned char* moviPointer = buf->GetCurrentBuffer();
 	buf->Seek(size - 4, SEEK_CUR);
-	//buf->Seek(size, SEEK_CUR);
-	//Once again a list? 
-	//hello movi
+
 
 	//we should be at idx1 
 	int tagIdx1 = 0;
@@ -136,12 +296,10 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 	int debug = 0xFFFF1Daa;
 
 	int numFrames = size / sizeof(_avioldindex_entry);
-	int sizescr = hdrz->dwWidth * 2 * hdrz->dwHeight;//Rgb //hdrz->dwWidth * hdrz->dwHeight * 3;
-#ifndef  GBA
-	unsigned char* rgb = (unsigned char*)malloc(sizescr);
-	#else 
-		unsigned char* rgb = (unsigned char*)0x6000000;
-	#endif // ! GBA
+
+//#else 
+//	unsigned char* rgb = (unsigned char*)0x6000000;
+//#endif // ! GBA
 
 	cinepak_info* ci = decode_cinepak_init();
 	//It's frame time.
@@ -171,6 +329,10 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 		int framesize = *(unsigned long*)frame; frame += 4;
 
 		if (fourcc != cur->FourCC) continue;
+		if (cur->dwSize == 0) {//This frame is empty, don't modify the current one just send it.
+		
+			continue;
+		}
 		if (framesize != cur->dwSize) continue;
 
 		/*
@@ -181,15 +343,19 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 		//we are for now rgb16 :(
 
 		decode_cinepak(ci, frame, cur->dwSize, rgb, hdrz->dwWidth, hdrz->dwHeight, 16);
+		vid_mem = (unsigned short*)rgb;
+#ifdef  GBA
+
+#endif //  GBA
 
 		//Hello we have a full framedata 
 		callback(rgb);
 
 
 	}
-	#ifndef  GBA
+//#ifndef  GBA
 	free(rgb);
-	#endif
+//#endif
 	//#endif // ! GBA
 	free_cvinfo(ci);
 	//fseek(fp,riffHeader->dwSize, SEEK_SET);

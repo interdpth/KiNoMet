@@ -1,5 +1,4 @@
 #include "Gba.h"
-#pragma once
 
 
 volatile unsigned long* display_control = (volatile unsigned long*)0x4000000;

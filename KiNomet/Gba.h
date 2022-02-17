@@ -8,6 +8,7 @@
 void printf(char* message, ...);
 
 #endif
+
 extern volatile unsigned long* display_control;
 #define MODE0 0x00
 #define BG0_ENABLE 0x100

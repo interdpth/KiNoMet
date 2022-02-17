@@ -21,9 +21,6 @@
     <ClCompile Include="KiNomet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CVideo.interesting">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Cinepak.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -31,6 +28,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Gba.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TextEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GbaMem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -46,6 +52,15 @@
     </ClInclude>
     <ClInclude Include="Gba.h">
       <Filter>Includes</Filter>
+    </ClInclude>
+    <ClInclude Include="TextEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GbaMem.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -32,7 +32,7 @@ CFLAGS	:=	-g -Wall -O2\
  		-fomit-frame-pointer\
 		$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DGBA -shared -fno-inline-small-functions
+CFLAGS	+=	$(INCLUDE) -DGBA -shared -fno-inline-small-functions -O0
 CXXFLAGS	:=	$(CFLAGS) -fno-inline-small-functions
 
 ASFLAGS	:=	-g $(ARCH)

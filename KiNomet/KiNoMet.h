@@ -1,3 +1,4 @@
+
 #ifndef KINOMET_H
 #define KINOMET_H
 
@@ -9,8 +10,12 @@ typedef unsigned int       LONG;
 typedef int                 BOOL;
 typedef unsigned char       BYTE;
 typedef unsigned short      WORD;
-typedef struct tagBITMAPINFOHEADER {
-	DWORD biSize;
+#pragma pack(push,2)
+#ifdef GBA
+typedef struct __attribute__((__packed__))
+tagBITMAPINFOHEADER {
+	
+		DWORD biSize;
 	LONG  biWidth;
 	LONG  biHeight;
 	WORD  biPlanes;
@@ -22,11 +27,28 @@ typedef struct tagBITMAPINFOHEADER {
 	DWORD biClrUsed;
 	DWORD biClrImportant;
 } BITMAPINFOHEADER, * LPBITMAPINFOHEADER, * PBITMAPINFOHEADER;
+#else
+typedef struct tagBITMAPINFOHEADER {
+	
+		DWORD biSize;
+	LONG  biWidth;
+	LONG  biHeight;
+	WORD  biPlanes;
+	WORD  biBitCount;
+	DWORD biCompression;
+	DWORD biSizeImage;
+	LONG  biXPelsPerMeter;
+	LONG  biYPelsPerMeter;
+	DWORD biClrUsed;
+	DWORD biClrImportant;
+} BITMAPINFOHEADER, * LPBITMAPINFOHEADER, * PBITMAPINFOHEADER;
+#endif
+
 
 
 #include "SmallBuffer.h"
 #include "Cinepak.h"
-#pragma pack(1)
+
 #define 	AVIIF_LIST   0x00000001
 #define 	AVIIF_KEYFRAME   0x00000010
 #define 	AVIIF_NO_TIME   0x00000100
@@ -44,6 +66,9 @@ The value of dwList can be 'RIFF' ('RIFF-List') or 'LIST' ('List').
 
 */
 /*a. The data is always padded to nearest WORD boundary. ckSize gives the size of the valid data in the chunk; it does not include the padding, the size of ckID, or the size of ckSize.*/
+
+/*
+* We do not use these structures, but they are here for reference
 typedef struct {
 
 	DWORD dwFourCC;
@@ -57,6 +82,7 @@ typedef struct {
 	DWORD dwFourCC;
 	BYTE* data;// [dwSize - 4] ; // contains Lists and Chunks
 } LIST;
+*/
 #ifdef GBA
 typedef struct tagRECT
 {
@@ -67,6 +93,30 @@ typedef struct tagRECT
 } RECT;
 
 #endif
+#ifdef GBA
+typedef struct __attribute__((__packed__))
+{
+	unsigned int fccType;
+	unsigned int fccHandler;
+	DWORD  dwFlags;
+	WORD   wPriority;
+	WORD   wLanguage;
+	DWORD  dwInitialFrames;
+	DWORD  dwScale;
+	DWORD  dwRate;
+	DWORD  dwStart;
+	DWORD  dwLength;
+	DWORD  dwSuggestedBufferSize;
+	DWORD  dwQuality;
+	DWORD  dwSampleSize;
+
+	short int left;
+	short int top;
+	short int right;
+	short int bottom;
+
+} AVIStreamHeader;
+#else
 typedef struct {
 	unsigned int fccType;
 	unsigned int fccHandler;
@@ -81,13 +131,33 @@ typedef struct {
 	DWORD  dwSuggestedBufferSize;
 	DWORD  dwQuality;
 	DWORD  dwSampleSize;
-	typedef struct {
-		short int left;
-		short int top;
-		short int right;
-		short int bottom;
-	}  rcFrame;
+
+	short int left;
+	short int top;
+	short int right;
+	short int bottom;
+
 } AVIStreamHeader;
+#endif
+
+#ifdef GBA
+typedef struct __attribute__((__packed__))
+{
+	DWORD dwMicroSecPerFrame; // frame display rate (or 0)
+	DWORD dwMaxBytesPerSec; // max. transfer rate
+	DWORD dwPaddingGranularity; // pad to multiples of this
+	// size;
+	DWORD dwFlags; // the ever-present flags
+	DWORD dwTotalFrames; // # frames in file
+	DWORD dwInitialFrames;
+	DWORD dwStreams;
+	DWORD dwSuggestedBufferSize;
+	DWORD dwWidth;
+	DWORD dwHeight;
+	DWORD dwReserved[4];
+} MainAVIHeader;
+
+#else
 typedef struct
 {
 	DWORD dwMicroSecPerFrame; // frame display rate (or 0)
@@ -104,11 +174,15 @@ typedef struct
 	DWORD dwReserved[4];
 } MainAVIHeader;
 
+#endif
+
 typedef struct {
 	unsigned int FourCC;
 	unsigned int dwFlags;
 	unsigned int dwOffset;
 	unsigned int dwSize;   
 }_avioldindex_entry;
+#pragma pack(pop)
 void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*));
+
 #endif // ! KINOMET_H

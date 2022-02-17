@@ -46,7 +46,7 @@
 
 #include "Gba.h"
 #include "Cinepak.h"
-
+unsigned char* basePointer;
 
 void Trace(char* a, ...)
 {
@@ -59,7 +59,23 @@ void ERR(char* a, ...)
 
 
 /* ------------------------------------------------------------------------ */
-static unsigned char* in_buffer, uiclip[1024], * uiclp = NULL;
+unsigned char* in_buffer;
+unsigned char uiclip[1024];
+unsigned char *uiclp = NULL;
+
+//basic tests
+static_assert(sizeof(uiclip) == 1024, "Size is not 1024");
+static_assert(sizeof(cvid_codebook) == 18, "Codebook Size is not 18 bytes");
+
+
+/*
+typedef struct {
+	cvid_codebook* v4_codebook[MAX_STRIPS];
+	cvid_codebook* v1_codebook[MAX_STRIPS];
+	unsigned int strip_num;
+} cinepak_info;
+
+*/
 
 #define get_byte() *(in_buffer++)
 #define skip_byte() in_buffer++
@@ -121,16 +137,16 @@ void read_codebook(cvid_codebook* c, int mode)
 /*#define MAKECOLOUR24(r,g,b) (((r) << 16) | ((g) << 8) | (b))*/
 //#define MAKECOLOUR16(r,g,b) (((r) >> 3) << 11)| (((g) >> 2) << 5)| (((b) >> 3) << 0)
 //#define MAKECOLOUR15(r,g,b) (((r) >> 3) << 10)| (((g) >> 3) << 5)| (((b) >> 3) << 0)
-unsigned short MAKECOLOUR16(int r, int g, int b) {
-	return ((((r >> 3) & 31) | (((g >> 3) & 31) << 5) | (((b >> 3) & 31) << 10))) & 0x7FFF;
+unsigned short MAKECOLOUR16(unsigned char r, unsigned  char g, unsigned char b) {
+	return ((((r >> 3) & 31) | (((g >> 3) & 31) << 5) | (((b >> 3) & 31) << 10)));
 }
-unsigned short MAKECOLOUR15(int r, int g, int b) {
-	return MAKECOLOUR16(r, g, b) & 0x7FFF;
+unsigned short MAKECOLOUR15unsigned(unsigned char r, unsigned char g, unsigned char b) {
+	return MAKECOLOUR16(r, g, b);
 }
 
 
-unsigned short MAKECOLOUR32(int r, int g, int b) {
-	return MAKECOLOUR16(r, g, b) & 0x7FFF;
+unsigned short MAKECOLOUR32(unsigned char r, unsigned char g, unsigned char b) {
+	return MAKECOLOUR16(r, g, b);
 }
 
 
@@ -141,20 +157,29 @@ unsigned short MAKECOLOUR32(int r, int g, int b) {
 void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb)
 {
 	unsigned short* vptr = (unsigned short*)frm;
-#ifndef ORIGINAL
-	int row_inc = stride / 2;
-#else
-	int row_inc = stride / 2;
-#endif
+
+	int width = stride / 2;
+
 	int x, y;
 
-	/* fill 4x4 block of pixels with colour values from codebook */
-	for (y = 0; y < 4; y++)
-	{
-		//if (&vptr[y * row_inc] < (unsigned short*)limit) return;
-		for (x = 0; x < 4; x++)
-			vptr[y * row_inc + x] = MAKECOLOUR16(cb->r[x / 2 + (y / 2) * 2], cb->g[x / 2 + (y / 2) * 2], cb->b[x / 2 + (y / 2) * 2]);
-	}
+
+	vptr[0 * width + 0] = MAKECOLOUR16(cb->r[0], cb->g[0], cb->b[0]);
+	vptr[0 * width + 1] = MAKECOLOUR16(cb->r[0], cb->g[0], cb->b[0]);
+	vptr[0 * width + 2] = MAKECOLOUR16(cb->r[1], cb->g[1], cb->b[1]);
+	vptr[0 * width + 3] = MAKECOLOUR16(cb->r[1], cb->g[1], cb->b[1]);
+	vptr[1 * width + 0] = MAKECOLOUR16(cb->r[0], cb->g[0], cb->b[0]);
+	vptr[1 * width + 1] = MAKECOLOUR16(cb->r[0], cb->g[0], cb->b[0]);
+	vptr[1 * width + 2] = MAKECOLOUR16(cb->r[1], cb->g[1], cb->b[1]);
+	vptr[1 * width + 3] = MAKECOLOUR16(cb->r[1], cb->g[1], cb->b[1]);
+	vptr[2 * width + 0] = MAKECOLOUR16(cb->r[2], cb->g[2], cb->b[2]);
+	vptr[2 * width + 1] = MAKECOLOUR16(cb->r[2], cb->g[2], cb->b[2]);
+	vptr[2 * width + 2] = MAKECOLOUR16(cb->r[3], cb->g[3], cb->b[3]);
+	vptr[2 * width + 3] = MAKECOLOUR16(cb->r[3], cb->g[3], cb->b[3]);
+	vptr[3 * width + 0] = MAKECOLOUR16(cb->r[2], cb->g[2], cb->b[2]);
+	vptr[3 * width + 1] = MAKECOLOUR16(cb->r[2], cb->g[2], cb->b[2]);
+	vptr[3 * width + 2] = MAKECOLOUR16(cb->r[3], cb->g[3], cb->b[3]);
+	vptr[3 * width + 3] = MAKECOLOUR16(cb->r[3], cb->g[3], cb->b[3]);
+
 }
 
 
@@ -164,23 +189,64 @@ void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 {
 	unsigned short* vptr = (unsigned short*)frm;
 #ifndef ORIGINAL
-	int row_inc = stride/2;
+	int width = stride/2;
 #else
 	int row_inc = stride / 2;
 #endif
 	cvid_codebook* cb[] = { cb0,cb1,cb2,cb3 };
 	int x, y;
 
-	/* fill 4x4 block of pixels with colour values from codebooks */
-	for (y = 0; y < 4; y++)
-	{
-		//if (&vptr[y * row_inc] < (unsigned short*)limit) return;
-		for (x = 0; x < 4; x++)
-			vptr[y * row_inc + x] = MAKECOLOUR16(cb[x / 2 + (y / 2) * 2]->r[x % 2 + (y % 2) * 2], cb[x / 2 + (y / 2) * 2]->g[x % 2 + (y % 2) * 2], cb[x / 2 + (y / 2) * 2]->b[x % 2 + (y % 2) * 2]);
-	}
+	///* fill 4x4 block of pixels with colour values from codebooks */
+	//for (y = 0; y < 4; y++)
+	//{
+	//	//if (&vptr[y * row_inc] < (unsigned short*)limit) return;
+	//	for (x = 0; x < 4; x++)
+	//	{
+	//		int xDiv2 = x / 2;
+	//		int yDiv2 = y / 2;
+	//		int xMod2 = x % 2;
+	//		int yMOd2 = y % 2;
+	//		int yMultiple1 = (yDiv2) * 2;
+	//		int yModMultiple = (yMOd2) * 2;
+	//		int index1 = xDiv2 + yMultiple1;
+	//		int index2 = xMod2 + yModMultiple;
+	//		vptr[y * width + x] = MAKECOLOUR16(cb[index1]->r[index2], cb[index1]->g[index2], cb[index1]->b[index2]);
+	//	}
+	//}
+	//x = 1;
+	// 
+	// 
+	// 
+	//screw calculattions.
+	vptr[0 * width + 0] = MAKECOLOUR16(cb[0]->r[0], cb[0]->g[0], cb[0]->b[0]);
+	vptr[0 * width + 1] = MAKECOLOUR16(cb[0]->r[1], cb[0]->g[1], cb[0]->b[1]);
+	vptr[0 * width + 2] = MAKECOLOUR16(cb[1]->r[0], cb[1]->g[0], cb[1]->b[0]);
+	vptr[0 * width + 3] = MAKECOLOUR16(cb[1]->r[1], cb[1]->g[1], cb[1]->b[1]);
+	vptr[1 * width + 0] = MAKECOLOUR16(cb[0]->r[2], cb[0]->g[2], cb[0]->b[2]);
+	vptr[1 * width + 1] = MAKECOLOUR16(cb[0]->r[3], cb[0]->g[3], cb[0]->b[3]);
+	vptr[1 * width + 2] = MAKECOLOUR16(cb[1]->r[2], cb[1]->g[2], cb[1]->b[2]);
+	vptr[1 * width + 3] = MAKECOLOUR16(cb[1]->r[3], cb[1]->g[3], cb[1]->b[3]);
+	vptr[2 * width + 0] = MAKECOLOUR16(cb[2]->r[0], cb[2]->g[0], cb[2]->b[0]);
+	vptr[2 * width + 1] = MAKECOLOUR16(cb[2]->r[1], cb[2]->g[1], cb[2]->b[1]);
+	vptr[2 * width + 2] = MAKECOLOUR16(cb[3]->r[0], cb[3]->g[0], cb[3]->b[0]);
+	vptr[2 * width + 3] = MAKECOLOUR16(cb[3]->r[1], cb[3]->g[1], cb[3]->b[1]);
+	vptr[3 * width + 0] = MAKECOLOUR16(cb[2]->r[2], cb[2]->g[2], cb[2]->b[2]);
+	vptr[3 * width + 1] = MAKECOLOUR16(cb[2]->r[3], cb[2]->g[3], cb[2]->b[3]);
+	vptr[3 * width + 2] = MAKECOLOUR16(cb[3]->r[2], cb[3]->g[2], cb[3]->b[2]);
+	vptr[3 * width + 3] = MAKECOLOUR16(cb[3]->r[3], cb[3]->g[3], cb[3]->b[3]);
+
+
+
+
+
 }
 
+cinepak_info* newpack()
+{
+	int b = sizeof(cinepak_info);
 
+	return (cinepak_info*)malloc(sizeof(cinepak_info));
+}
 
 /* ------------------------------------------------------------------------
  * Call this function once at the start of the sequence and save the
@@ -188,16 +254,17 @@ void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
  */
 cinepak_info* decode_cinepak_init(void)
 {
-	cinepak_info* cvinfo;
+	basePointer =(unsigned char*)( 0x6000000 + (240 * 160 * 2));
 	int i;
+	cinepak_info* cvinfo = newpack();
 
-	cvinfo = (cinepak_info*)malloc(sizeof(cinepak_info));
 	if (!cvinfo)
 		return NULL;
 	cvinfo->strip_num = 0;
 
 	if (uiclp == NULL)
 	{
+		for (int i = 0; i < 1024; i++) uiclip[i] = 0;
 		uiclp = uiclip + 512;
 		for (i = -512; i < 512; i++)
 			uiclp[i] = (i < 0 ? 0 : (i > 255 ? 255 : i));
@@ -237,6 +304,7 @@ typedef void (*fn_cvid_v4)(unsigned char* frm, unsigned char* limit, int stride,
  * bit_per_pixel - the number of bits per pixel allocated to the output
  *   frame (only 24 or 32 bpp are supported)
  */
+
 #ifdef GBA
 IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	unsigned char* frame, unsigned int width, unsigned int height, int bit_per_pixel)
@@ -293,17 +361,30 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 
 		for (i = cvinfo->strip_num; i < strips; i++)
 		{
+//#ifdef GBA		
+//			cvinfo->v4_codebook[i] = (cvid_codebook*)(basePointer);
+//			basePointer += sizeof(cvid_codebook) * 260;
+//			cvinfo->v1_codebook[i] = (cvid_codebook*)(basePointer);
+//			basePointer += sizeof(cvid_codebook) * 260;
+//#else 
 			if ((cvinfo->v4_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
 			{
-				ERR("CVID: codebook v4 alloc err\n");
+				while (1)
+				{
+					(char*)"shits' fucked mate1";
+				}
 				return;
 			}
-
 			if ((cvinfo->v1_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
 			{
+				while (1)
+				{
+					(char*)"shits' fucked mate1";
+				}
 				ERR("CVID: codebook v1 alloc err\n");
 				return;
 			}
+//#endif
 		}
 	}
 	cvinfo->strip_num = strips;
