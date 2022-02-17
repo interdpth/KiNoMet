@@ -26,7 +26,7 @@ typedef struct
 #endif
 {
     unsigned char y0, y1, y2, y3;
-    char u, v;
+    signed char u, v;
     unsigned char r[4], g[4], b[4];
 } cvid_codebook;
 
