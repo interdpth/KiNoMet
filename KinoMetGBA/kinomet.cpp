@@ -1,6 +1,6 @@
 #include "..\KiNomet\KiNoMet.h"
 #include "gbavideo.h"
-
+#include <stdio.h>
 int frameHandled;
 #define ARM __attribute__((__target__("arm")))
 #define REG_IFBIOS (*(unsigned short*)(0x3007FF8))
@@ -76,16 +76,16 @@ void Setup()
 	*sound_control = 0;
 }
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount) {
-	/**dma3_source = (unsigned int)source;
+	*dma3_source = (unsigned int)source;
 	*dma3_destination = (unsigned int)dest;
-	*dma3_control = DMA_ENABLE | DMA_16 | amount;*/
-	for (int i = 0; i < amount; i++) dest[i] = source[i];
+	*dma3_control = DMA_ENABLE | DMA_16 | amount;
+	/*for (int i = 0; i < amount; i++) dest[i] = source[i];*/
 }
 
 void handleFrame(unsigned char* framePointer)
 {
 	//we are gba so frame is always 240*160*2;
-	//memcpy16_dma((unsigned short*)0x6000000, (unsigned short*)framePointer, 240 * 160);
+	memcpy16_dma((unsigned short*)0x6000000, (unsigned short*)framePointer, 240 * 160);
 
 	//unsigned short* srcFrame = (unsigned short*)framePointer;
 	//for (int y = 160 - 1; y >= 0; y--)
@@ -95,6 +95,7 @@ void handleFrame(unsigned char* framePointer)
 	//}
 
 	VBlankIntrWait();
+	
 }
 
 /* play a sound with a number of samples, and sample rate on one channel 'A' or 'B' */
@@ -158,6 +159,7 @@ void play_sound(const signed char* sound, int total_samples, int sample_rate, ch
 
 int main()
 {
+	
 	//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
 	frameHandled = 0;
 	(*(unsigned short*)0x4000000) = 0x403;

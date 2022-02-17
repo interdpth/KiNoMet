@@ -38,12 +38,11 @@ ARCH	:=	-mthumb -mthumb-interwork
 CFLAGS	:=	-g -Wall\
 		-mcpu=arm7tdmi -mtune=arm7tdmi\
  		-fomit-frame-pointer\
-		-ffast-math \
 		$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DGBA
+CFLAGS	+=	$(INCLUDE) -DGBA 
 
-CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions
+CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions -fno-inline-small-functions
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-g $(ARCH) -Wl,-Map,$(notdir $*.map)
@@ -51,7 +50,7 @@ LDFLAGS	=	-g $(ARCH) -Wl,-Map,$(notdir $*.map)
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-LIBS	:= -lmm -lgba -lKiNoMet
+LIBS	:= -lgba -lKiNoMet
  
  
 #---------------------------------------------------------------------------------
