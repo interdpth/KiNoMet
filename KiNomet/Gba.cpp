@@ -21,8 +21,8 @@ volatile unsigned short* bg3_control = (volatile unsigned short*)0x400000e;
 volatile unsigned short* bg_palette = (volatile unsigned short*)0x5000000;
 
 /* define the timer control registers */
-volatile unsigned short* timer0_data = (volatile unsigned short*)0x4000100;
-volatile unsigned short* timer0_control = (volatile unsigned short*)0x4000102;
+volatile unsigned short* REG_TM0VAL = (volatile unsigned short*)0x4000100;
+volatile unsigned short* REG_TM0CNT = (volatile unsigned short*)0x4000102;
 
 volatile unsigned int* dma0_source = (volatile unsigned int*)0x40000B0;
 volatile unsigned int* dma0_destination = (volatile unsigned int*)0x40000B4;
@@ -84,19 +84,35 @@ unsigned int channel_b_vblanks_remaining = 0;
 //Note: The NDS9 and DSi9 additionally support hardware division, by math coprocessor, accessed via I / O Ports, however, the SWI function is a raw software division.
 //
 //SWI 07h(GBA) - DivArm
-#ifdef GBA
 
-#endif
+void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount) {
+    *dma3_source = (unsigned int)source;
+    *dma3_destination = (unsigned int)dest;
+    *dma3_control = DMA_ENABLE | DMA_16 | amount;
+    /*for (int i = 0; i < amount; i++) dest[i] = source[i];*/
+}
+
+
+
+
 void*
 memcpy(void* dest, const void* src, int olen)
 {
+#ifdef GBA
+
+    memcpy16_dma((unsigned short*)dest, (unsigned short*)src, olen >> 1);
+
+#else 
     char* d = (char*)dest;
     const char* s = (const char*)src;
     int len = olen;
     while (len--)
         *d++ = *s++;
+#endif
     return dest;
+
 }
+
 //#ifdef  GBA
 //
 //

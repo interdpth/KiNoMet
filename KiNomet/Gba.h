@@ -8,7 +8,15 @@
 void printf(char* message, ...);
 
 #endif
+extern "C" {
+	extern void timerSet(unsigned long num, unsigned short reload, unsigned short flags);
 
+	extern void timerEnable(unsigned long num);
+
+	extern void timerDisable(unsigned long num);
+
+	extern unsigned short timerGetValue(unsigned long num);
+}
 extern volatile unsigned long* display_control;
 #define MODE0 0x00
 #define BG0_ENABLE 0x100
@@ -109,7 +117,7 @@ extern volatile unsigned short* display_interrupts;
 
 /* the interrupts are identified by number, we only care about this one */
 #define INTERRUPT_VBLANK 0x1
-
+#define INTERRUPT_T0 0x3
 /* allows turning on and off sound for the GBA altogether */
 extern volatile unsigned short* master_sound;
 #define SOUND_MASTER_ENABLE 0x80
@@ -149,5 +157,7 @@ extern unsigned int channel_b_vblanks_remaining;
 #define INT_CART 	0x2000
 
 #define IWRAM __attribute__((section(".iwram"), target("arm"), noinline))
+
+void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
 void* memcpy(void* dest, const void* src, int olen);
 #endif

@@ -19,12 +19,17 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="audio.cpp" />
-    <ClCompile Include="gbavideo.cpp" />
-    <ClCompile Include="kinomet.cpp" />
+    <ClCompile Include="Alie.cpp" />
+    <ClCompile Include="Alie.mp4.cpp" />
+    <ClCompile Include="KiNoMet_gba.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Alie.h" />
+    <ClInclude Include="Alie.mp4.h" />
     <ClInclude Include="gbavideo.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="timer.s" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

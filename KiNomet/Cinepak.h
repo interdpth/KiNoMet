@@ -13,7 +13,7 @@ using namespace std;
 #define compare_fourcc(fcc1, fcc2) (((fcc1)^(fcc2))&~0x20202020)
 
 #define DBUG    0
-#define MAX_STRIPS 2
+#define MAX_STRIPS 2//best for gba, encoder only uses 2, all frames should look good since they match
 
 #define ERR printf
 #define WARN printf
@@ -42,10 +42,10 @@ typedef struct
 } cinepak_info;
 unsigned short MAKECOLOUR16(unsigned char r, unsigned char g, unsigned char b);
 #ifdef GBA 
-IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame, unsigned int width, unsigned int height, int bit_per_pixel);
+IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame, unsigned int width, unsigned int height);
 cinepak_info* decode_cinepak_init(void);
 #else
-void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame, unsigned int width, unsigned int height, int bit_per_pixel);
+void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame, unsigned int width, unsigned int height);
 cinepak_info* decode_cinepak_init(void);
 #endif 
 

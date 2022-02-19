@@ -35,7 +35,7 @@ CFLAGS	:=	-g -Wall -O2\
 CFLAGS	+=	$(INCLUDE) -DGBA -shared -fno-inline-small-functions -O0
 CXXFLAGS	:=	$(CFLAGS) -fno-inline-small-functions
 
-ASFLAGS	:=	-g $(ARCH)
+ASFLAGS	:=	-g -shared $(ARCH)
 
 
 export GBABIN	:=	$(LIB)/libKiNoMet.a

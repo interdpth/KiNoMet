@@ -30,15 +30,6 @@
     <ClCompile Include="Gba.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TextEngine.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vera.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GbaMem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cinepak.h">
@@ -53,17 +44,13 @@
     <ClInclude Include="Gba.h">
       <Filter>Includes</Filter>
     </ClInclude>
-    <ClInclude Include="TextEngine.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="vera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GbaMem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Documentation.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="timer.s">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

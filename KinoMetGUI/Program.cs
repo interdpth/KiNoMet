@@ -111,11 +111,15 @@ namespace KiNoMetSharp
                 }
             }
 
-            string videoFile = "Alie.avi";
+            string videoFile = "Alie.mp4";
+            FileInfo fi = new FileInfo(videoFile);
+            string fn = fi.Name.Split(".")[0];
+            string tmpVideo = $"{fn}.mp4";
             uint fr = (ShellFile.FromFilePath(videoFile).Properties.System.Video.FrameRate.Value == null ? 0 : ShellFile.FromFilePath(videoFile).Properties.System.Video.FrameRate.Value.Value) / 1000;
-            int targetFps = 5;
+            int targetFps = (int)20;
 
-            var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -crf 31 -filter:v fps=fps={targetFps} {Processing}\\{videoFile}" };
+            //The shittier the large image the better it looks on gba.
+            var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -crf 31 -filter:v fps=fps={targetFps} -s 240x160 {Processing}\\{tmpVideo}" };
 
             var P = Process.Start(PSI);
 
@@ -130,17 +134,18 @@ namespace KiNoMetSharp
                 if (fps < 0.5f) fps = 0.5f;
 
             }
-            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{videoFile} -af atempo={fps} {Processing}\\alie.wav" };
+            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -af atempo={fps} {Processing}\\VideoFileAudio.wav" };
             P = Process.Start(PSI);
             P.WaitForExit();
 
 
-            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{videoFile} -c:v cinepak -an -q 31 -s 240x160 {Processing}\\Alie2.avi" };
+            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -c:v cinepak -max_strips 1 -an -q 31 -s 240x160 {Processing}\\{fn}_final.avi" };
             P = Process.Start(PSI);
             P.WaitForExit();
-            RenderAudio($"{Processing}\\alie.wav");
-            ROM.MakeSource("VideoFile", File.ReadAllBytes($"{Processing}\\Alie2.avi"), $"{OutputFolder}");
-            ROM.Write(OutputFolder, "alive");
+
+            RenderAudio($"{Processing}\\VideoFileAudio.wav");
+            ROM.MakeSource("VideoFile", File.ReadAllBytes($"{Processing}\\{fn}_final.avi"), $"{OutputFolder}");
+            ROM.Write(OutputFolder, "VideoFile");
         }
     }
 }

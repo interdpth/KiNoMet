@@ -79,7 +79,13 @@ typedef struct {
 
 #define get_byte() *(in_buffer++)
 #define skip_byte() in_buffer++
-unsigned short get_word() {//	((unsigned short)(in_buffer += 2, (in_buffer[-2] << 8 | in_buffer[-1])))
+
+#ifdef GBA
+IWRAM unsigned short get_word()
+#else 
+unsigned short get_word()
+#endif
+ {//	((unsigned short)(in_buffer += 2, (in_buffer[-2] << 8 | in_buffer[-1])))
 
 	unsigned short val2 = (in_buffer[0] << 8 | in_buffer[1]);
 
@@ -88,7 +94,12 @@ unsigned short get_word() {//	((unsigned short)(in_buffer += 2, (in_buffer[-2] <
 }
 
 
-unsigned long get_long() {//	((unsigned short)(in_buffer += 2, (in_buffer[-2] << 8 | in_buffer[-1])))
+#ifdef GBA
+IWRAM unsigned long get_long()
+#else 
+unsigned long get_long()
+#endif
+{//	((unsigned short)(in_buffer += 2, (in_buffer[-2] << 8 | in_buffer[-1])))
 
 	unsigned long val2 = (in_buffer[0] << 24 | in_buffer[1] << 16 | in_buffer[2] << 8 | in_buffer[3]);
 
@@ -96,8 +107,15 @@ unsigned long get_long() {//	((unsigned short)(in_buffer += 2, (in_buffer[-2] <<
 
 	return val2;
 }
+
+
+#ifdef GBA
+IWRAM unsigned long read_codebook(cvid_codebook* c, int mode)
+#else 
+unsigned long read_codebook(cvid_codebook* c, int mode)
+#endif
 /* ---------------------------------------------------------------------- */
-void read_codebook(cvid_codebook* c, int mode)
+
 {
 	int uvr, uvg, uvb;
 
@@ -137,24 +155,18 @@ void read_codebook(cvid_codebook* c, int mode)
 /*#define MAKECOLOUR24(r,g,b) (((r) << 16) | ((g) << 8) | (b))*/
 //#define MAKECOLOUR16(r,g,b) (((r) >> 3) << 11)| (((g) >> 2) << 5)| (((b) >> 3) << 0)
 //#define MAKECOLOUR15(r,g,b) (((r) >> 3) << 10)| (((g) >> 3) << 5)| (((b) >> 3) << 0)
-unsigned short MAKECOLOUR16(unsigned char r, unsigned  char g, unsigned char b) {
+unsigned short inline MAKECOLOUR16(unsigned char r, unsigned  char g, unsigned char b) {
 	return ((((r >> 3) & 31) | (((g >> 3) & 31) << 5) | (((b >> 3) & 31) << 10)));
 }
-unsigned short MAKECOLOUR15unsigned(unsigned char r, unsigned char g, unsigned char b) {
-	return MAKECOLOUR16(r, g, b);
-}
-
-
-unsigned short MAKECOLOUR32(unsigned char r, unsigned char g, unsigned char b) {
-	return MAKECOLOUR16(r, g, b);
-}
-
-
 
 
 
 /* ------------------------------------------------------------------------ */
+#ifdef GBA
+IWRAM void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb)
+#else 
 void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb)
+#endif
 {
 	unsigned short* vptr = (unsigned short*)frm;
 
@@ -184,8 +196,13 @@ void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 
 
 /* ------------------------------------------------------------------------ */
+#ifdef GBA
+IWRAM void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb0,
+	cvid_codebook* cb1, cvid_codebook* cb2, cvid_codebook* cb3)
+#else 
 void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb0,
 	cvid_codebook* cb1, cvid_codebook* cb2, cvid_codebook* cb3)
+#endif
 {
 	unsigned short* vptr = (unsigned short*)frm;
 #ifndef ORIGINAL
@@ -304,13 +321,13 @@ typedef void (*fn_cvid_v4)(unsigned char* frm, unsigned char* limit, int stride,
  * bit_per_pixel - the number of bits per pixel allocated to the output
  *   frame (only 24 or 32 bpp are supported)
  */
-
+#define KillChunk in_buffer+=chunk_size;//while (chunk_size > 0) { skip_byte(); chunk_size--; }
 #ifdef GBA
 IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
-	unsigned char* frame, unsigned int width, unsigned int height, int bit_per_pixel)
+	unsigned char* frame, unsigned int width, unsigned int height)
 #else 
 void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
-	unsigned char* frame, unsigned int width, unsigned int height, int bit_per_pixel)
+	unsigned char* frame, unsigned int width, unsigned int height)
 #endif
 
 {
@@ -321,8 +338,8 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	unsigned char* frm_ptr;
 	unsigned int i, cur_strip;
 	int d0, d1, d2, d3, frm_stride, bpp = 2;
-	fn_cvid_v1 cvid_v1 = cvid_v1_16;
-	fn_cvid_v4 cvid_v4 = cvid_v4_16;
+	fn_cvid_v1 cvid_v1 = (fn_cvid_v1)cvid_v1_16;
+	fn_cvid_v4 cvid_v4 = (fn_cvid_v4)cvid_v4_16;
 	unsigned char* frm_end = frame + size;
 	y = 0;
 	y_bottom = 0;
@@ -466,7 +483,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 						flag <<= 1;
 					}
 				}
-				while (chunk_size > 0) { skip_byte(); chunk_size--; }
+				KillChunk
 				break;
 
 			case 0x2500:
@@ -491,7 +508,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 						flag <<= 1;
 					}
 				}
-				while (chunk_size > 0) { skip_byte(); chunk_size--; }
+				KillChunk
 				break;
 
 				/* -------------------- Frame -------------------- */
@@ -511,19 +528,15 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 							d2 = get_byte();
 							d3 = get_byte();
 							chunk_size -= 4;
-#ifdef ORIGINAL
-							cvid_v4(frm_ptr + (y * frm_stride + x * bpp), frm_end, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3);
-#else
+
 							cvid_v4(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3);
-#endif
+
 						}
 						else        /* 1 byte per block */
 						{
-#ifdef ORIGINAL
-							cvid_v1(frm_ptr + (y * frm_stride + x * bpp), frm_end, frm_stride, v1_codebook + get_byte());
-#else
+
 							cvid_v1(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v1_codebook + get_byte());
-#endif
+
 							chunk_size--;
 						}
 
@@ -536,7 +549,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 						flag <<= 1;
 					}
 				}
-				while (chunk_size > 0) { skip_byte(); chunk_size--; }
+				KillChunk
 				break;
 
 			case 0x3100:
@@ -594,7 +607,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 					}
 				}
 
-				while (chunk_size > 0) { skip_byte(); chunk_size--; }
+				KillChunk
 				break;
 
 			case 0x3200:        /* each byte is a V1 codebook */
@@ -613,12 +626,12 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 						y += 4;
 					}
 				}
-				while (chunk_size > 0) { skip_byte(); chunk_size--; }
+				KillChunk
 				break;
 
 			default:
 				ERR("CVID: unknown chunk_id %08lx\n", chunk_id);
-				while (chunk_size > 0) { skip_byte(); chunk_size--; }
+				KillChunk
 				break;
 			}
 		}

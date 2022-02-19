@@ -15,13 +15,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="kinomet.cpp">
+    <ClCompile Include="Alie.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="gbavideo.cpp">
+    <ClCompile Include="Alie.mp4.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="audio.cpp">
+    <ClCompile Include="KiNoMet_gba.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -29,5 +29,14 @@
     <ClInclude Include="gbavideo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Alie.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Alie.mp4.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="timer.s" />
   </ItemGroup>
 </Project>
