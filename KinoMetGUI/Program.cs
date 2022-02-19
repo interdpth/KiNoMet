@@ -139,7 +139,7 @@ namespace KiNoMetSharp
             P.WaitForExit();
 
 
-            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -c:v cinepak -max_strips 1 -an -q 31 -s 240x160 {Processing}\\{fn}_final.avi" };
+            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -c:v cinepak -max_strips 3 -an -q 31 -bufsize 16384 -s 240x160 {Processing}\\{fn}_final.avi" };
             P = Process.Start(PSI);
             P.WaitForExit();
 

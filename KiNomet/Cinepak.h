@@ -13,7 +13,7 @@ using namespace std;
 #define compare_fourcc(fcc1, fcc2) (((fcc1)^(fcc2))&~0x20202020)
 
 #define DBUG    0
-#define MAX_STRIPS 1//best for gba, encoder only uses 2, all frames should look good since they match
+#define MAX_STRIPS 3//best for gba, encoder only uses 2, all frames should look good since they match
 
 #define ERR printf
 #define WARN printf

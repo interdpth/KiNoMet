@@ -19,14 +19,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Alie.cpp" />
-    <ClCompile Include="Alie.mp4.cpp" />
     <ClCompile Include="KiNoMet_gba.cpp" />
+    <ClCompile Include="VideoFile.cpp" />
+    <ClCompile Include="VideoFileAudio.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Alie.h" />
-    <ClInclude Include="Alie.mp4.h" />
-    <ClInclude Include="gbavideo.h" />
+    <ClInclude Include="VideoFile.h" />
+    <ClInclude Include="VideoFileAudio.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="timer.s" />

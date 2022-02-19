@@ -15,25 +15,22 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Alie.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Alie.mp4.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="KiNoMet_gba.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VideoFile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VideoFileAudio.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="gbavideo.h">
+    <ClInclude Include="VideoFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Alie.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Alie.mp4.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="VideoFileAudio.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
