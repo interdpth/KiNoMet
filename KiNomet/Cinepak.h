@@ -13,7 +13,7 @@ using namespace std;
 #define compare_fourcc(fcc1, fcc2) (((fcc1)^(fcc2))&~0x20202020)
 
 #define DBUG    0
-#define MAX_STRIPS 2//best for gba, encoder only uses 2, all frames should look good since they match
+#define MAX_STRIPS 1//best for gba, encoder only uses 2, all frames should look good since they match
 
 #define ERR printf
 #define WARN printf
@@ -27,7 +27,7 @@ typedef struct
 {
     unsigned char y0, y1, y2, y3;
     signed char u, v;
-    unsigned char r[4], g[4], b[4];
+    unsigned char reds[4], greens[4], blues[4];
 } cvid_codebook;
 
 #ifdef GBA

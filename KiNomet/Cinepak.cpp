@@ -110,9 +110,9 @@ unsigned long get_long()
 
 
 #ifdef GBA
-IWRAM unsigned long read_codebook(cvid_codebook* c, int mode)
+IWRAM void read_codebook(cvid_codebook* c, int mode)
 #else 
-unsigned long read_codebook(cvid_codebook* c, int mode)
+void  read_codebook(cvid_codebook* c, int mode)
 #endif
 /* ---------------------------------------------------------------------- */
 
@@ -121,34 +121,35 @@ unsigned long read_codebook(cvid_codebook* c, int mode)
 
 	if (mode)        /* black and white */
 	{
-		c->y0 = get_byte();
-		c->y1 = get_byte();
-		c->y2 = get_byte();
-		c->y3 = get_byte();
+		//c->y0 = get_byte();
+		//c->y1 = get_byte();
+		//c->y2 = get_byte();
+		//c->y3 = get_byte();
+		memcpy(&c->y0, in_buffer, 4); in_buffer += 4;
 		c->u = c->v = 0;
 
-		c->r[0] = c->g[0] = c->b[0] = c->y0;
-		c->r[1] = c->g[1] = c->b[1] = c->y1;
-		c->r[2] = c->g[2] = c->b[2] = c->y2;
-		c->r[3] = c->g[3] = c->b[3] = c->y3;
+		c->reds[0] = c->greens[0] = c->blues[0] = c->y0;
+		c->reds[1] = c->greens[1] = c->blues[1] = c->y1;
+		c->reds[2] = c->greens[2] = c->blues[2] = c->y2;
+		c->reds[3] = c->greens[3] = c->blues[3] = c->y3;
 	}
 	else            /* colour */
 	{
-		c->y0 = get_byte();  /* luma */
-		c->y1 = get_byte();
-		c->y2 = get_byte();
-		c->y3 = get_byte();
-		c->u = get_byte(); /* chroma */
-		c->v = get_byte();
-
+		//c->y0 = get_byte();  /* luma */
+		//c->y1 = get_byte();
+		//c->y2 = get_byte();
+		//c->y3 = get_byte();
+		//c->u = get_byte(); /* chroma */
+		//c->v = get_byte();
+		memcpy(&c->y0, in_buffer, 6); in_buffer += 6;
 		uvr = c->v << 1;
 		uvg = -((c->u + 1) >> 1) - c->v;
 		uvb = c->u << 1;
 
-		c->r[0] = uiclp[c->y0 + uvr]; c->g[0] = uiclp[c->y0 + uvg]; c->b[0] = uiclp[c->y0 + uvb];
-		c->r[1] = uiclp[c->y1 + uvr]; c->g[1] = uiclp[c->y1 + uvg]; c->b[1] = uiclp[c->y1 + uvb];
-		c->r[2] = uiclp[c->y2 + uvr]; c->g[2] = uiclp[c->y2 + uvg]; c->b[2] = uiclp[c->y2 + uvb];
-		c->r[3] = uiclp[c->y3 + uvr]; c->g[3] = uiclp[c->y3 + uvg]; c->b[3] = uiclp[c->y3 + uvb];
+		c->reds[0] = uiclp[c->y0 + uvr]; c->greens[0] = uiclp[c->y0 + uvg]; c->blues[0] = uiclp[c->y0 + uvb];
+		c->reds[1] = uiclp[c->y1 + uvr]; c->greens[1] = uiclp[c->y1 + uvg]; c->blues[1] = uiclp[c->y1 + uvb];
+		c->reds[2] = uiclp[c->y2 + uvr]; c->greens[2] = uiclp[c->y2 + uvg]; c->blues[2] = uiclp[c->y2 + uvb];
+		c->reds[3] = uiclp[c->y3 + uvr]; c->greens[3] = uiclp[c->y3 + uvg]; c->blues[3] = uiclp[c->y3 + uvb];
 	}
 }
 
@@ -170,27 +171,34 @@ void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 {
 	unsigned short* vptr = (unsigned short*)frm;
 
-	int width = stride / 2;
-
-	int x, y;
+	int width = stride >> 1;
 
 
-	vptr[0 * width + 0] = MAKECOLOUR16(cb->r[0], cb->g[0], cb->b[0]);
-	vptr[0 * width + 1] = MAKECOLOUR16(cb->r[0], cb->g[0], cb->b[0]);
-	vptr[0 * width + 2] = MAKECOLOUR16(cb->r[1], cb->g[1], cb->b[1]);
-	vptr[0 * width + 3] = MAKECOLOUR16(cb->r[1], cb->g[1], cb->b[1]);
-	vptr[1 * width + 0] = MAKECOLOUR16(cb->r[0], cb->g[0], cb->b[0]);
-	vptr[1 * width + 1] = MAKECOLOUR16(cb->r[0], cb->g[0], cb->b[0]);
-	vptr[1 * width + 2] = MAKECOLOUR16(cb->r[1], cb->g[1], cb->b[1]);
-	vptr[1 * width + 3] = MAKECOLOUR16(cb->r[1], cb->g[1], cb->b[1]);
-	vptr[2 * width + 0] = MAKECOLOUR16(cb->r[2], cb->g[2], cb->b[2]);
-	vptr[2 * width + 1] = MAKECOLOUR16(cb->r[2], cb->g[2], cb->b[2]);
-	vptr[2 * width + 2] = MAKECOLOUR16(cb->r[3], cb->g[3], cb->b[3]);
-	vptr[2 * width + 3] = MAKECOLOUR16(cb->r[3], cb->g[3], cb->b[3]);
-	vptr[3 * width + 0] = MAKECOLOUR16(cb->r[2], cb->g[2], cb->b[2]);
-	vptr[3 * width + 1] = MAKECOLOUR16(cb->r[2], cb->g[2], cb->b[2]);
-	vptr[3 * width + 2] = MAKECOLOUR16(cb->r[3], cb->g[3], cb->b[3]);
-	vptr[3 * width + 3] = MAKECOLOUR16(cb->r[3], cb->g[3], cb->b[3]);
+
+	vptr[0 * width + 0] = MAKECOLOUR16(cb->reds[0], cb->greens[0], cb->blues[0]);
+	vptr[0 * width + 1] = vptr[0 * width + 0];
+	vptr[0 * width + 2] = MAKECOLOUR16(cb->reds[1], cb->greens[1], cb->blues[1]);
+	vptr[0 * width + 3] = vptr[0 * width + 2];
+
+
+	vptr[1 * width + 0] = MAKECOLOUR16(cb->reds[0], cb->greens[0], cb->blues[0]);
+	vptr[1 * width + 1] = vptr[1 * width + 0];
+
+
+	vptr[1 * width + 2] = MAKECOLOUR16(cb->reds[1], cb->greens[1], cb->blues[1]);
+	vptr[1 * width + 3] = vptr[1 * width + 2];
+
+	vptr[2 * width + 0] = MAKECOLOUR16(cb->reds[2], cb->greens[2], cb->blues[2]);
+	vptr[2 * width + 1] = vptr[2 * width + 0];
+
+	vptr[2 * width + 2] = MAKECOLOUR16(cb->reds[3], cb->greens[3], cb->blues[3]);
+	vptr[2 * width + 3] = vptr[2 * width + 2];
+
+	vptr[3 * width + 0] = MAKECOLOUR16(cb->reds[2], cb->greens[2], cb->blues[2]);
+	vptr[3 * width + 1] = vptr[3 * width + 0];
+
+	vptr[3 * width + 2] = MAKECOLOUR16(cb->reds[3], cb->greens[3], cb->blues[3]);
+	vptr[3 * width + 3] = vptr[3 * width + 2];
 
 }
 
@@ -205,57 +213,47 @@ void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 #endif
 {
 	unsigned short* vptr = (unsigned short*)frm;
-#ifndef ORIGINAL
+
 	int width = stride/2;
-#else
-	int row_inc = stride / 2;
-#endif
+
 	cvid_codebook* cb[] = { cb0,cb1,cb2,cb3 };
-	int x, y;
 
-	///* fill 4x4 block of pixels with colour values from codebooks */
-	//for (y = 0; y < 4; y++)
-	//{
-	//	//if (&vptr[y * row_inc] < (unsigned short*)limit) return;
-	//	for (x = 0; x < 4; x++)
-	//	{
-	//		int xDiv2 = x / 2;
-	//		int yDiv2 = y / 2;
-	//		int xMod2 = x % 2;
-	//		int yMOd2 = y % 2;
-	//		int yMultiple1 = (yDiv2) * 2;
-	//		int yModMultiple = (yMOd2) * 2;
-	//		int index1 = xDiv2 + yMultiple1;
-	//		int index2 = xMod2 + yModMultiple;
-	//		vptr[y * width + x] = MAKECOLOUR16(cb[index1]->r[index2], cb[index1]->g[index2], cb[index1]->b[index2]);
-	//	}
-	//}
-	//x = 1;
-	// 
-	// 
-	// 
+	cvid_codebook* curBook = cb[0];
+	unsigned char* reds = curBook->reds;
+	unsigned char* greens = curBook->greens;
+	unsigned char* blues = curBook->blues;
 	//screw calculattions.
-	vptr[0 * width + 0] = MAKECOLOUR16(cb[0]->r[0], cb[0]->g[0], cb[0]->b[0]);
-	vptr[0 * width + 1] = MAKECOLOUR16(cb[0]->r[1], cb[0]->g[1], cb[0]->b[1]);
-	vptr[0 * width + 2] = MAKECOLOUR16(cb[1]->r[0], cb[1]->g[0], cb[1]->b[0]);
-	vptr[0 * width + 3] = MAKECOLOUR16(cb[1]->r[1], cb[1]->g[1], cb[1]->b[1]);
-	vptr[1 * width + 0] = MAKECOLOUR16(cb[0]->r[2], cb[0]->g[2], cb[0]->b[2]);
-	vptr[1 * width + 1] = MAKECOLOUR16(cb[0]->r[3], cb[0]->g[3], cb[0]->b[3]);
-	vptr[1 * width + 2] = MAKECOLOUR16(cb[1]->r[2], cb[1]->g[2], cb[1]->b[2]);
-	vptr[1 * width + 3] = MAKECOLOUR16(cb[1]->r[3], cb[1]->g[3], cb[1]->b[3]);
-	vptr[2 * width + 0] = MAKECOLOUR16(cb[2]->r[0], cb[2]->g[0], cb[2]->b[0]);
-	vptr[2 * width + 1] = MAKECOLOUR16(cb[2]->r[1], cb[2]->g[1], cb[2]->b[1]);
-	vptr[2 * width + 2] = MAKECOLOUR16(cb[3]->r[0], cb[3]->g[0], cb[3]->b[0]);
-	vptr[2 * width + 3] = MAKECOLOUR16(cb[3]->r[1], cb[3]->g[1], cb[3]->b[1]);
-	vptr[3 * width + 0] = MAKECOLOUR16(cb[2]->r[2], cb[2]->g[2], cb[2]->b[2]);
-	vptr[3 * width + 1] = MAKECOLOUR16(cb[2]->r[3], cb[2]->g[3], cb[2]->b[3]);
-	vptr[3 * width + 2] = MAKECOLOUR16(cb[3]->r[2], cb[3]->g[2], cb[3]->b[2]);
-	vptr[3 * width + 3] = MAKECOLOUR16(cb[3]->r[3], cb[3]->g[3], cb[3]->b[3]);
+	vptr[0 * width + 0] = MAKECOLOUR16(*reds++, *greens++, *blues++);
+	vptr[0 * width + 1] = MAKECOLOUR16(*reds++, *greens++, *blues++);
+	vptr[1 * width + 0] = MAKECOLOUR16(*reds++, *greens++, *blues++);
+	vptr[1 * width + 1] = MAKECOLOUR16(*reds++, *greens++, *blues++);
 
+	curBook = cb[1];
+	reds = curBook->reds;
+	greens = curBook->greens;
+	blues = curBook->blues;
+	vptr[0 * width + 2] = MAKECOLOUR16(*reds++, *greens++, *blues++);
+	vptr[0 * width + 3] = MAKECOLOUR16(*reds++, *greens++, *blues++);
+	vptr[1 * width + 2] = MAKECOLOUR16(*reds++, *greens++, *blues++);
+	vptr[1 * width + 3] = MAKECOLOUR16(*reds++, *greens++, *blues++);
 
+	curBook = cb[2];
+	reds = curBook->reds;
+	greens = curBook->greens;
+	blues = curBook->blues;
+	vptr[2 * width + 0] = MAKECOLOUR16(*reds++, *greens++, *blues++);
+	vptr[2 * width + 1] = MAKECOLOUR16(*reds++, *greens++, *blues++);
+	vptr[3 * width + 0] = MAKECOLOUR16(*reds++, *greens++, *blues++);
+	vptr[3 * width + 1] = MAKECOLOUR16(*reds++, *greens++, *blues++);
 
-
-
+	curBook = cb[3];
+	reds = curBook->reds;
+	greens = curBook->greens;
+	blues = curBook->blues;
+	vptr[2 * width + 2] = MAKECOLOUR16(*reds++, *greens++, *blues++);
+	vptr[2 * width + 3] = MAKECOLOUR16(*reds++, *greens++, *blues++);
+	vptr[3 * width + 2] = MAKECOLOUR16(*reds++, *greens++, *blues++);
+	vptr[3 * width + 3] = MAKECOLOUR16(*reds++, *greens++, *blues++);
 }
 
 cinepak_info* newpack()
@@ -287,6 +285,27 @@ cinepak_info* decode_cinepak_init(void)
 			uiclp[i] = (i < 0 ? 0 : (i > 255 ? 255 : i));
 	}
 
+	for (int i = 0; i < MAX_STRIPS;i++)
+	{
+
+		if ((cvinfo->v4_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
+		{
+			while (1)
+			{
+				(char*)"shits' fucked mate1";
+			}
+			return nullptr;
+		}
+		if ((cvinfo->v1_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
+		{
+			while (1)
+			{
+				(char*)"shits' fucked mate1";
+			}
+			ERR("CVID: codebook v1 alloc err\n");
+			return nullptr;
+		}
+	}
 	return cvinfo;
 }
 
@@ -367,43 +386,43 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	cv_width = get_word();
 	cv_height = get_word();
 	strips = get_word();
-
-	if (strips > cvinfo->strip_num)
-	{
-		if (strips >= MAX_STRIPS)
-		{
-			ERR("CVID: strip overflow (more than %d)\n", MAX_STRIPS);
-			return;
-		}
-
-		for (i = cvinfo->strip_num; i < strips; i++)
-		{
-//#ifdef GBA		
-//			cvinfo->v4_codebook[i] = (cvid_codebook*)(basePointer);
-//			basePointer += sizeof(cvid_codebook) * 260;
-//			cvinfo->v1_codebook[i] = (cvid_codebook*)(basePointer);
-//			basePointer += sizeof(cvid_codebook) * 260;
-//#else 
-			if ((cvinfo->v4_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
-			{
-				while (1)
-				{
-					(char*)"shits' fucked mate1";
-				}
-				return;
-			}
-			if ((cvinfo->v1_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
-			{
-				while (1)
-				{
-					(char*)"shits' fucked mate1";
-				}
-				ERR("CVID: codebook v1 alloc err\n");
-				return;
-			}
-//#endif
-		}
-	}
+//
+//	if (strips > cvinfo->strip_num)
+//	{
+//		if (strips >= MAX_STRIPS)
+//		{
+//			ERR("CVID: strip overflow (more than %d)\n", MAX_STRIPS);
+//			return;
+//		}
+//
+//		for (i = cvinfo->strip_num; i < strips; i++)
+//		{
+////#ifdef GBA		
+////			cvinfo->v4_codebook[i] = (cvid_codebook*)(basePointer);
+////			basePointer += sizeof(cvid_codebook) * 260;
+////			cvinfo->v1_codebook[i] = (cvid_codebook*)(basePointer);
+////			basePointer += sizeof(cvid_codebook) * 260;
+////#else 
+//			if ((cvinfo->v4_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
+//			{
+//				while (1)
+//				{
+//					(char*)"shits' fucked mate1";
+//				}
+//				return;
+//			}
+//			if ((cvinfo->v1_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
+//			{
+//				while (1)
+//				{
+//					(char*)"shits' fucked mate1";
+//				}
+//				ERR("CVID: codebook v1 alloc err\n");
+//				return;
+//			}
+////#endif
+//		}
+//	}
 	cvinfo->strip_num = strips;
 
 	TRACE("CVID: <%ld,%ld> strips %ld\n", cv_width, cv_height, strips);

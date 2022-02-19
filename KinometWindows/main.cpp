@@ -1,13 +1,13 @@
 #include "KiNoMet.h"
 #include "../KinoMet/Cinepak.h"
-#include "gbavideo.h"
+#include "VideoFile.h"
 #include <stdio.h>
 int frameHandled;
 void handleFrame(unsigned char* framePointer)
 {
 	//we are gba so frame is always 240*160*2;
 	char strbuf[256] = { 0 };
-	sprintf(strbuf, "frame%d.bin", frameHandled++);
+	sprintf(strbuf, "F:\\processing\\frame%d.bin", frameHandled++);
 	
 	FILE* fp = fopen(strbuf, "wb");
 	if (fp)
@@ -40,6 +40,6 @@ int main(int arc, char* argv[])
 	int uintz = sizeof(unsigned long);
 	//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
 	frameHandled = 0;
-	LoadAVI((unsigned char*)Video, Video_size, &handleFrame);	
+	LoadAVI((unsigned char*)VideoFile, VideoFile_size, &handleFrame);
 }
 
