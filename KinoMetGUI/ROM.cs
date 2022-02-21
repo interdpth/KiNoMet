@@ -55,7 +55,9 @@ namespace KiNoMetSharp
         public static void Write(string outputdir, string file)
         {
             File.WriteAllLines($"{outputdir}\\{file}.h", ROM.headerLines);
-            File.WriteAllLines($"{outputdir}\\{file}.c", ROM.sourceLines);
+            List<string> newRom = new List<string> (){ $"{outputdir}\\{file}.h" };
+            newRom.InsertRange(1, sourceLines);
+            File.WriteAllLines($"{outputdir}\\{file}.cpp", newRom);
             headerLines = new List<string>();
             sourceLines = new List<string>();
         }
