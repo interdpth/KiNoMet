@@ -1,5 +1,33 @@
 # KiNoMet
+
+
 Reimplementation of Meteo
+Why KinoMet? 
+In reference to cinema, Kino is a shortening of the German kinematograph, meaning “motion-picture projector” and related to English's own cinematography.
+The No is capitalized because it overrides Meteo. Then then Met is for meteo lol. Meteo is fantastic software by the way and while it is abandonware I hope the devs are doing awesome things. 
+
+Support: 
+How many frames? Idk see how many you can get. I had issues upscaling from 24 to 30 with ffmpeg. 
+Supports GBA mode 3 and mode 5(soon)
+When audio? When video is faster.
+
+
+Compile Guide:
+Forgot all the libraries, so please just file a bug if you can't get it to work.
+Requires:
+Windows(Mono?)
+Visual Studio(can be converted to CMake I guess but that's beyond my scope)
+DevkitPro, just the GBA kit.
+After syncing the repo, make your own branch. Unless you just got a zip....then...unzip.
+Open the SLN. 
+ffmpeg binary. 
+TileShopPro https://github.com/stevemonaco/ImageMagitek/releases
+Build the projects in Windows, Run KiNoMetGui on your video file.
+Once it outputs VideoFile.cpp and VideoFile.h toss that in KinoMetWindows folder and build the project and let it run. After it's done 
+Use tileshop pro to verify the frames are good by opening them up using the PSX16bpp filter, and dimension 240x160 or the ones for mode 5
+after which, toss the VideoFile.cpp and VideoFile.h into the KinoMetGba folder. 
+Next hit make in the Kinomet folder so it builds for GBA. Then hit make in the KinometGba folder. Check your video and change settings accordingly(soon)
+
 
 
 Random notes from Development:
