@@ -148,7 +148,6 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="VideoFile.cpp" />
-    <ClCompile Include="VideoFileAudio.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\KiNomet\KiNomet.vcxproj">
@@ -157,7 +156,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VideoFile.h" />
-    <ClInclude Include="VideoFileAudio.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
