@@ -4,7 +4,8 @@
 Reimplementation of Meteo
 Why KinoMet? 
 In reference to cinema, Kino is a shortening of the German kinematograph, meaning “motion-picture projector” and related to English's own cinematography.
-The No is capitalized because it overrides Meteo. Then then Met is for meteo lol. Meteo is fantastic software by the way and while it is abandonware I hope the devs are doing awesome things. 
+The No is capitalized because it overrides Meteo. Then then Met is for meteo lol. Meteo is fantastic software by the way and while it is abandonware 
+I hope the devs are doing awesome things. 
 
 Support: 
 How many frames? Idk see how many you can get. I had issues upscaling from 24 to 30 with ffmpeg. 
@@ -83,3 +84,4 @@ Wild shit
 
 
 instead of applying yuv math and keeping lots of memory around, meteo just encodes the rgb15 value while reading the codebook which allows for massive gains. should allow for 2 more strips.
+Meteo uses the ICC library provided by Windows to encode their Cinepak based files.
