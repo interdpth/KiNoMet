@@ -20,15 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KiNoMet_gba.cpp" />
-    <ClCompile Include="VideoFile.cpp" />
-    <ClCompile Include="VideoFileAudio.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="VideoFile.h" />
-    <ClInclude Include="VideoFileAudio.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="timer.s" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

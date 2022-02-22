@@ -9,8 +9,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KinoMetGBA", "KinoMetGBA\Ki
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KinometWindows", "KinometWindows\KinometWindows.vcxproj", "{E67D0175-528B-426F-B79D-2735F00E68AF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KinoMetGUI", "KinoMetGUI\KinoMetGUI.csproj", "{F5558F10-F79D-4FA9-BCDA-CFE65557C479}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,6 +20,7 @@ Global
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{580CD733-5928-44C9-A293-234A8D0D0590}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{580CD733-5928-44C9-A293-234A8D0D0590}.Debug|Any CPU.Build.0 = Debug|Win32
 		{580CD733-5928-44C9-A293-234A8D0D0590}.Debug|x64.ActiveCfg = Debug|x64
 		{580CD733-5928-44C9-A293-234A8D0D0590}.Debug|x64.Build.0 = Debug|x64
 		{580CD733-5928-44C9-A293-234A8D0D0590}.Debug|x86.ActiveCfg = Debug|Win32
@@ -32,6 +31,7 @@ Global
 		{580CD733-5928-44C9-A293-234A8D0D0590}.Release|x86.ActiveCfg = Release|Win32
 		{580CD733-5928-44C9-A293-234A8D0D0590}.Release|x86.Build.0 = Release|Win32
 		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Debug|Any CPU.Build.0 = Debug|Win32
 		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Debug|x64.ActiveCfg = Debug|x64
 		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Debug|x64.Build.0 = Debug|x64
 		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Debug|x86.ActiveCfg = Debug|Win32
@@ -42,6 +42,7 @@ Global
 		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Release|x86.ActiveCfg = Release|Win32
 		{B10989DB-225E-4085-AEB7-69CF4E013FDC}.Release|x86.Build.0 = Release|Win32
 		{E67D0175-528B-426F-B79D-2735F00E68AF}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{E67D0175-528B-426F-B79D-2735F00E68AF}.Debug|Any CPU.Build.0 = Debug|Win32
 		{E67D0175-528B-426F-B79D-2735F00E68AF}.Debug|x64.ActiveCfg = Debug|x64
 		{E67D0175-528B-426F-B79D-2735F00E68AF}.Debug|x64.Build.0 = Debug|x64
 		{E67D0175-528B-426F-B79D-2735F00E68AF}.Debug|x86.ActiveCfg = Debug|Win32
@@ -51,18 +52,6 @@ Global
 		{E67D0175-528B-426F-B79D-2735F00E68AF}.Release|x64.Build.0 = Release|x64
 		{E67D0175-528B-426F-B79D-2735F00E68AF}.Release|x86.ActiveCfg = Release|Win32
 		{E67D0175-528B-426F-B79D-2735F00E68AF}.Release|x86.Build.0 = Release|Win32
-		{F5558F10-F79D-4FA9-BCDA-CFE65557C479}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F5558F10-F79D-4FA9-BCDA-CFE65557C479}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F5558F10-F79D-4FA9-BCDA-CFE65557C479}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{F5558F10-F79D-4FA9-BCDA-CFE65557C479}.Debug|x64.Build.0 = Debug|Any CPU
-		{F5558F10-F79D-4FA9-BCDA-CFE65557C479}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{F5558F10-F79D-4FA9-BCDA-CFE65557C479}.Debug|x86.Build.0 = Debug|Any CPU
-		{F5558F10-F79D-4FA9-BCDA-CFE65557C479}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F5558F10-F79D-4FA9-BCDA-CFE65557C479}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F5558F10-F79D-4FA9-BCDA-CFE65557C479}.Release|x64.ActiveCfg = Release|Any CPU
-		{F5558F10-F79D-4FA9-BCDA-CFE65557C479}.Release|x64.Build.0 = Release|Any CPU
-		{F5558F10-F79D-4FA9-BCDA-CFE65557C479}.Release|x86.ActiveCfg = Release|Any CPU
-		{F5558F10-F79D-4FA9-BCDA-CFE65557C479}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

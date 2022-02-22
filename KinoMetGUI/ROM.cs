@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace KiNoMetSharp
+namespace KinometGui
 {
     public class ROM
     {
@@ -55,7 +55,7 @@ namespace KiNoMetSharp
         public static void Write(string outputdir, string file)
         {
             File.WriteAllLines($"{outputdir}\\{file}.h", ROM.headerLines);
-            List<string> newRom = new List<string> (){ $"{outputdir}\\{file}.h" };
+            List<string> newRom = new List<string> (){ $"#include \"{file}.h\"" };
             newRom.InsertRange(1, sourceLines);
             File.WriteAllLines($"{outputdir}\\{file}.cpp", newRom);
             headerLines = new List<string>();

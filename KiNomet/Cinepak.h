@@ -22,12 +22,25 @@ using namespace std;
 #ifdef GBA
 typedef struct __attribute__((__packed__))
 #else
-typedef struct 
+typedef struct
 #endif
 {
     unsigned char y0, y1, y2, y3;
     signed char u, v;
-    unsigned char reds[4], greens[4], blues[4];
+   /* unsigned char reds[4], greens[4], blues[4];*/
+} oldcvid_codebook;
+
+#ifdef GBA
+typedef struct __attribute__((__packed__))
+#else
+typedef struct
+#endif
+{
+    //unsigned char y0, y1, y2, y3;
+    //signed char u, v;
+
+    unsigned short rgb[4];
+    //  unsigned char reds[4], greens[4], blues[4];
 } cvid_codebook;
 
 #ifdef GBA

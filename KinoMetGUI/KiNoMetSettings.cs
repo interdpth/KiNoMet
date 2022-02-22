@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace KinoMetGUI
+namespace KinometGui
 {
     public enum GBAMODE
     {
