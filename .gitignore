@@ -9,3 +9,8 @@ KinometWindows\frame*
 /gba/*
 *.d
 *.o
+*.obj
+/.git
+/./vs
+/Debug/
+/packages/

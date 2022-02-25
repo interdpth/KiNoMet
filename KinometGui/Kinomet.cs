@@ -32,7 +32,7 @@ namespace KinometGui
             string fn = fi.Name.Split('.')[0];
             string tmpVideo = $"{fn}.mp4";
             uint fr = (ShellFile.FromFilePath(videoFile).Properties.System.Video.FrameRate.Value == null ? 0 : ShellFile.FromFilePath(videoFile).Properties.System.Video.FrameRate.Value.Value) / 1000;
-            int targetFps = (int)15;
+            int targetFps = (int)30;
 
             //Do some intial conversions.
             var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -crf 31 -filter:v fps=fps={targetFps} -s 240x160 {Processing}\\{tmpVideo}" };
@@ -52,7 +52,7 @@ namespace KinometGui
             P.WaitForExit();
 
             
-            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -c:v cinepak -max_strips 3 -an -q 31 -s 240x160 {Processing}\\{fn}_final.avi" };
+            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -c:v cinepak -max_strips 2 -an -q 31 -s 240x160 {Processing}\\{fn}_final.avi" };
             P = Process.Start(PSI);
             P.WaitForExit();
 

@@ -3,6 +3,7 @@
 #include "VideoFile.h"
 #include <stdio.h>
 int frameHandled;
+int codeBookSize();
 void handleFrame(unsigned char* framePointer)
 {
 	//we are gba so frame is always 240*160*2;
@@ -16,7 +17,8 @@ void handleFrame(unsigned char* framePointer)
 		fclose(fp);
 	}
 }
-
+extern int maxNum;
+extern int codeBooks;
 int main(int arc, char* argv[])
 {
 	printf("sizeof(int) %d\n", (int)sizeof(int));
@@ -35,11 +37,15 @@ int main(int arc, char* argv[])
 	printf("sizeof(MainAVIHeader) %d\n", (int)sizeof(MainAVIHeader));
 	printf("sizeof(_avioldindex_entry) %d\n", (int)sizeof(_avioldindex_entry));
 	printf("sizeof(AVIStreamHeader) %d\n", (int)sizeof(AVIStreamHeader));
-
+	int b = sizeof(arachicoldcvid_codebook);
 	int intz = sizeof(int);
 	int uintz = sizeof(unsigned long);
 	//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
 	frameHandled = 0;
 	LoadAVI((unsigned char*)VideoFile, VideoFile_size, &handleFrame);
+	int overallSize = codeBookSize();
+	printf("%d", maxNum);
+	printf("%x", overallSize);
+	printf("%d", codeBooks);
 }
 

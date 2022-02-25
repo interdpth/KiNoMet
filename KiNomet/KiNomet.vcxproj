@@ -140,12 +140,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Cinepak.cpp" />
+    <ClCompile Include="CodeBookManager.cpp" />
     <ClCompile Include="Gba.cpp" />
     <ClCompile Include="KiNomet.cpp" />
     <ClCompile Include="SmallBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cinepak.h" />
+    <ClInclude Include="CodeBookManager.h" />
     <ClInclude Include="Gba.h" />
     <ClInclude Include="KiNoMet.h" />
     <ClInclude Include="SmallBuffer.h" />

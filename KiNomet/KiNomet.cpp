@@ -34,7 +34,7 @@ static_assert(sizeof(unsigned short)==2, "unsigned short size is wrong");
 static_assert(sizeof(unsigned long)==4, "unsigned long size is wrong");
 static_assert(sizeof(unsigned char*)==4, "unsigned char* size is wrong");
 static_assert(sizeof(unsigned short*)==4, "unsigned short* size is wrong");
-static_assert(sizeof(cvid_codebook)==18, "cvid_codebook size is wrong");
+//static_assert(sizeof(cvid_codebook)==18, "cvid_codebook size is wrong");
 //static_assert(sizeof(cinepak_info)==260, "cinepak_info size is wrong");
 static_assert(sizeof(BITMAPINFOHEADER)==40, "BITMAPINFOHEADER size is wrong");
 static_assert(sizeof(MainAVIHeader)==56, "MainAVIHeader size is wrong");
@@ -47,8 +47,11 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 {	
 	int sizescr = 240 * 2 * 160;//Rgb //hdrz->dwWidth * hdrz->dwHeight * 3;
 
-
+#ifdef GBA
+	Kinomet_FrameBuffer = (unsigned char*)0x6000000;
+#else
 	Kinomet_FrameBuffer = (unsigned char*)malloc(sizescr);
+#endif
 	for (int i = 0; i < sizescr / 4; i++)//future iterations should size check but black out the screen
 	{
 		((unsigned long*)Kinomet_FrameBuffer)[i] = 0;
@@ -181,22 +184,12 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 	//It's frame time.
 	_avioldindex_entry* idxList = (_avioldindex_entry*)buf->GetCurrentBuffer();
 
-	//Wait till a frame is drawn before we adance, there for. 
-	//WE're about to start processing frames, begin timer.
-
-
-
 	for (int i = 0; i < numFrames; i++)
-	{
+	{	//so we will point to
 		_avioldindex_entry* cur = &idxList[i];
-		//so we will point to
+		
 		//hello what are we
-		if (cur->FourCC != TAG_00DC)
-		{
-			int a = 1;
-			int b = 0;
-			a = b;
-		}
+		if (cur->FourCC != TAG_00DC) continue;
 
 		//sanity stuff.
 		unsigned char* frame = moviPointer + cur->dwOffset - 4;
@@ -207,11 +200,11 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 		int framesize = *(unsigned long*)frame; frame += 4;
 
 		if (fourcc != cur->FourCC) continue;
-		if (cur->dwSize == 0) {//This frame is empty, don't modify the current one just send it.
-		
-			continue;
-		}
-		if (framesize != cur->dwSize) continue;
+		//if (cur->dwSize == 0) {//This frame is empty, don't modify the current one just send it.
+		//callback(Kinomet_FrameBuffer);
+		//	continue;
+		//}
+		//if (framesize != cur->dwSize) continue;
 
 		/*
 		#define 	AVIIF_LIST   0x00000001
@@ -230,13 +223,9 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 
 
 	}
-//#ifndef  GBA
+#ifndef  GBA
 	free(Kinomet_FrameBuffer);
-//#endif
-	//#endif // ! GBA
+#endif
 	free_cvinfo(ci);
-	//fseek(fp,riffHeader->dwSize, SEEK_SET);
-	//fread(&hdr, 0, sizeof(MainAVIHeader), fp);
-	//printf("lol");
 }
 

@@ -13,7 +13,9 @@ using namespace std;
 #define compare_fourcc(fcc1, fcc2) (((fcc1)^(fcc2))&~0x20202020)
 
 #define DBUG    0
-#define MAX_STRIPS 3//best for gba, encoder only uses 2, all frames should look good since they match
+
+#define cinepak_strip_Length 260
+#define MAX_STRIPS 5//best for gba, encoder only uses 2, all frames should look good since they match,  1 strip  =83860 = 
 
 #define ERR printf
 #define WARN printf
@@ -29,6 +31,19 @@ typedef struct
     signed char u, v;
    /* unsigned char reds[4], greens[4], blues[4];*/
 } oldcvid_codebook;
+
+
+#ifdef GBA
+typedef struct __attribute__((__packed__))
+#else
+typedef struct
+#endif
+{
+    unsigned char y0, y1, y2, y3;
+    signed char u, v;
+     unsigned char reds[4], greens[4], blues[4];
+} arachicoldcvid_codebook;
+
 
 #ifdef GBA
 typedef struct __attribute__((__packed__))
@@ -53,6 +68,7 @@ typedef struct
     cvid_codebook* v1_codebook[MAX_STRIPS];
     unsigned int strip_num;
 } cinepak_info;
+void free_codebooks(cinepak_info* cvinfo);
 unsigned short MAKECOLOUR16(unsigned char r, unsigned char g, unsigned char b);
 #ifdef GBA 
 IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame, unsigned int width, unsigned int height);

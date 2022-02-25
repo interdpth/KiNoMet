@@ -56,7 +56,7 @@ void ERR(char* a, ...)
 
 {
 }
-
+int sizeVar = 0;
 
 /* ------------------------------------------------------------------------ */
 unsigned char* in_buffer;
@@ -121,28 +121,37 @@ void  read_codebook(cvid_codebook* c, int mode)
 	if (mode)        /* black and white */
 	{
 		memcpy(&curbk.y0, in_buffer, 4); in_buffer += 4;
+		int y0 = curbk.y0;
+		int y1 = curbk.y1;
+		int y2 = curbk.y2;
 
-		c->rgb[0] = MAKECOLOUR16(curbk.y0, curbk.y0, curbk.y0);
-		c->rgb[1] = MAKECOLOUR16(curbk.y1, curbk.y1, curbk.y1);
-		c->rgb[2] = MAKECOLOUR16(curbk.y2, curbk.y2, curbk.y2);
-		c->rgb[3] = MAKECOLOUR16(curbk.y3, curbk.y3, curbk.y3);
+		int y3 = curbk.y3;
+		c->rgb[0] = MAKECOLOUR16(y0, y0, y0);
+		c->rgb[1] = MAKECOLOUR16(y1, y1, y1);
+		c->rgb[2] = MAKECOLOUR16(y2, y2, y2);
+		c->rgb[3] = MAKECOLOUR16(y3, y3, y3);
 	}
 	else            /* colour */
 	{
 
 		memcpy(&curbk.y0, in_buffer, 6); in_buffer += 6;
+		int y0 = curbk.y0;
+		int y1 = curbk.y1;
+		int y2 = curbk.y2;
+
+		int y3 = curbk.y3;
 		uvr = curbk.v << 1;
 		uvg = -((curbk.u + 1) >> 1) - curbk.v;
 		uvb = curbk.u << 1;
 
 
-		c->rgb[0] = MAKECOLOUR16(uiclp[curbk.y0 + uvr], uiclp[curbk.y0 + uvg], uiclp[curbk.y0 + uvb]);
+		c->rgb[0] = MAKECOLOUR16(uiclp[y0 + uvr], uiclp[y0 + uvg], uiclp[y0 + uvb]);
 
-		c->rgb[1] = MAKECOLOUR16(uiclp[curbk.y1 + uvr], uiclp[curbk.y1 + uvg], uiclp[curbk.y1 + uvb]);
+		c->rgb[1] = MAKECOLOUR16(uiclp[y1 + uvr], uiclp[y1 + uvg], uiclp[y1 + uvb]);
 
-		c->rgb[2] = MAKECOLOUR16(uiclp[curbk.y2 + uvr], uiclp[curbk.y2 + uvg], uiclp[curbk.y2 + uvb]);
+		c->rgb[2] = MAKECOLOUR16(uiclp[y2 + uvr], uiclp[y2 + uvg], uiclp[y2 + uvb]);
 
-		c->rgb[3] = MAKECOLOUR16(uiclp[curbk.y3 + uvr], uiclp[curbk.y3 + uvg], uiclp[curbk.y3 + uvb]);
+		c->rgb[3] = MAKECOLOUR16(uiclp[y3 + uvr], uiclp[y3 + uvg], uiclp[y3 + uvb]);
 
 	}
 }
@@ -169,35 +178,83 @@ void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 
 	int width = stride >> 1;
 
+	unsigned short r0 = cb->rgb[0];
+	unsigned short r1 = cb->rgb[1];
+	unsigned short r2 = cb->rgb[2];;
+	unsigned short r3 = cb->rgb[3];;
 
 
-	vptr[0 * width + 0] = cb->rgb[0];
-	vptr[0 * width + 1] = vptr[0 * width + 0];
-	vptr[0 * width + 2] = cb->rgb[1];
-	vptr[0 * width + 3] = vptr[0 * width + 2];
 
 
-	vptr[1 * width + 0] = cb->rgb[0];
-	vptr[1 * width + 1] = vptr[1 * width + 0];
+	//*((unsigned long*)(vptr[0 * width + 0])) = r0 << 16 | r0;
+	////vptr[0 * width + 1] = vptr[0 * width + 0];
+	//*((unsigned long*)(vptr[0 * width + 2])) = r1 << 16 | r1;
 
 
-	vptr[1 * width + 2] = cb->rgb[1];
-	vptr[1 * width + 3] = vptr[1 * width + 2];
+	//*((unsigned long*)(vptr[1 * width + 0])) = r0 << 16 | r0;
 
-	vptr[2 * width + 0] = cb->rgb[2];
-	vptr[2 * width + 1] = vptr[2 * width + 0];
 
-	vptr[2 * width + 2] = cb->rgb[3];
-	vptr[2 * width + 3] = vptr[2 * width + 2];
+	//*((unsigned long*)(vptr[1 * width + 2])) = r1 << 16 | r1;
 
-	vptr[3 * width + 0] = cb->rgb[2];
-	vptr[3 * width + 1] = vptr[3 * width + 0];
+	//*((unsigned long*)(vptr[2 * width + 0])) = r2 << 16 | r2;
 
-	vptr[3 * width + 2] = cb->rgb[3];
-	vptr[3 * width + 3] = vptr[3 * width + 2];
+	//*((unsigned long*)(vptr[2 * width + 2])) = r3 << 16 | r3;
+
+	//*((unsigned long*)(vptr[3 * width + 0])) = r2 << 16 | r2;
+
+	//*((unsigned long*)(vptr[3 * width + 2])) = r3 << 16 | r3;
+	vptr[0 * width + 0] = r0;
+	vptr[0 * width + 1] = r0;
+
+	vptr[0 * width + 2] = r1;
+	vptr[0 * width + 3] = r1;
+
+	vptr[1 * width + 0] = r0;
+	vptr[1 * width + 1] = r0;
+
+
+	vptr[1 * width + 2] = r1;
+	vptr[1 * width + 3] = r1;
+
+	vptr[2 * width + 0] = r2;
+	vptr[2 * width + 1] = r2;
+
+	vptr[2 * width + 2] = r3;
+	vptr[2 * width + 3] = r3;
+
+	vptr[3 * width + 0] = r2;
+	vptr[3 * width + 1] = r2;
+
+	vptr[3 * width + 2] = r3;
+	vptr[3 * width + 3] = r3;
+
+	//vptr[0 * width + 0] = cb->rgb[0];
+	//vptr[0 * width + 1] = vptr[0 * width + 0];
+	//vptr[0 * width + 2] = cb->rgb[1];
+	//vptr[0 * width + 3] = vptr[0 * width + 2];
+
+
+	//vptr[1 * width + 0] = cb->rgb[0];
+	//vptr[1 * width + 1] = vptr[1 * width + 0];
+
+
+	//vptr[1 * width + 2] = cb->rgb[1];
+	//vptr[1 * width + 3] = vptr[1 * width + 2];
+
+	//vptr[2 * width + 0] = cb->rgb[2];
+	//vptr[2 * width + 1] = vptr[2 * width + 0];
+
+	//vptr[2 * width + 2] = cb->rgb[3];
+	//vptr[2 * width + 3] = vptr[2 * width + 2];
+
+	//vptr[3 * width + 0] = cb->rgb[2];
+	//vptr[3 * width + 1] = vptr[3 * width + 0];
+
+	//vptr[3 * width + 2] = cb->rgb[3];
+	//vptr[3 * width + 3] = vptr[3 * width + 2];
 }
 
-
+#define longcolors (*clrs++ << 16) | (*clrs++);
 /* ------------------------------------------------------------------------ */
 #ifdef GBA
 IWRAM void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb0,
@@ -211,38 +268,61 @@ void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 
 	int width = stride / 2;
 
-	cvid_codebook* cb[] = { cb0,cb1,cb2,cb3 };
+	cvid_codebook* curBook = cb0;
+	unsigned short* clrs = curBook->rgb;
+	//*((unsigned long*)(vptr[0 * width + 0])) = longcolors
+	//	* ((unsigned long*)(vptr[0 * width + 1])) = longcolors
+	//	* ((unsigned long*)(vptr[1 * width + 0])) = longcolors
+	//	* ((unsigned long*)(vptr[1 * width + 1])) = longcolors
 
-	cvid_codebook* curBook = cb[0];
-	unsigned short* reds = curBook->rgb;
+	//	curBook = cb1;
+	//clrs = curBook->rgb;
+	//*((unsigned long*)(vptr[0 * width + 2])) = longcolors
+	//	* ((unsigned long*)(vptr[0 * width + 3])) = longcolors
+	//	* ((unsigned long*)(vptr[1 * width + 2])) = longcolors
+	//	* ((unsigned long*)(vptr[1 * width + 3])) = longcolors
 
-	//screw calculattions.
-	vptr[0 * width + 0] = *reds++;
-	vptr[0 * width + 1] = *reds++;
-	vptr[1 * width + 0] = *reds++;
-	vptr[1 * width + 1] = *reds++;
+	//	curBook = cb2;
+	//clrs = curBook->rgb;
+	//*((unsigned long*)(vptr[2 * width + 0])) = longcolors
+	//	* ((unsigned long*)(vptr[2 * width + 1])) = longcolors
+	//	* ((unsigned long*)(vptr[3 * width + 0])) = longcolors
+	//	* ((unsigned long*)(vptr[3 * width + 1])) = longcolors
 
-	curBook = cb[1];
-	reds = curBook->rgb;
-	vptr[0 * width + 2] = *reds++;
-	vptr[0 * width + 3] = *reds++;
-	vptr[1 * width + 2] = *reds++;
-	vptr[1 * width + 3] = *reds++;
+	//	curBook = cb3;
+	//
 
-	curBook = cb[2];
-	reds = curBook->rgb;
-	vptr[2 * width + 0] = *reds++;
-	vptr[2 * width + 1] = *reds++;
-	vptr[3 * width + 0] = *reds++;
-	vptr[3 * width + 1] = *reds++;
+	//*((unsigned long*)(vptr[2 * width + 2])) = longcolors
+	//	* ((unsigned long*)(vptr[2 * width + 3])) = longcolors
+	//	* ((unsigned long*)(vptr[3 * width + 2])) = longcolors
+	//	* ((unsigned long*)(vptr[3 * width + 3])) = longcolors*/
+		//screw calculattions.
+		vptr[0 * width + 0] = *clrs++;
+		vptr[0 * width + 1] = *clrs++;
+		vptr[1 * width + 0] = *clrs++;
+		vptr[1 * width + 1] = *clrs++;
 
-	curBook = cb[3];
-	reds = curBook->rgb;
+		curBook = cb1;
+		clrs = curBook->rgb;
+		vptr[0 * width + 2] = *clrs++;
+		vptr[0 * width + 3] = *clrs++;
+		vptr[1 * width + 2] = *clrs++;
+		vptr[1 * width + 3] = *clrs++;
 
-	vptr[2 * width + 2] = *reds++;
-	vptr[2 * width + 3] = *reds++;
-	vptr[3 * width + 2] = *reds++;
-	vptr[3 * width + 3] = *reds++;
+		curBook = cb2;
+		clrs = curBook->rgb;
+		vptr[2 * width + 0] = *clrs++;
+		vptr[2 * width + 1] = *clrs++;
+		vptr[3 * width + 0] = *clrs++;
+		vptr[3 * width + 1] = *clrs++;
+
+		curBook = cb3;
+		clrs = curBook->rgb;
+
+		vptr[2 * width + 2] = *clrs++;
+		vptr[2 * width + 3] = *clrs++;
+		vptr[3 * width + 2] = *clrs++;
+		vptr[3 * width + 3] = *clrs++;
 }
 
 cinepak_info* newpack()
@@ -258,7 +338,7 @@ cinepak_info* newpack()
  */
 cinepak_info* decode_cinepak_init(void)
 {
-
+	sizeVar = 0;
 	int i;
 	cinepak_info* cvinfo = newpack();
 
@@ -273,23 +353,43 @@ cinepak_info* decode_cinepak_init(void)
 		for (i = -512; i < 512; i++)
 			uiclp[i] = (i < 0 ? 0 : (i > 255 ? 255 : i));
 	}
-
+	for (int i = 0; i < MAX_STRIPS; i++)
+	{
+		cvinfo->v4_codebook[i] = nullptr;
+		cvinfo->v1_codebook[i] = nullptr;
+	}
 
 	return cvinfo;
 }
-
+void free_codebooks(cinepak_info* cvinfo)
+{
+	for (int i = 0; i < MAX_STRIPS; i++)
+	{
+		if (cvinfo->v4_codebook[i] != nullptr) 
+		{
+			free(cvinfo->v4_codebook[i]);
+			cvinfo->v4_codebook[i] = nullptr;
+		}
+		if (cvinfo->v1_codebook[i] != nullptr)
+		{
+			free(cvinfo->v1_codebook[i]);
+			cvinfo->v1_codebook[i] = nullptr;
+		}
+	}
+}
 void free_cvinfo(cinepak_info* cvinfo)
 {
 	unsigned int i;
 
-	for (i = 0; i < cvinfo->strip_num; i++)
-	{
-		free(cvinfo->v4_codebook[i]);
-		free(cvinfo->v1_codebook[i]);
-	}
+	free_codebooks(cvinfo);
 	free(cvinfo);
 }
 
+int codeBooks = 0;
+int codeBookSize()
+{
+	return sizeVar;
+}
 //current frame pointer, limit is lowest frame pointer can hit, stride is width in bytes, cb is the proper code book to use
 typedef void (*fn_cvid_v1)(unsigned char* frm, unsigned char* limit,
 	int stride, cvid_codebook* cb);
@@ -309,6 +409,7 @@ typedef void (*fn_cvid_v4)(unsigned char* frm, unsigned char* limit, int stride,
  * bit_per_pixel - the number of bits per pixel allocated to the output
  *   frame (only 24 or 32 bpp are supported)
  */
+int maxNum = 0;
 #define KillChunk in_buffer+=chunk_size;//while (chunk_size > 0) { skip_byte(); chunk_size--; }
 #ifdef GBA
 IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
@@ -327,7 +428,6 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	int d0, d1, d2, d3, frm_stride, bpp = 2;
 	fn_cvid_v1 cvid_v1 = (fn_cvid_v1)cvid_v1_16;
 	fn_cvid_v4 cvid_v4 = (fn_cvid_v4)cvid_v4_16;
-	unsigned char* frm_end = frame + size;
 	y = 0;
 	y_bottom = 0;
 	in_buffer = inputFrame;
@@ -350,11 +450,18 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 			/* return; */
 		}
 	}
+	;
 
+	free_codebooks(cvinfo);
+	i = 0;
 	cv_width = get_word();
 	cv_height = get_word();
 	strips = get_word();
-
+	if (strips > maxNum)
+	{
+		maxNum = strips;
+	}
+	
 	if (strips > cvinfo->strip_num)
 	{
 		if (strips >= MAX_STRIPS)
@@ -363,14 +470,8 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 			return;
 		}
 
-		for (i = cvinfo->strip_num; i < strips; i++)
+		for (i = 0; i < strips; i++)//Init our codebooks.
 		{
-			//#ifdef GBA		
-			//			cvinfo->v4_codebook[i] = (cvid_codebook*)(basePointer);
-			//			basePointer += sizeof(cvid_codebook) * 260;
-			//			cvinfo->v1_codebook[i] = (cvid_codebook*)(basePointer);
-			//			basePointer += sizeof(cvid_codebook) * 260;
-			//#else 
 			if ((cvinfo->v4_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
 			{
 				while (1)
@@ -388,22 +489,39 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 				ERR("CVID: codebook v1 alloc err\n");
 				return;
 			}
+			int cvidSize = sizeof(cvid_codebook);
+			sizeVar += 2 * sizeof(cvid_codebook) * 260;
+			codeBooks  +=2;
 			//#endif
 		}
 	}
 	cvinfo->strip_num = strips;
 
 	TRACE("CVID: <%ld,%ld> strips %ld\n", cv_width, cv_height, strips);
-
+	//Why can't we free here.
 	for (cur_strip = 0; cur_strip < strips; cur_strip++)
 	{
 		v4_codebook = cvinfo->v4_codebook[cur_strip];
 		v1_codebook = cvinfo->v1_codebook[cur_strip];
 
+		if (v4_codebook == nullptr)
+		{
+			cvinfo->v4_codebook[cur_strip] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260);
+			v4_codebook = cvinfo->v4_codebook[cur_strip];
+		}
+		if (v1_codebook == nullptr)
+		{
+			cvinfo->v1_codebook[cur_strip] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260);
+			v1_codebook = cvinfo->v1_codebook[cur_strip];
+		}
+
+
 		if ((cur_strip > 0) && (!(frame_flags & 0x01)))
 		{
-			memcpy(cvinfo->v4_codebook[cur_strip], cvinfo->v4_codebook[cur_strip - 1], 260 * sizeof(cvid_codebook));
-			memcpy(cvinfo->v1_codebook[cur_strip], cvinfo->v1_codebook[cur_strip - 1], 260 * sizeof(cvid_codebook));
+			v4_codebook = cvinfo->v4_codebook[cur_strip - 1];
+			v1_codebook = cvinfo->v1_codebook[cur_strip - 1];
+			//memcpy(cvinfo->v4_codebook[cur_strip], cvinfo->v4_codebook[cur_strip - 1], 260 * sizeof(cvid_codebook));
+			//memcpy(cvinfo->v1_codebook[cur_strip], cvinfo->v1_codebook[cur_strip - 1], 260 * sizeof(cvid_codebook));
 		}
 
 		strip_id = get_word();        /* 1000 = key strip, 1100 = iter strip */

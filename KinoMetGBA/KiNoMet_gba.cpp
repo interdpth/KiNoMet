@@ -19,11 +19,21 @@ char frameReady;
 int lastDrawn;
 int numFrames = 0;
 int fps = 0;
+#define REG_VCOUNT *(volatile unsigned short*)0x04000006
+void memcpy32_dma(unsigned short* dest, unsigned short* source, int amount) {
+	*dma3_source = (unsigned int)source;
+	*dma3_destination = (unsigned int)dest;
+	*dma3_control = DMA_ENABLE | DMA_32 | (amount>>1);
+	/*for (int i = 0; i < amount; i++) dest[i] = source[i];*/
+}
+
+void vid_vsync()
+{
+	while (REG_VCOUNT < 160);
+}
 /* this function is called each vblank to get the timing of sounds right */
-#ifdef GBA 
-ARM
-#endif
-void onInterrupt() {
+
+IWRAM void onInterrupt() {
 
 	/* disable interrupts for now and save current state of interrupt */
 	*interrupt_enable = 0;
@@ -56,13 +66,13 @@ void onInterrupt() {
 		//}
 
 		//Is it time?
-		if (frameReady && vblankcounter - lastDrawn > 20)
+		if (frameReady && vblankcounter - lastDrawn > 30)
 		{
-			memcpy16_dma((unsigned short*)0x6000000, (unsigned short*)Kinomet_FrameBuffer, 240 * 160);
+			vid_vsync();
+			memcpy32_dma((unsigned short*)0x6000000, (unsigned short*)Kinomet_FrameBuffer, 240 * 160);
 			lastDrawn = vblankcounter;
 			numFrames++;
-			frameReady = 0;
-			vblankcounter++;
+			frameReady = 0;	
 			if (vblankcounter % 60 == 0 ) fps = numFrames / vblankcounter;
 		}
 		vblankcounter++;
@@ -95,7 +105,6 @@ void Setup()
 	*sound_control = 0;
 }
 
-
 void handleFrame(unsigned char* framePointer)
 {
 	//we are gba so frame is always 240*160*2;
@@ -108,7 +117,6 @@ void handleFrame(unsigned char* framePointer)
 	//		&((unsigned short*)0x6000000)[y * 240], srcFrame, 240); srcFrame += 240;
 	//}
 	frameReady = 1;
-	VBlankIntrWait();
 
 }
 
