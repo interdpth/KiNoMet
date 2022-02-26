@@ -15,7 +15,7 @@ using namespace std;
 #define DBUG    0
 
 #define cinepak_strip_Length 260
-#define MAX_STRIPS 5//best for gba, encoder only uses 2, all frames should look good since they match,  1 strip  =83860 = 
+#define MAX_STRIPS 3
 
 #define ERR printf
 #define WARN printf

@@ -4,16 +4,29 @@
 #include <stdio.h>
 int frameHandled;
 int codeBookSize();
-void handleFrame(unsigned char* framePointer)
+int height = 0;
+int width = 0;
+
+void handleFrame(KinometPacket* pack)
 {
+	//IF this is called nad packet is null, we are just setting up. 
+
+	if (pack->frame == nullptr && !height && !width)
+	{
+		height = pack->screen->h;
+		width = pack->screen->w;
+		return;
+	}
+
+
 	//we are gba so frame is always 240*160*2;
 	char strbuf[256] = { 0 };
 	sprintf(strbuf, "F:\\processing\\frame%d.bin", frameHandled++);
-	
+
 	FILE* fp = fopen(strbuf, "wb");
-	if (fp)
+	if (pack->frame && fp)
 	{
-		fwrite(framePointer, 2, 240 * 160, fp);
+		fwrite(pack->frame, 2, width * height, fp);
 		fclose(fp);
 	}
 }

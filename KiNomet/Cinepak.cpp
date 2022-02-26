@@ -67,6 +67,11 @@ unsigned char* uiclp = NULL;
 static_assert(sizeof(uiclip) == 1024, "Size is not 1024");
 //static_assert(sizeof(cvid_codebook) == 18, "Codebook Size is not 18 bytes");
 
+#define REG_VCOUNT *(volatile unsigned short*)0x04000006
+void vid_vsync()
+{
+	while (REG_VCOUNT < 128);
+}
 
 /*
 typedef struct {
@@ -174,6 +179,7 @@ IWRAM void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid
 void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb)
 #endif
 {
+
 	unsigned short* vptr = (unsigned short*)frm;
 
 	int width = stride >> 1;
@@ -264,6 +270,7 @@ void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 	cvid_codebook* cb1, cvid_codebook* cb2, cvid_codebook* cb3)
 #endif
 {
+
 	unsigned short* vptr = (unsigned short*)frm;
 
 	int width = stride / 2;
@@ -409,6 +416,27 @@ typedef void (*fn_cvid_v4)(unsigned char* frm, unsigned char* limit, int stride,
  * bit_per_pixel - the number of bits per pixel allocated to the output
  *   frame (only 24 or 32 bpp are supported)
  */
+
+void InitCodeBook(cinepak_info* cvinfo, int i)
+{
+	if ((cvinfo->v4_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
+	{
+		while (1)
+		{
+			(char*)"shits' fucked mate1";
+		}
+		return;
+		}
+	if ((cvinfo->v1_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
+	{
+		while (1)
+		{
+			(char*)"shits' fucked mate1";
+		}
+		ERR("CVID: codebook v1 alloc err\n");
+		return;
+	}
+}
 int maxNum = 0;
 #define KillChunk in_buffer+=chunk_size;//while (chunk_size > 0) { skip_byte(); chunk_size--; }
 #ifdef GBA
@@ -467,28 +495,13 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 		if (strips >= MAX_STRIPS)
 		{
 			ERR("CVID: strip overflow (more than %d)\n", MAX_STRIPS);
-			return;
+			exit(-1);
 		}
 
 		for (i = 0; i < strips; i++)//Init our codebooks.
 		{
-			if ((cvinfo->v4_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
-			{
-				while (1)
-				{
-					(char*)"shits' fucked mate1";
-				}
-				return;
-			}
-			if ((cvinfo->v1_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
-			{
-				while (1)
-				{
-					(char*)"shits' fucked mate1";
-				}
-				ERR("CVID: codebook v1 alloc err\n");
-				return;
-			}
+			InitCodeBook(cvinfo, i);
+			
 			int cvidSize = sizeof(cvid_codebook);
 			sizeVar += 2 * sizeof(cvid_codebook) * 260;
 			codeBooks  +=2;
@@ -741,7 +754,9 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 			}
 		}
 	}
-
+#ifdef GBA
+	vid_vsync();
+#endif
 	if (len != size)
 	{
 		if (len & 0x01) len++; /* AVIs tend to have a size mismatch */

@@ -32,28 +32,28 @@ namespace KinometGui
             string fn = fi.Name.Split('.')[0];
             string tmpVideo = $"{fn}.mp4";
             uint fr = (ShellFile.FromFilePath(videoFile).Properties.System.Video.FrameRate.Value == null ? 0 : ShellFile.FromFilePath(videoFile).Properties.System.Video.FrameRate.Value.Value) / 1000;
-            int targetFps = (int)30;
+            int targetFps = (int)fr;
 
             //Do some intial conversions.
-            var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -crf 31 -filter:v fps=fps={targetFps} -s 240x160 {Processing}\\{tmpVideo}" };
-            var P = Process.Start(PSI);
-            P.WaitForExit();
+            //var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -crf 25 -filter:v fps=fps={targetFps} -s 160x128 {Processing}\\{tmpVideo}" };
+            //var P = Process.Start(PSI);
+            //P.WaitForExit();
 
-            float fps = (float)((float)fr / (float)targetFps);
-            if (fps > 2.0 || fps < 0.5)
-            {
-                Console.WriteLine("Range is bad, clamping value");
-                if (fps > 2.0f) fps = 2.0f;
-                if (fps < 0.5f) fps = 0.5f;
-            }
+            //float fps = (float)((float)fr / (float)targetFps);
+            //if (fps > 2.0 || fps < 0.5)
+            //{
+            //    Console.WriteLine("Range is bad, clamping value");
+            //    if (fps > 2.0f) fps = 2.0f;
+            //    if (fps < 0.5f) fps = 0.5f;
+            //}
 
-            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -af atempo={fps} {Processing}\\VideoFileAudio.wav" };
-            P = Process.Start(PSI);
-            P.WaitForExit();
+            //PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -af atempo={fps} {Processing}\\VideoFileAudio.wav" };
+            //P = Process.Start(PSI);
+            //P.WaitForExit();
 
             
-            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -c:v cinepak -max_strips 2 -an -q 31 -s 240x160 {Processing}\\{fn}_final.avi" };
-            P = Process.Start(PSI);
+           var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -c:v cinepak -max_strips 2 -an -q 31 -s 160x128 {Processing}\\{fn}_final.avi" };
+        var    P = Process.Start(PSI);
             P.WaitForExit();
 
             RenderAudio($"{Processing}\\VideoFileAudio.wav");

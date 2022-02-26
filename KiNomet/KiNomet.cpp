@@ -43,24 +43,10 @@ static_assert(sizeof(AVIStreamHeader)==56, "AVIStreamHeader size is wrong");
 
 unsigned char* Kinomet_FrameBuffer;
 
-void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
+void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*))
 {	
-	int sizescr = 240 * 2 * 160;//Rgb //hdrz->dwWidth * hdrz->dwHeight * 3;
 
-#ifdef GBA
-	Kinomet_FrameBuffer = (unsigned char*)0x6000000;
-#else
-	Kinomet_FrameBuffer = (unsigned char*)malloc(sizescr);
-#endif
-	for (int i = 0; i < sizescr / 4; i++)//future iterations should size check but black out the screen
-	{
-		((unsigned long*)Kinomet_FrameBuffer)[i] = 0;
-	}
-	//Init engine
-#ifdef GBA
-
-#endif
-
+	rectangle screen;
 
 	
 	SmallBuffer* buf = new SmallBuffer(file, size);
@@ -174,12 +160,30 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 	//Do we make it here? 
 	int debug = 0xFFFF1Daa;
 
+	screen.x = 0;
+		screen.y = 0;
+		screen.w = bmpinf->biWidth;
+		screen.h = bmpinf->biHeight;
+		KinometPacket pack;
+		pack.frame = nullptr;
+		pack.frameid = -1;
+		pack.rect = nullptr;
+		pack.screen = &screen;
+		callback(&pack);
+		//Send a faux packet over to init our consumer. 
+	//Let's do setup
+	int sizescr = screen.w * screen.h * 2;//Rgb //hdrz->dwWidth * hdrz->dwHeight * 3;
+
+//#ifdef GBA
+//	Kinomet_FrameBuffer = (unsigned char*)0x6000000;
+//#else
+	Kinomet_FrameBuffer = (unsigned char*)malloc(sizescr);
+//#endif
+	for (int i = 0; i < sizescr / 4; i++)//future iterations should size check but black out the screen
+	{
+		((unsigned long*)Kinomet_FrameBuffer)[i] = 0;
+	}
 	int numFrames = size / sizeof(_avioldindex_entry);
-
-//#else 
-//	unsigned char* rgb = (unsigned char*)0x6000000;
-//#endif // ! GBA
-
 	cinepak_info* ci = decode_cinepak_init();
 	//It's frame time.
 	_avioldindex_entry* idxList = (_avioldindex_entry*)buf->GetCurrentBuffer();
@@ -200,28 +204,15 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*))
 		int framesize = *(unsigned long*)frame; frame += 4;
 
 		if (fourcc != cur->FourCC) continue;
-		//if (cur->dwSize == 0) {//This frame is empty, don't modify the current one just send it.
-		//callback(Kinomet_FrameBuffer);
-		//	continue;
-		//}
-		//if (framesize != cur->dwSize) continue;
-
-		/*
-		#define 	AVIIF_LIST   0x00000001
-#define 	AVIIF_KEYFRAME   0x00000010
-#define 	AVIIF_NO_TIME   0x00000100
-		*/
-		//we are for now rgb16 :(
-
+	
 		decode_cinepak(ci, frame, cur->dwSize, Kinomet_FrameBuffer, hdrz->dwWidth, hdrz->dwHeight);
-#ifdef  GBA
-
-#endif //  GBA
 
 		//Hello we have a full framedata 
-		callback(Kinomet_FrameBuffer);
-
-
+		pack.frame = Kinomet_FrameBuffer;
+		pack.frameid = i;
+		pack.screen = &screen;
+		
+		callback(&pack);
 	}
 #ifndef  GBA
 	free(Kinomet_FrameBuffer);

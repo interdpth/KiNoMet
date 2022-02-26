@@ -1,5 +1,6 @@
 #include "..\KiNomet\KiNoMet.h"
 #include "VideoFile.h"
+#include "VideoFileAudio.h"
 #include "..\KiNomet\Gba.h"
 #include <stdio.h>
 int frameHandled;
@@ -19,20 +20,19 @@ char frameReady;
 int lastDrawn;
 int numFrames = 0;
 int fps = 0;
-#define REG_VCOUNT *(volatile unsigned short*)0x04000006
-void memcpy32_dma(unsigned short* dest, unsigned short* source, int amount) {
+IWRAM void memcpy32_dma(unsigned short* dest, unsigned short* source, int amount) {
 	*dma3_source = (unsigned int)source;
 	*dma3_destination = (unsigned int)dest;
-	*dma3_control = DMA_ENABLE | DMA_32 | (amount>>1);
+	*dma3_control = DMA_ENABLE | DMA_32 | (amount >> 1);
 	/*for (int i = 0; i < amount; i++) dest[i] = source[i];*/
 }
+/* define the timer control registers */
+volatile unsigned short* timer0_data = (volatile unsigned short*)0x4000100;
+volatile unsigned short* timer0_control = (volatile unsigned short*)0x4000102;
 
-void vid_vsync()
-{
-	while (REG_VCOUNT < 160);
-}
 /* this function is called each vblank to get the timing of sounds right */
-
+int totalFrames = 0;
+unsigned short* frameBuffer;
 IWRAM void onInterrupt() {
 
 	/* disable interrupts for now and save current state of interrupt */
@@ -43,17 +43,17 @@ IWRAM void onInterrupt() {
 	if ((*REG_IF & INTERRUPT_VBLANK) == INTERRUPT_VBLANK) {
 
 		/* update channel A */
-		//if (channel_a_vblanks_remaining == 0) {
-		//	/* restart the sound again when it runs out */
-		//	channel_a_vblanks_remaining = channel_a_total_vblanks;
-		//	*dma1_control = 0;
-		//	*dma1_source = (unsigned int)alie;
-		//	*dma1_control = DMA_DEST_FIXED | DMA_REPEAT | DMA_32 |
-		//		DMA_SYNC_TO_TIMER | DMA_ENABLE;
-		//}
-		//else {
-		//	channel_a_vblanks_remaining--;
-		//}
+		if (channel_a_vblanks_remaining == 0) {
+			/* restart the sound again when it runs out */
+			channel_a_vblanks_remaining = channel_a_total_vblanks;
+			*dma1_control = 0;
+			*dma1_source = (unsigned int)VideoFileAudio;
+			*dma1_control = DMA_DEST_FIXED | DMA_REPEAT | DMA_32 |
+				DMA_SYNC_TO_TIMER | DMA_ENABLE;
+		}
+		else {
+			channel_a_vblanks_remaining--;
+		}
 
 		///* update channel B */
 		//if (channel_b_vblanks_remaining == 0) {
@@ -66,18 +66,27 @@ IWRAM void onInterrupt() {
 		//}
 
 		//Is it time?
-		if (frameReady && vblankcounter - lastDrawn > 30)
+		numFrames++;
+		auto srcFrame = frameBuffer;
+		if (frameReady && numFrames > 30)
 		{
-			vid_vsync();
-			memcpy32_dma((unsigned short*)0x6000000, (unsigned short*)Kinomet_FrameBuffer, 240 * 160);
-			lastDrawn = vblankcounter;
-			numFrames++;
-			frameReady = 0;	
-			if (vblankcounter % 60 == 0 ) fps = numFrames / vblankcounter;
-		}
-		vblankcounter++;
-	}
 
+		
+			for (int y = 0;y<160; y++)
+			{
+				memcpy16_dma(
+					&((unsigned short*)0x6000000)[y * 240], srcFrame, 240); srcFrame += 240;
+			}
+			lastDrawn = vblankcounter;
+
+			frameReady = 0;
+			numFrames = 0;
+			totalFrames++;
+			fps = totalFrames / vblankcounter; //We should be getting 30
+		}
+
+	}
+	vblankcounter++;
 	//if ((*REG_IF & INTERRUPT_T0) == INTERRUPT_T0) {
 	//	
 	//}
@@ -88,9 +97,11 @@ IWRAM void onInterrupt() {
 
 }
 
-void Setup()
+//5 is bgmode5
+//3 is bgmode3
+void Setup(int screenType)
 {
-	(*(unsigned short*)0x4000000) = 0x403;
+	(*(unsigned short*)0x4000000) = (0x400 | screenType);
 	canDmaImage = 1;
 	/* create custom interrupt handler for vblank - whole point is to turn off sound at right time
 	   * we disable interrupts while changing them, to avoid breaking things */
@@ -105,25 +116,10 @@ void Setup()
 	*sound_control = 0;
 }
 
-void handleFrame(unsigned char* framePointer)
-{
-	//we are gba so frame is always 240*160*2;
-
-
-	//unsigned short* srcFrame = (unsigned short*)framePointer;
-	//for (int y = 160 - 1; y >= 0; y--)
-	//{
-	//	memcpy16_dma(
-	//		&((unsigned short*)0x6000000)[y * 240], srcFrame, 240); srcFrame += 240;
-	//}
-	frameReady = 1;
-
-}
-
 /* play a sound with a number of samples, and sample rate on one channel 'A' or 'B' */
 void play_sound(const signed char* sound, int total_samples, int sample_rate, char channel) {
 	/* start by disabling the timer and dma controller (to reset a previous sound) */
-	
+	*timer0_control = 0;
 	if (channel == 'A') {
 		*dma1_control = 0;
 	}
@@ -159,7 +155,10 @@ void play_sound(const signed char* sound, int total_samples, int sample_rate, ch
 	 * to get the number of ticks/samples */
 	unsigned short ticks_per_sample = CLOCK / sample_rate;
 
-	
+	/* the timers all count up to 65536 and overflow at that point, so we count up to that
+	 * now the timer will trigger each time we need a sample, and cause DMA to give it one! */
+	*timer0_data = 65536 - ticks_per_sample;
+
 	/* determine length of playback in vblanks
 	 * this is the total number of samples, times the number of clock ticks per sample,
 	 * divided by the number of machine cycles per vblank (a constant) */
@@ -171,18 +170,37 @@ void play_sound(const signed char* sound, int total_samples, int sample_rate, ch
 		channel_b_vblanks_remaining = (total_samples * ticks_per_sample) / CYCLES_PER_BLANK;
 	}
 
+	/* enable the timer */
+	*timer0_control = TIMER_ENABLE | TIMER_FREQ_1;
+}
+
+void handleFrame(KinometPacket* packet)
+{
+	//we are gba so frame is always 240*160*2;
+	if (packet->frame == nullptr)
+	{
+		Setup(packet->screen->h == 160 && packet->screen->w == 240 ? 3 : 5);
+		numFrames = 0;
+		//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
+		frameHandled = 0;
+		lastDrawn = 0;
+
+		play_sound((const signed char*)VideoFileAudio, VideoFileAudio_size, 10512, 'A');
+		return;
+	}
+
+	frameBuffer = (unsigned short*)packet->frame;
+
+	frameReady = 1;
+	VBlankIntrWait();
 }
 
 
 int main()
 {
-	numFrames = 0;
-	//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
-	frameHandled = 0;
-	lastDrawn = 0;
-	Setup();
-	//	play_sound((const signed char*)alie, alie_size, 10512, 'A');
+
 	LoadAVI((unsigned char*)VideoFile, VideoFile_size, &handleFrame);
+
 	return 0;
 }
 

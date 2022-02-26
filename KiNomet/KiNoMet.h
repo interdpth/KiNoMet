@@ -44,7 +44,18 @@ typedef struct tagBITMAPINFOHEADER {
 } BITMAPINFOHEADER, * LPBITMAPINFOHEADER, * PBITMAPINFOHEADER;
 #endif
 
+struct rectangle
+{
+	unsigned char x, y, w, h;
+};
 
+struct KinometPacket
+{
+	unsigned char* frame;
+	rectangle* rect;
+	rectangle* screen;
+	int frameid;
+};
 
 #include "SmallBuffer.h"
 #include "Cinepak.h"
@@ -183,7 +194,7 @@ typedef struct {
 	unsigned int dwSize;   
 }_avioldindex_entry;
 #pragma pack(pop)
-void LoadAVI(unsigned char* file, int size, void (*callback)(unsigned char*));
+void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*));
 extern unsigned char* Kinomet_FrameBuffer;
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
 #endif // ! KINOMET_H
