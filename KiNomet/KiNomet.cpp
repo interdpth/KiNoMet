@@ -24,31 +24,31 @@ void error(char* str)
 	exit(-1);
 }
 
-static_assert(sizeof(int)==4, "int size is wrong");
-static_assert(sizeof(char)==1, "char size is wrong");
-static_assert(sizeof(short)==2, "short size is wrong");
-static_assert(sizeof(long)==4, "long size is wrong");
-static_assert(sizeof(unsigned int)==4, "unsigned int in size is wrong");
-static_assert(sizeof(unsigned char)==1, "unsigned char size is wrong");
-static_assert(sizeof(unsigned short)==2, "unsigned short size is wrong");
-static_assert(sizeof(unsigned long)==4, "unsigned long size is wrong");
-static_assert(sizeof(unsigned char*)==4, "unsigned char* size is wrong");
-static_assert(sizeof(unsigned short*)==4, "unsigned short* size is wrong");
+static_assert(sizeof(int) == 4, "int size is wrong");
+static_assert(sizeof(char) == 1, "char size is wrong");
+static_assert(sizeof(short) == 2, "short size is wrong");
+static_assert(sizeof(long) == 4, "long size is wrong");
+static_assert(sizeof(unsigned int) == 4, "unsigned int in size is wrong");
+static_assert(sizeof(unsigned char) == 1, "unsigned char size is wrong");
+static_assert(sizeof(unsigned short) == 2, "unsigned short size is wrong");
+static_assert(sizeof(unsigned long) == 4, "unsigned long size is wrong");
+static_assert(sizeof(unsigned char*) == 4, "unsigned char* size is wrong");
+static_assert(sizeof(unsigned short*) == 4, "unsigned short* size is wrong");
 //static_assert(sizeof(cvid_codebook)==18, "cvid_codebook size is wrong");
 //static_assert(sizeof(cinepak_info)==260, "cinepak_info size is wrong");
-static_assert(sizeof(BITMAPINFOHEADER)==40, "BITMAPINFOHEADER size is wrong");
-static_assert(sizeof(MainAVIHeader)==56, "MainAVIHeader size is wrong");
-static_assert(sizeof(_avioldindex_entry)==16, "_avioldindex_entry size is wrong");
-static_assert(sizeof(AVIStreamHeader)==56, "AVIStreamHeader size is wrong");
+static_assert(sizeof(BITMAPINFOHEADER) == 40, "BITMAPINFOHEADER size is wrong");
+static_assert(sizeof(MainAVIHeader) == 56, "MainAVIHeader size is wrong");
+static_assert(sizeof(_avioldindex_entry) == 16, "_avioldindex_entry size is wrong");
+static_assert(sizeof(AVIStreamHeader) == 56, "AVIStreamHeader size is wrong");
 
 unsigned char* Kinomet_FrameBuffer;
 
 void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*))
-{	
+{
 
 	rectangle screen;
 
-	
+
 	SmallBuffer* buf = new SmallBuffer(file, size);
 	//memset(&hdr, 0, sizeof(MainAVIHeader));
 	bool bValid = false;
@@ -98,7 +98,7 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*))
 	if (size != sizeof(AVIStreamHeader))
 	{
 		int diff = sizeof(AVIStreamHeader);
-		diff=--size;
+		diff = --size;
 	}
 	unsigned int strfTag = 0;
 	buf->Read(&strfTag, 4);
@@ -161,24 +161,25 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*))
 	int debug = 0xFFFF1Daa;
 
 	screen.x = 0;
-		screen.y = 0;
-		screen.w = bmpinf->biWidth;
-		screen.h = bmpinf->biHeight;
-		KinometPacket pack;
-		pack.frame = nullptr;
-		pack.frameid = -1;
-		pack.rect = nullptr;
-		pack.screen = &screen;
-		callback(&pack);
-		//Send a faux packet over to init our consumer. 
-	//Let's do setup
+	screen.y = 0;
+	screen.w = bmpinf->biWidth;
+	screen.h = bmpinf->biHeight;
+	KinometPacket pack;
+	pack.frame = nullptr;
+	pack.frameid = -1;
+	pack.rect = (rectangle*)(sthread->dwRate);//packing hack
+	pack.screen = &screen;
+
+	callback(&pack);
+	//Send a faux packet over to init our consumer. 
+//Let's do setup
 	int sizescr = screen.w * screen.h * 2;//Rgb //hdrz->dwWidth * hdrz->dwHeight * 3;
 
 //#ifdef GBA
 //	Kinomet_FrameBuffer = (unsigned char*)0x6000000;
 //#else
 	Kinomet_FrameBuffer = (unsigned char*)malloc(sizescr);
-//#endif
+	//#endif
 	for (int i = 0; i < sizescr / 4; i++)//future iterations should size check but black out the screen
 	{
 		((unsigned long*)Kinomet_FrameBuffer)[i] = 0;
@@ -191,7 +192,7 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*))
 	for (int i = 0; i < numFrames; i++)
 	{	//so we will point to
 		_avioldindex_entry* cur = &idxList[i];
-		
+
 		//hello what are we
 		if (cur->FourCC != TAG_00DC) continue;
 
@@ -199,19 +200,19 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*))
 		unsigned char* frame = moviPointer + cur->dwOffset - 4;
 		//Buffer around the frame.
 
-		int fourcc = *(unsigned long*)frame; frame += 4;
+		unsigned int fourcc = *(unsigned long*)frame; frame += 4;
 
 		int framesize = *(unsigned long*)frame; frame += 4;
 
 		if (fourcc != cur->FourCC) continue;
-	
+
 		decode_cinepak(ci, frame, cur->dwSize, Kinomet_FrameBuffer, hdrz->dwWidth, hdrz->dwHeight);
 
 		//Hello we have a full framedata 
 		pack.frame = Kinomet_FrameBuffer;
 		pack.frameid = i;
 		pack.screen = &screen;
-		
+
 		callback(&pack);
 	}
 #ifndef  GBA

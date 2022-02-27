@@ -47,7 +47,7 @@
 #include "Gba.h"
 #include "Cinepak.h"
 unsigned char* basePointer;
-
+int drawing = 0;
 void Trace(char* a, ...)
 {
 }
@@ -122,34 +122,28 @@ void  read_codebook(cvid_codebook* c, int mode)
 /* ---------------------------------------------------------------------- */
 {
 	int uvr, uvg, uvb;
-	oldcvid_codebook curbk;
+	oldcvid_codebook* curbk = ((oldcvid_codebook*)(in_buffer));
+	int y0 = curbk->y0;
+	int y1 = curbk->y1;
+	int y2 = curbk->y2;
+	int y3 = curbk->y3;
+	in_buffer += 4;//y0-y3;
 	if (mode)        /* black and white */
 	{
-		memcpy(&curbk.y0, in_buffer, 4); in_buffer += 4;
-		int y0 = curbk.y0;
-		int y1 = curbk.y1;
-		int y2 = curbk.y2;
-
-		int y3 = curbk.y3;
 		c->rgb[0] = MAKECOLOUR16(y0, y0, y0);
 		c->rgb[1] = MAKECOLOUR16(y1, y1, y1);
 		c->rgb[2] = MAKECOLOUR16(y2, y2, y2);
 		c->rgb[3] = MAKECOLOUR16(y3, y3, y3);
 	}
 	else            /* colour */
-	{
-
-		memcpy(&curbk.y0, in_buffer, 6); in_buffer += 6;
-		int y0 = curbk.y0;
-		int y1 = curbk.y1;
-		int y2 = curbk.y2;
-
-		int y3 = curbk.y3;
-		uvr = curbk.v << 1;
-		uvg = -((curbk.u + 1) >> 1) - curbk.v;
-		uvb = curbk.u << 1;
-
-
+	{		
+		int v = curbk->v;
+		int u = curbk->u;
+		in_buffer += 2;//we read v and u
+		uvr = v << 1;
+		uvg = -((u + 1) >> 1) - v;
+		uvb = u << 1;
+		
 		c->rgb[0] = MAKECOLOUR16(uiclp[y0 + uvr], uiclp[y0 + uvg], uiclp[y0 + uvb]);
 
 		c->rgb[1] = MAKECOLOUR16(uiclp[y1 + uvr], uiclp[y1 + uvg], uiclp[y1 + uvb]);
@@ -161,17 +155,49 @@ void  read_codebook(cvid_codebook* c, int mode)
 	}
 }
 
+#ifndef GBA
+unsigned short inline MAKECOLOUR16(unsigned char r, unsigned  char g, unsigned char b)
+{
 
-unsigned short inline MAKECOLOUR16(unsigned char r, unsigned  char g, unsigned char b) {
-#ifdef DEBUG
 	return ((((r >> 3) & 31) | (((g >> 3) & 31) << 5) | (((b >> 3) & 31) << 10)));
-#else 
-	return ((((r >> 3) & 31) | (((g >> 3) & 31) << 5) | (((b >> 3) & 31) << 10)));
-#endif 
+
+
 }
+#else
+//unsigned short MAKECOLOUR16(unsigned char r, unsigned  char g, unsigned char b)
+//{
+//	//give us registers to play with 
+//	__asm("PUSH   {R3-R4}");
+//	//r0 = r
+//	//r1 = g
+//	//r2 = b 
+//
+//
+//	__asm("mov r3, #3");
+//	__asm("mov r4, #31");
+//
+//	//shift the colors by 3
+//	__asm("lsr r0, r3");
+//	__asm("lsr r1, r3");
+//	__asm("lsr r2, r3");
+//
+//	//AND the colors by 31
+//	__asm("and r0, r4");
+//	__asm("and r1, r4");
+//	__asm("and r2, r4");
+//
+//	//perform the special operations
+//	__asm(" lsl r1, r1, #5"); // clear cotents, just store the proper bit pos
+//	__asm(" lsl r2, r2,  #10"); // clear cotents, just store the proper bit pos
+//	__asm(" orr r0, r1");//Combine it 
+//	__asm(" orr r0, r2");//Combine it  part 2
+//
+//	//Restore r3 and r4
+//	__asm("POP {R3-R4}");
 
 
-
+//}
+#endif
 /* ------------------------------------------------------------------------ */
 #ifdef GBA
 IWRAM void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb)
@@ -189,26 +215,6 @@ void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 	unsigned short r2 = cb->rgb[2];;
 	unsigned short r3 = cb->rgb[3];;
 
-
-
-
-	//*((unsigned long*)(vptr[0 * width + 0])) = r0 << 16 | r0;
-	////vptr[0 * width + 1] = vptr[0 * width + 0];
-	//*((unsigned long*)(vptr[0 * width + 2])) = r1 << 16 | r1;
-
-
-	//*((unsigned long*)(vptr[1 * width + 0])) = r0 << 16 | r0;
-
-
-	//*((unsigned long*)(vptr[1 * width + 2])) = r1 << 16 | r1;
-
-	//*((unsigned long*)(vptr[2 * width + 0])) = r2 << 16 | r2;
-
-	//*((unsigned long*)(vptr[2 * width + 2])) = r3 << 16 | r3;
-
-	//*((unsigned long*)(vptr[3 * width + 0])) = r2 << 16 | r2;
-
-	//*((unsigned long*)(vptr[3 * width + 2])) = r3 << 16 | r3;
 	vptr[0 * width + 0] = r0;
 	vptr[0 * width + 1] = r0;
 
@@ -273,7 +279,7 @@ void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 
 	unsigned short* vptr = (unsigned short*)frm;
 
-	int width = stride / 2;
+	int width = stride >> 1;
 
 	cvid_codebook* curBook = cb0;
 	unsigned short* clrs = curBook->rgb;
@@ -304,32 +310,32 @@ void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 	//	* ((unsigned long*)(vptr[3 * width + 2])) = longcolors
 	//	* ((unsigned long*)(vptr[3 * width + 3])) = longcolors*/
 		//screw calculattions.
-		vptr[0 * width + 0] = *clrs++;
-		vptr[0 * width + 1] = *clrs++;
-		vptr[1 * width + 0] = *clrs++;
-		vptr[1 * width + 1] = *clrs++;
+	vptr[0 * width + 0] = *clrs++;
+	vptr[0 * width + 1] = *clrs++;
+	vptr[1 * width + 0] = *clrs++;
+	vptr[1 * width + 1] = *clrs++;
 
-		curBook = cb1;
-		clrs = curBook->rgb;
-		vptr[0 * width + 2] = *clrs++;
-		vptr[0 * width + 3] = *clrs++;
-		vptr[1 * width + 2] = *clrs++;
-		vptr[1 * width + 3] = *clrs++;
+	curBook = cb1;
+	clrs = curBook->rgb;
+	vptr[0 * width + 2] = *clrs++;
+	vptr[0 * width + 3] = *clrs++;
+	vptr[1 * width + 2] = *clrs++;
+	vptr[1 * width + 3] = *clrs++;
 
-		curBook = cb2;
-		clrs = curBook->rgb;
-		vptr[2 * width + 0] = *clrs++;
-		vptr[2 * width + 1] = *clrs++;
-		vptr[3 * width + 0] = *clrs++;
-		vptr[3 * width + 1] = *clrs++;
+	curBook = cb2;
+	clrs = curBook->rgb;
+	vptr[2 * width + 0] = *clrs++;
+	vptr[2 * width + 1] = *clrs++;
+	vptr[3 * width + 0] = *clrs++;
+	vptr[3 * width + 1] = *clrs++;
 
-		curBook = cb3;
-		clrs = curBook->rgb;
+	curBook = cb3;
+	clrs = curBook->rgb;
 
-		vptr[2 * width + 2] = *clrs++;
-		vptr[2 * width + 3] = *clrs++;
-		vptr[3 * width + 2] = *clrs++;
-		vptr[3 * width + 3] = *clrs++;
+	vptr[2 * width + 2] = *clrs++;
+	vptr[2 * width + 3] = *clrs++;
+	vptr[3 * width + 2] = *clrs++;
+	vptr[3 * width + 3] = *clrs++;
 }
 
 cinepak_info* newpack()
@@ -372,7 +378,7 @@ void free_codebooks(cinepak_info* cvinfo)
 {
 	for (int i = 0; i < MAX_STRIPS; i++)
 	{
-		if (cvinfo->v4_codebook[i] != nullptr) 
+		if (cvinfo->v4_codebook[i] != nullptr)
 		{
 			free(cvinfo->v4_codebook[i]);
 			cvinfo->v4_codebook[i] = nullptr;
@@ -386,7 +392,6 @@ void free_codebooks(cinepak_info* cvinfo)
 }
 void free_cvinfo(cinepak_info* cvinfo)
 {
-	unsigned int i;
 
 	free_codebooks(cvinfo);
 	free(cvinfo);
@@ -426,7 +431,7 @@ void InitCodeBook(cinepak_info* cvinfo, int i)
 			(char*)"shits' fucked mate1";
 		}
 		return;
-		}
+	}
 	if ((cvinfo->v1_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
 	{
 		while (1)
@@ -447,6 +452,8 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	unsigned char* frame, unsigned int width, unsigned int height)
 #endif
 {
+
+	drawing = 1;
 	cvid_codebook* v4_codebook, * v1_codebook, * codebook = NULL;
 	unsigned long x, y, y_bottom, frame_flags, strips, cv_width, cv_height,
 		cnum, strip_id, chunk_id, x0, y0, x1, y1, ci, flag, mask;
@@ -489,7 +496,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	{
 		maxNum = strips;
 	}
-	
+
 	if (strips > cvinfo->strip_num)
 	{
 		if (strips >= MAX_STRIPS)
@@ -501,17 +508,17 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 		for (i = 0; i < strips; i++)//Init our codebooks.
 		{
 			InitCodeBook(cvinfo, i);
-			
+
 			int cvidSize = sizeof(cvid_codebook);
 			sizeVar += 2 * sizeof(cvid_codebook) * 260;
-			codeBooks  +=2;
+			codeBooks += 2;
 			//#endif
 		}
 	}
 	cvinfo->strip_num = strips;
 
 	TRACE("CVID: <%ld,%ld> strips %ld\n", cv_width, cv_height, strips);
-	//Why can't we free here.
+	
 	for (cur_strip = 0; cur_strip < strips; cur_strip++)
 	{
 		v4_codebook = cvinfo->v4_codebook[cur_strip];
@@ -533,8 +540,6 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 		{
 			v4_codebook = cvinfo->v4_codebook[cur_strip - 1];
 			v1_codebook = cvinfo->v1_codebook[cur_strip - 1];
-			//memcpy(cvinfo->v4_codebook[cur_strip], cvinfo->v4_codebook[cur_strip - 1], 260 * sizeof(cvid_codebook));
-			//memcpy(cvinfo->v1_codebook[cur_strip], cvinfo->v1_codebook[cur_strip - 1], 260 * sizeof(cvid_codebook));
 		}
 
 		strip_id = get_word();        /* 1000 = key strip, 1100 = iter strip */
@@ -754,9 +759,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 			}
 		}
 	}
-#ifdef GBA
-	vid_vsync();
-#endif
+
 	if (len != size)
 	{
 		if (len & 0x01) len++; /* AVIs tend to have a size mismatch */
@@ -771,6 +774,8 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 				size, len, xlen);
 		}
 	}
+
+	drawing = 0;
 }
 //
 //void ICCVID_dump_BITMAPINFO(const BITMAPINFO* bmi)

@@ -6,7 +6,7 @@
 #else
 #include "Gba.h"
 #endif // ! GBA
-#pragma push(1)
+
 #include <vector>
 using namespace std;
 #define ICCVID_MAGIC mmioFOURCC('c', 'v', 'i', 'd')
@@ -45,11 +45,8 @@ typedef struct
 } arachicoldcvid_codebook;
 
 
-#ifdef GBA
-typedef struct __attribute__((__packed__))
-#else
+
 typedef struct
-#endif
 {
     //unsigned char y0, y1, y2, y3;
     //signed char u, v;
@@ -68,8 +65,14 @@ typedef struct
     cvid_codebook* v1_codebook[MAX_STRIPS];
     unsigned int strip_num;
 } cinepak_info;
+extern int drawing;
 void free_codebooks(cinepak_info* cvinfo);
+
+#ifndef GBA
 unsigned short MAKECOLOUR16(unsigned char r, unsigned char g, unsigned char b);
+#else 
+extern "C" unsigned short MAKECOLOUR16(unsigned char r, unsigned char g, unsigned char b);
+#endif
 #ifdef GBA 
 IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame, unsigned int width, unsigned int height);
 cinepak_info* decode_cinepak_init(void);

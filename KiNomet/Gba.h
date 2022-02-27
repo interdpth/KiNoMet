@@ -2,6 +2,7 @@
 #ifndef GBA_H
 #define GBA_H
 #ifndef GBA
+
 #include <stdio.h>
 #include <stdlib.h>
 #else 
@@ -118,6 +119,7 @@ extern volatile unsigned short* display_interrupts;
 /* the interrupts are identified by number, we only care about this one */
 #define INTERRUPT_VBLANK 0x1
 #define INTERRUPT_T0 0x3
+#define INTERRUPT_T3 (1 << 6)
 /* allows turning on and off sound for the GBA altogether */
 extern volatile unsigned short* master_sound;
 #define SOUND_MASTER_ENABLE 0x80
@@ -157,6 +159,28 @@ extern unsigned int channel_b_vblanks_remaining;
 #define INT_CART 	0x2000
 
 #define IWRAM __attribute__((section(".iwram"), target("arm"), noinline))
+typedef enum irqMASKS {
+	IRQ_VBLANK = (1 << 0),		/*!< vertical blank interrupt mask */
+	IRQ_HBLANK = (1 << 1),		/*!< horizontal blank interrupt mask */
+	IRQ_VCOUNT = (1 << 2),		/*!< vcount match interrupt mask */
+	IRQ_TIMER0 = (1 << 3),		/*!< timer 0 interrupt mask */
+	IRQ_TIMER1 = (1 << 4),		/*!< timer 1 interrupt mask */
+	IRQ_TIMER2 = (1 << 5),		/*!< timer 2 interrupt mask */
+	IRQ_TIMER3 = (1 << 6),		/*!< timer 3 interrupt mask */
+	IRQ_SERIAL = (1 << 7),		/*!< serial interrupt mask */
+	IRQ_DMA0 = (1 << 8),		/*!< DMA 0 interrupt mask */
+	IRQ_DMA1 = (1 << 9),		/*!< DMA 1 interrupt mask */
+	IRQ_DMA2 = (1 << 10),	/*!< DMA 2 interrupt mask */
+	IRQ_DMA3 = (1 << 11),	/*!< DMA 3 interrupt mask */
+	IRQ_KEYPAD = (1 << 12),	/*!< Keypad interrupt mask */
+	IRQ_GAMEPAK = (1 << 13)		/*!< horizontal blank interrupt mask */
+} irqMASK;
+#define MEM_IO 0x04000000
+#define TIMER_START		0x0080	//!< Enable timer
+#define  TIMER_IRQ 0x40
+#define REG_TM3CNT_L		*(volatile unsigned short*)(MEM_IO+0x010c)
+#define REG_TM3CNT_H		*(volatile unsigned short*)(MEM_IO+0x010e)
+typedef void (*IntFn)(void);
 
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
 void* memcpy(void* dest, const void* src, int olen);

@@ -55,7 +55,7 @@
     <Text Include="Documentation.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="timer.s">
+    <None Include="cinepak_asm.s">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
