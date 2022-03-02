@@ -72,6 +72,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>..\..\libtta-master;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>..\libtta-master\debug;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -93,6 +95,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalDependencies>libtta.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -139,13 +144,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AllSight.cpp" />
     <ClCompile Include="Cinepak.cpp" />
     <ClCompile Include="CodeBookManager.cpp" />
     <ClCompile Include="Gba.cpp" />
     <ClCompile Include="KiNomet.cpp" />
     <ClCompile Include="SmallBuffer.cpp" />
+    <ClCompile Include="sonic.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AllSight.h" />
     <ClInclude Include="Cinepak.h" />
     <ClInclude Include="CodeBookManager.h" />
     <ClInclude Include="Gba.h" />

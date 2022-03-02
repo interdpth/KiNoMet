@@ -194,7 +194,9 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*))
 		_avioldindex_entry* cur = &idxList[i];
 
 		//hello what are we
-		if (cur->FourCC != TAG_00DC) continue;
+		if (cur->FourCC != TAG_00DC) {
+			printf("Hello");
+		}
 
 		//sanity stuff.
 		unsigned char* frame = moviPointer + cur->dwOffset - 4;

@@ -2,6 +2,7 @@
 #include "../KinoMet/Cinepak.h"
 #include "VideoFile.h"
 #include <stdio.h>
+
 int frameHandled;
 int codeBookSize();
 int height = 0;
@@ -32,7 +33,10 @@ void handleFrame(KinometPacket* pack)
 }
 extern int maxNum;
 extern int codeBooks;
-int main(int arc, char* argv[])
+#ifdef __cplusplus
+extern "C" {
+#endif
+int SDL_main(int argc, char* argv[])
 {
 	printf("sizeof(int) %d\n", (int)sizeof(int));
 	printf("sizeof(char) %d\n", (int)sizeof(char));
@@ -60,5 +64,8 @@ int main(int arc, char* argv[])
 	printf("%d", maxNum);
 	printf("%x", overallSize);
 	printf("%d", codeBooks);
+	return 0;
 }
-
+#ifdef __cplusplus
+}
+#endif

@@ -33,6 +33,12 @@
     <ClCompile Include="CodeBookManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="sonic.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AllSight.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cinepak.h">
@@ -49,6 +55,9 @@
     </ClInclude>
     <ClInclude Include="CodeBookManager.h">
       <Filter>Includes</Filter>
+    </ClInclude>
+    <ClInclude Include="AllSight.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,6 +1,6 @@
 #include "..\KiNomet\KiNoMet.h"
 #include "VideoFile.h"
-//#include "VideoFileAudio.h"
+#include "VideoFileAudio.h"
 #include "..\KiNomet\Gba.h"
 #include <stdio.h>
 int frameHandled;
@@ -37,7 +37,7 @@ int totalFrames = 0;
 unsigned short* frameBuffer;
 unsigned long requestCount = 0;
 IWRAM void frameRequest() {
-	if (drawing) return; //If we're drawing we don't want to be allowed to draw.
+	//if (drawing) return; //If we're drawing we don't want to be allowed to draw.
 	requestCount++;
 }
 IWRAM void onInterrupt() {
@@ -49,18 +49,18 @@ IWRAM void onInterrupt() {
 	/* look for vertical refresh */
 	if ((*REG_IF & INTERRUPT_VBLANK) == INTERRUPT_VBLANK) {
 
-		///* update channel A */
-		//if (channel_a_vblanks_remaining == 0) {
-		//	/* restart the sound again when it runs out */
-		//	channel_a_vblanks_remaining = channel_a_total_vblanks;
-		//	*dma1_control = 0;
-		//	*dma1_source = (unsigned int)VideoFileAudio;
-		//	*dma1_control = DMA_DEST_FIXED | DMA_REPEAT | DMA_32 |
-		//		DMA_SYNC_TO_TIMER | DMA_ENABLE;
-		//}
-		//else {
-		//	channel_a_vblanks_remaining--;
-		//}
+		/* update channel A */
+		if (channel_a_vblanks_remaining == 0) {
+			/* restart the sound again when it runs out */
+			channel_a_vblanks_remaining = channel_a_total_vblanks;
+			*dma1_control = 0;
+			*dma1_source = (unsigned int)VideoFileAudio;
+			*dma1_control = DMA_DEST_FIXED | DMA_REPEAT | DMA_16 |
+				DMA_SYNC_TO_TIMER | DMA_ENABLE;
+		}
+		else {
+			channel_a_vblanks_remaining--;
+		}
 
 		///* update channel B */
 		//if (channel_b_vblanks_remaining == 0) {
@@ -118,7 +118,7 @@ void Setup(KinometPacket* packet)
 	   * we disable interrupts while changing them, to avoid breaking things */
 	*interrupt_enable = 0;
 	*interrupt_callback = (unsigned int)&onInterrupt;
-	*interrupt_selection |= INTERRUPT_VBLANK | INTERRUPT_T0;
+	*interrupt_selection |= INTERRUPT_VBLANK | INTERRUPT_T3;
 	*display_interrupts |= 9;//;
 	*interrupt_enable = 1;
 	// Timer divider 2 == 256 -> 16*1024*1024 cycles/s / 256 = 65536/s
@@ -201,7 +201,7 @@ IWRAM void handleFrame(KinometPacket* packet)
 		frameHandled = 0;
 		lastDrawn = 0;
 
-		//play_sound((const signed char*)VideoFileAudio, VideoFileAudio_size, 10512, 'A');
+		play_sound((const signed char*)VideoFileAudio, VideoFileAudio_size, 10512, 'A');
 		return;
 	}
 
