@@ -89,21 +89,22 @@ namespace KinometGui
 
             ////4953 frames 
             ////792 audio files 
-            string stamp = $"00:00:0{(float)(1.0 / 25)}";
-            var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -filter:a \"atempo = {fps}\" -b:a 10512 -f segment -segment_time {stamp} {Processing}\\audio_output%09d.wav" };
-            var P = Process.Start(PSI);
-            P.WaitForExit();
+           // string stamp = $"00:00:0{(float)(1.0 / 25)}";
+           // var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -filter:a \"atempo = {fps}\" -f segment -segment_time {stamp} {Processing}\\audio_output%09d.wav" };
+           // var P = Process.Start(PSI);
+           // P.WaitForExit();
 
 
-           PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -filter:v fps=fps={targetFps} -c:v cinepak -max_strips 2  -q 31 -s 240x160 -an {Processing}\\{fn}_final.avi" };
-           P = Process.Start(PSI);
-            P.WaitForExit();
+           //PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -filter:v fps=fps={targetFps} -c:v cinepak -max_strips 2  -q 31 -s 240x160 -an {Processing}\\{fn}_final.avi" };
+           //P = Process.Start(PSI);
+           // P.WaitForExit();
 
              RenderAudio($"{Processing}");
-            ROM.MakeSource("VideoFile", File.ReadAllBytes($"{Processing}\\{fn}_final.avi"), $"{OutputFolder}");
-            ROM.Write(OutputFolder, "VideoFile");
-            ROM.MakeSource("VideoFileAudio", File.ReadAllBytes($"{Processing}\\{fn}_final.avi"), $"{OutputFolder}");
+            ROM.MakeSource("VideoFileAudio", File.ReadAllBytes($"{OutputFolder}\\VideoAudio.Bragi"), $"{OutputFolder}");
             ROM.Write(OutputFolder, "VideoFileAudio");
+
+            //ROM.MakeSource("VideoFile", File.ReadAllBytes($"{Processing}\\{fn}_final.avi"), $"{OutputFolder}");
+            //ROM.Write(OutputFolder, "VideoFile");
         }
 
 

@@ -43,7 +43,7 @@ static_assert(sizeof(AVIStreamHeader) == 56, "AVIStreamHeader size is wrong");
 
 unsigned char* Kinomet_FrameBuffer;
 
-void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*))
+void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*), void (*audiocallback)(KinometPacket*))
 {
 
 	rectangle screen;
@@ -209,7 +209,7 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*))
 		if (fourcc != cur->FourCC) continue;
 
 		decode_cinepak(ci, frame, cur->dwSize, Kinomet_FrameBuffer, hdrz->dwWidth, hdrz->dwHeight);
-
+		
 		//Hello we have a full framedata 
 		pack.frame = Kinomet_FrameBuffer;
 		pack.frameid = i;

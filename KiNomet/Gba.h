@@ -183,5 +183,7 @@ typedef enum irqMASKS {
 typedef void (*IntFn)(void);
 
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
+#ifdef GBA
 void* memcpy(void* dest, const void* src, int olen);
+#endif
 #endif

@@ -18,7 +18,8 @@ namespace KinometGui
         Raw,
         RLE,
         LZ,
-        Pointer, //Always chec kfor pointer, then size difference. 
+        Pointer, //Always chec kfor pointer, then size difference.         
+        END = 0xFD
     }
 
 
@@ -55,13 +56,7 @@ namespace KinometGui
             data = new MimirData(src);
             HashCode = hash;
             //Hash on original data
-            
-           
-
         }
-
-
-
     }
 
 
@@ -103,6 +98,22 @@ namespace KinometGui
             }
             return ""; ;
         }
+        List<List<byte>> SplitBytes(IOStream data)
+        {
+            var SplitFile = new List<List<byte>>();
+            List<byte> curBuffer = new List<byte>();
+            for (int i = 0; i < data.Length; i++)
+            {
+                curBuffer.Add(data.Data[i]);
+                if (curBuffer.Count == 512)
+                {
+                    SplitFile.Add(curBuffer);
+                    curBuffer.Clear();
+                }
+            }
+            if (curBuffer.Count != 0) SplitFile.Add(curBuffer);//Get the rest.
+            return SplitFile;
+        }
         public void WriteToFile(string directory)
         {
             IOStream outFile = new IOStream(0);
@@ -118,30 +129,18 @@ namespace KinometGui
                     continue;
                 }
 
+                outFile.WriteU32((uint)eyeball.data.srcDat.Length);
 
-                //We will break the frame up into 128byte chunks.
+                //We will break the frame up into 512byte chunks.
 
-                List<List<byte>> frameBytes = new List<List<byte>>();
-                List<byte> curBuffer = new List<byte>();
-                for (int i = 0; i < eyeball.data.srcDat.Length; i++)
-                {
-                    curBuffer.Add(eyeball.data.srcDat.Data[i]);
-                    if (curBuffer.Count == 512)
-                    {
-                        frameBytes.Add(curBuffer);
-                    }
-                }
-                if (curBuffer.Count != 0) frameBytes.Add(curBuffer);//Get the rest.
+                List<List<byte>> frameBytes = SplitBytes(eyeball.data.srcDat);
+
                 //go through 
-
                 foreach (var ourBytes in frameBytes)
                 {
                     //Check if this data exists as a full frame.
-
-
                     var dat = ourBytes.ToArray();
                     string chkSUm = GetCheckSum(dat);
-
 
                     //Do we exist? 
                     if (intHashLookup.ContainsKey(eyeball.HashCode))
@@ -174,7 +173,7 @@ namespace KinometGui
                     outFile.Write(stream.Data, best);
                 }
             }
-
+            outFile.Write8((byte)ChariotWheels.END);
             //Real 
             IOStream outputFIle = new IOStream((int)(4 + 8));//"Audi, two pointers, pointer table, data;
             outputFIle.WriteASCII("BRAG");

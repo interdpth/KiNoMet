@@ -5,11 +5,15 @@
 #include <stdlib.h>
 
 #include "Gba.h"
+#ifdef GBA
 typedef unsigned int       DWORD;
 typedef unsigned int       LONG;
 typedef int                 BOOL;
 typedef unsigned char       BYTE;
 typedef unsigned short      WORD;
+#else 
+#include <Windows.h>
+#endif
 #pragma pack(push,2)
 #ifdef GBA
 typedef struct __attribute__((__packed__))
@@ -28,20 +32,7 @@ tagBITMAPINFOHEADER {
 	DWORD biClrImportant;
 } BITMAPINFOHEADER, * LPBITMAPINFOHEADER, * PBITMAPINFOHEADER;
 #else
-typedef struct tagBITMAPINFOHEADER {
-	
-		DWORD biSize;
-	LONG  biWidth;
-	LONG  biHeight;
-	WORD  biPlanes;
-	WORD  biBitCount;
-	DWORD biCompression;
-	DWORD biSizeImage;
-	LONG  biXPelsPerMeter;
-	LONG  biYPelsPerMeter;
-	DWORD biClrUsed;
-	DWORD biClrImportant;
-} BITMAPINFOHEADER, * LPBITMAPINFOHEADER, * PBITMAPINFOHEADER;
+typedef struct tagBITMAPINFOHEADER;
 #endif
 
 struct rectangle

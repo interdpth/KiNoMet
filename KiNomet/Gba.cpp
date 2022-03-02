@@ -1,5 +1,7 @@
 #include "Gba.h"
-
+#ifndef GBA
+#include <Windows.h>
+#endif
 
 volatile unsigned long* display_control = (volatile unsigned long*)0x4000000;
 
@@ -95,25 +97,25 @@ void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount) {
 
 
 
-void*
+#ifdef GBA
+
 memcpy(void* dest, const void* src, int olen)
 {
-#ifdef GBA
 
     memcpy16_dma((unsigned short*)dest, (unsigned short*)src, olen >> 1);
 
-#else 
+ 
     char* d = (char*)dest;
     const char* s = (const char*)src;
     int len = olen;
     while (len--)
         *d++ = *s++;
-#endif
+
     return dest;
 
 }
 
-#ifdef  GBA
+
 
 
 int SwiDiv(int num, int denom)

@@ -150,7 +150,6 @@
     <ClCompile Include="Gba.cpp" />
     <ClCompile Include="KiNomet.cpp" />
     <ClCompile Include="SmallBuffer.cpp" />
-    <ClCompile Include="sonic.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AllSight.h" />

@@ -16,6 +16,9 @@
     <Filter Include="Includes">
       <UniqueIdentifier>{25994804-dbc0-452b-bc47-4ae55e4dfba8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="audiohandlers">
+      <UniqueIdentifier>{2405bb95-a3b2-453a-9bc0-8ffaf80e8b2d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KiNomet.cpp">
@@ -33,11 +36,8 @@
     <ClCompile Include="CodeBookManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sonic.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="AllSight.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>audiohandlers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -57,7 +57,7 @@
       <Filter>Includes</Filter>
     </ClInclude>
     <ClInclude Include="AllSight.h">
-      <Filter>Header Files</Filter>
+      <Filter>audiohandlers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

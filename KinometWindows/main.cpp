@@ -2,26 +2,59 @@
 #include "../KinoMet/Cinepak.h"
 #include "VideoFile.h"
 #include <stdio.h>
-
+#include "SDL_windows.h"
+#include <SDL.h>
 int frameHandled;
 int codeBookSize();
 int height = 0;
 int width = 0;
+//https://www.libsdl.org/release/SDL-1.2.15/docs/html/guidevideoopengl.html
+SDL_Window* mainWindow;
+SDL_VideoInfo* info = NULL;
+SDL_Renderer* renderer;
+void initFrame(KinometPacket* pack)
+{
+	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
+	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
+	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	height = pack->screen->h;
+	width = pack->screen->w;
+	SDL_Init(SDL_INIT_VIDEO);              // Initialize SDL2
+	mainWindow = SDL_CreateWindow("Kinometo-Scope",
+		SDL_WINDOWPOS_UNDEFINED,           // initial x position
+		SDL_WINDOWPOS_UNDEFINED,           // initial y position, 
+		width,
+		height, SDL_WINDOW_OPENGL);
+	if (mainWindow == NULL) {
+		// In the case that the window could not be made...
+		printf("Could not create window: %s\n", SDL_GetError());
+		exit(-1);
+	}
 
+	SDL_Renderer* renderer = SDL_CreateRenderer(mainWindow, -1, SDL_RENDERER_SOFTWARE);
+	if (!renderer) {
+		fprintf(stderr, "Could not create renderer\n");
+		exit(-1);
+	}
+
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_RenderClear(renderer);
+	SDL_RenderPresent(renderer);
+
+}
 void handleFrame(KinometPacket* pack)
 {
 	//IF this is called nad packet is null, we are just setting up. 
-
 	if (pack->frame == nullptr && !height && !width)
 	{
-		height = pack->screen->h;
-		width = pack->screen->w;
+		initFrame(pack);		
 		return;
 	}
 
-
 	//we are gba so frame is always 240*160*2;
-	char strbuf[256] = { 0 };
+	char strbuf[512] = { 0 };
 	sprintf(strbuf, "F:\\processing\\frame%d.bin", frameHandled++);
 
 	FILE* fp = fopen(strbuf, "wb");
@@ -57,6 +90,7 @@ int SDL_main(int argc, char* argv[])
 	int b = sizeof(arachicoldcvid_codebook);
 	int intz = sizeof(int);
 	int uintz = sizeof(unsigned long);
+
 	//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
 	frameHandled = 0;
 	LoadAVI((unsigned char*)VideoFile, VideoFile_size, &handleFrame);
@@ -64,6 +98,10 @@ int SDL_main(int argc, char* argv[])
 	printf("%d", maxNum);
 	printf("%x", overallSize);
 	printf("%d", codeBooks);
+	SDL_DestroyWindow(mainWindow);
+
+	// Clean up
+	SDL_Quit();
 	return 0;
 }
 #ifdef __cplusplus
