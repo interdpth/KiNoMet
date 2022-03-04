@@ -185,7 +185,7 @@ typedef struct {
 	unsigned int dwSize;   
 }_avioldindex_entry;
 #pragma pack(pop)
-void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*));
+void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*), void (*audiocallback)(KinometPacket*));
 extern unsigned char* Kinomet_FrameBuffer;
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
 #endif // ! KINOMET_H

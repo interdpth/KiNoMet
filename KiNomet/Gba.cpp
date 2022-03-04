@@ -105,13 +105,6 @@ memcpy(void* dest, const void* src, int olen)
     memcpy16_dma((unsigned short*)dest, (unsigned short*)src, olen >> 1);
 
  
-    char* d = (char*)dest;
-    const char* s = (const char*)src;
-    int len = olen;
-    while (len--)
-        *d++ = *s++;
-
-    return dest;
 
 }
 

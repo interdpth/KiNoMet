@@ -72,6 +72,8 @@ void free_codebooks(cinepak_info* cvinfo);
 unsigned short MAKECOLOUR16(unsigned char r, unsigned char g, unsigned char b);
 #else 
 extern "C" unsigned short MAKECOLOUR16(unsigned char r, unsigned char g, unsigned char b);
+extern "C" int GBA_RLEDECOMP(void* src, void* dst);
+extern "C"  int GBA_LZDECOMP(void* src, void* dst);
 #endif
 #ifdef GBA 
 IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame, unsigned int width, unsigned int height);

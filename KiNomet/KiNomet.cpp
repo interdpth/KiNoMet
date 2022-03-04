@@ -45,9 +45,7 @@ unsigned char* Kinomet_FrameBuffer;
 
 void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*), void (*audiocallback)(KinometPacket*))
 {
-
 	rectangle screen;
-
 
 	SmallBuffer* buf = new SmallBuffer(file, size);
 	//memset(&hdr, 0, sizeof(MainAVIHeader));
@@ -207,15 +205,16 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*), vo
 		int framesize = *(unsigned long*)frame; frame += 4;
 
 		if (fourcc != cur->FourCC) continue;
-
+	//	if(audiocallback!=nullptr) audiocallback()
 		decode_cinepak(ci, frame, cur->dwSize, Kinomet_FrameBuffer, hdrz->dwWidth, hdrz->dwHeight);
 		
 		//Hello we have a full framedata 
 		pack.frame = Kinomet_FrameBuffer;
 		pack.frameid = i;
 		pack.screen = &screen;
-
+		pack.rect = &screen;
 		callback(&pack);
+		Sleep(1);
 	}
 #ifndef  GBA
 	free(Kinomet_FrameBuffer);

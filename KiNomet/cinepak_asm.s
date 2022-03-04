@@ -28,3 +28,30 @@ MAKECOLOUR16:
 1:
     bx          lr
 .fnend
+
+
+ .globl   GBA_RLEDECOMP
+.p2align 2
+.type    GBA_RLEDECOMP,%function
+.fnstart
+
+GBA_RLEDECOMP:
+
+swi 0x14
+1:
+    bx          lr
+.fnend
+
+
+
+ .globl   GBA_LZDECOMP
+.p2align 2
+.type    GBA_LZDECOMP,%function
+.fnstart
+
+GBA_LZDECOMP:
+
+  swi 0x11
+1:
+    bx          lr
+.fnend

@@ -18,7 +18,6 @@ private:
 	void* rawBuffer; 
 	int buffSize;
 	unsigned long* framePointers;
-	void Parse();
 	int frameCount;
 	bool init;
 	void* audioRam; 

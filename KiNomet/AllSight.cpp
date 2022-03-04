@@ -41,7 +41,7 @@ void AllSight::DecodeFrame(int index)
 	}
 	//Read frame size.
 	unsigned long frameSize = *(unsigned long*)frame;  frame += 4;
-	while (*frame != ChariotWheels::END)
+	while (*frame++ != ChariotWheels::END)
 	{
 		int size = *(int*)frame; frame += 4;
 		switch (*frame++)
@@ -71,12 +71,11 @@ void AllSight::DecodeFrame(int index)
 				decomp->RawCopy(pointedFrame, &out, size);
 				break;
 			}
-
 		}
-			break;
+		break;
 		}
 	}
-	
+
 }
 int AllSight::FrameCount()
 {

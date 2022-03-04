@@ -39,6 +39,9 @@
     <ClCompile Include="AllSight.cpp">
       <Filter>audiohandlers</Filter>
     </ClCompile>
+    <ClCompile Include="Compression.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cinepak.h">
@@ -58,6 +61,9 @@
     </ClInclude>
     <ClInclude Include="AllSight.h">
       <Filter>audiohandlers</Filter>
+    </ClInclude>
+    <ClInclude Include="Compression.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -147,6 +147,7 @@
     <ClCompile Include="AllSight.cpp" />
     <ClCompile Include="Cinepak.cpp" />
     <ClCompile Include="CodeBookManager.cpp" />
+    <ClCompile Include="Compression.cpp" />
     <ClCompile Include="Gba.cpp" />
     <ClCompile Include="KiNomet.cpp" />
     <ClCompile Include="SmallBuffer.cpp" />
@@ -155,6 +156,7 @@
     <ClInclude Include="AllSight.h" />
     <ClInclude Include="Cinepak.h" />
     <ClInclude Include="CodeBookManager.h" />
+    <ClInclude Include="Compression.h" />
     <ClInclude Include="Gba.h" />
     <ClInclude Include="KiNoMet.h" />
     <ClInclude Include="SmallBuffer.h" />
