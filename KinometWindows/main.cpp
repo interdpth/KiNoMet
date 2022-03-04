@@ -13,11 +13,11 @@ int width = 0;
 //https://www.libsdl.org/release/SDL-1.2.15/docs/html/guidevideoopengl.html
 SDL_Window* mainWindow;
 SDL_Texture* texture;
-long int start;
+
 long int end;
 SDL_Renderer* renderer;
 int movieFps;
-
+Uint64 start;
 void initFrame(KinometPacket* pack)
 {
 	height = pack->screen->h;
@@ -47,13 +47,21 @@ void initFrame(KinometPacket* pack)
 		width, height
 	);
 	movieFps = (int)pack->rect;
+	start = SDL_GetPerformanceCounter();
 }
 Uint32 totalFrameTicks = 0;
 Uint32 totalFrames = 0;
 
 void handleFrame(KinometPacket* pack)
 {
-	Uint64 start = SDL_GetPerformanceCounter();
+	//IF this is called nad packet is null, we are just setting up. 
+	if (pack->frame == nullptr && !height && !width)
+	{
+		initFrame(pack);
+		return;
+	}
+	totalFrames++;
+	
 	SDL_Event event;
 	SDL_PollEvent(&event);
 		/* handle your event here */
@@ -61,12 +69,8 @@ void handleFrame(KinometPacket* pack)
 		if (event.type == SDL_QUIT)
 			exit(-1);
 	
-	//IF this is called nad packet is null, we are just setting up. 
-	if (pack->frame == nullptr && !height && !width)
-	{
-		initFrame(pack);		
-		return;
-	}
+
+
 	if (pack->frame == nullptr)
 	{
 		return;
@@ -116,8 +120,8 @@ void handleFrame(KinometPacket* pack)
 	}
 	Uint64 end = SDL_GetPerformanceCounter();
 
-	float elapsedMS = (end - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f;
-	float valu = elapsedMS > movieFps ? elapsedMS -  movieFps : elapsedMS;
+	float elapsedMS = ((end - start) / totalFrames)/ (float)SDL_GetPerformanceFrequency() * 1000.0f;
+	float valu = elapsedMS > movieFps ?  movieFps : elapsedMS;
 	// Cap to 60 FPS
 	SDL_Delay(valu);
 
