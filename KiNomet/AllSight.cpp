@@ -1,35 +1,60 @@
 #include "AllSight.h"
 #include "Compression.h"
 Compression* decomp;
+
+enum ChariotWheels
+{
+	Raw = 0,
+	RLE,
+	LZ,
+	Pointer,
+	END = 0xFD//Always chec kfor pointer, then size difference. 
+}ChariotWheels;
 AllSight::AllSight(void* buffer, int buffsize)
 {
-	framePointers = nullptr;
-	rawBuffer = buffer;
-	buffSize = buffsize;
+	frameCount = 0;
+	framePointers = 0;
+	frameStart = 0;
+	buff = new SmallBuffer((unsigned char*)buffer, buffsize);
 	init = 0;
 	audioRam = nullptr;
 	audioBuffer = nullptr;
+	fps = 0;
 	decomp = new Compression();
 }
 
 
 void AllSight::Parse()
 {
-	unsigned char* tmpBuffer = (unsigned char*)rawBuffer;
-	unsigned long hdr = *(unsigned long*)tmpBuffer; tmpBuffer += 4;
-	if (hdr != BARGHEADER) return;
+	unsigned long hdr = 0; buff->Read(&hdr, 4);
+ 	if (hdr != BARGHEADER) return;
 	init = true;
-	tmpBuffer += 4;
-	frameCount = *(unsigned long*)tmpBuffer; tmpBuffer += 4;//Num frames
-	framePointers = (unsigned long*)tmpBuffer; tmpBuffer += 4;
+	buff->Read(&fps, 1);
+//	tmpBuffer += 4;
+
+	framePointers = buff->Read32();
+	frameStart = buff->Read32();
+	frameCount = buff->Read32();//Num frames
 	audioRam = new unsigned char[4096];
 
 }
 
-void AllSight::DecodeFrame(int index)
+void* AllSight::GetFrame(int index)
 {
-	//Our frame is here. 
-	unsigned char* frame = (unsigned char*)&framePointers[index];
+	int pointer = framePointers ;
+	int mathed = pointer + index * 4;
+	int bufzf = frameStart;
+	int inBufferMath = mathed + bufzf; 
+	buff->Seek(inBufferMath, SEEK_SET);
+	return buff->GetCurrentBuffer();
+}
+void* AllSight::GetBuffer()
+{
+	return audioBuffer;
+}
+int AllSight::DecodeFrame(int index)
+{
+	unsigned char* frame = (unsigned char*)GetFrame(index);
 	unsigned char* out = (unsigned char*)audioRam;
 	//See if we're just a thing
 	unsigned char type = *frame; frame++;
@@ -41,8 +66,9 @@ void AllSight::DecodeFrame(int index)
 	}
 	//Read frame size.
 	unsigned long frameSize = *(unsigned long*)frame;  frame += 4;
-	while (*frame++ != ChariotWheels::END)
+	while (*frame != ChariotWheels::END)
 	{
+		int comp = *frame++;
 		int size = *(int*)frame; frame += 4;
 		switch (*frame++)
 		{
@@ -76,6 +102,7 @@ void AllSight::DecodeFrame(int index)
 		}
 	}
 
+	return (int)&out - (int)&audioRam;
 }
 int AllSight::FrameCount()
 {

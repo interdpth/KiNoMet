@@ -198,8 +198,9 @@ namespace KinometGui
                     Capacity = pos + 2;
                 }
             }
-            data[pos] = (byte)val;
-            data[pos + 1] = (byte)(val >> 8);
+            //data[pos] = (byte)val;
+            //data[pos + 1] = (byte)(val >> 8);
+            BitConverter.GetBytes(val).ToList().ForEach(x => Write8(x));
             pos += 2;
         }
 
@@ -217,10 +218,34 @@ namespace KinometGui
                     Capacity = length;
                 }
             }
-            data[pos] = (byte)val;
-            data[pos + 1] = (byte)(val >> 8);
-            data[pos + 2] = (byte)(val >> 16);
-            data[pos + 3] = (byte)(val >> 24);
+
+            BitConverter.GetBytes(val).ToList().ForEach(x => Write8(x));
+            //data[pos] = (byte)val;
+            //data[pos + 1] = (byte)(val >> 8);
+            //data[pos + 2] = (byte)(val >> 16);
+            //data[pos + 3] = (byte)(val >> 24);
+            pos += 4;
+        }
+
+        public void Write32(uint val)
+        {
+            while (pos % 4 != 0)
+            {
+                Write8(0);
+            }
+            if (pos + 4 > length)
+            {
+                length = pos + 4;
+                if (length > Capacity)
+                {
+                    Capacity = length;
+                }
+            }
+            //data[pos] = (byte)val;
+            //data[pos + 1] = (byte)(val >> 8);
+            //data[pos + 2] = (byte)(val >> 16);
+            //data[pos + 3] = (byte)(val >> 24);
+            BitConverter.GetBytes(val).ToList().ForEach(x => Write8(x));
             pos += 4;
         }
 
@@ -238,10 +263,14 @@ namespace KinometGui
                     Capacity = length;
                 }
             }
-            data[pos] = (byte)val;
-            data[pos + 1] = (byte)(val >> 8);
-            data[pos + 2] = (byte)(val >> 16);
-            data[pos + 3] = (byte)(val >> 24);
+
+            BitConverter.GetBytes(val).ToList().ForEach(x => Write8(x));
+           
+
+            //data[pos] = (byte)val;
+            //data[pos + 1] = (byte)(val >> 8);
+            //data[pos + 2] = (byte)(val >> 16);
+            //data[pos + 3] = (byte)(val >> 24);
             pos += 4;
         }
         public void WritePtr(int val)
@@ -432,160 +461,6 @@ namespace KinometGui
             }
             endOfData++;
         }
-
-        private int CheckFreeSpaceAfter(int offset)
-        {
-            int num;
-            num = offset;
-            while (offset % 4 != 0)
-            {
-                if (data[offset++] != 0)
-                {
-                    return num;
-                }
-            }
-            string a;
-            a = ReadASCII(offset, 4);
-            if (a == "mage")
-            {
-                ushort num2;
-                num2 = Read16(offset + 4);
-                for (int i = num; i < offset + 6; i++)
-                {
-                    data[i] = byte.MaxValue;
-                }
-                return offset + num2;
-            }
-            return num;
-        }
-
-        private void MarkFreeSpace(int addr, int prevLen, int newLen)
-        {
-            int num;
-            num = FindEndOfData();
-            int num2;
-            num2 = addr + prevLen;
-            bool flag;
-            flag = true;
-            if (num2 + 4 >= num)
-            {
-                while (num2 < num)
-                {
-                    if (data[num2++] != 0)
-                    {
-                        flag = false;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                flag = false;
-            }
-            int num3;
-            num3 = addr + newLen;
-            if (flag)
-            {
-                if (data[num3 - 1] == byte.MaxValue)
-                {
-                    data[num3++] = 0;
-                }
-                while (num3 % 4 != 0)
-                {
-                    data[num3++] = 0;
-                }
-                while (num3 < num)
-                {
-                    data[num3++] = byte.MaxValue;
-                }
-                return;
-            }
-            int num4;
-            num4 = CheckFreeSpaceAfter(addr + prevLen);
-            if (num3 < num4)
-            {
-                if (data[num3 - 1] == byte.MaxValue)
-                {
-                    data[num3++] = 0;
-                }
-                while (num3 % 4 != 0 && num3 < num4)
-                {
-                    data[num3++] = 0;
-                }
-            }
-            int num5;
-            num5 = num3;
-            while (num3 < num4)
-            {
-                data[num3++] = byte.MaxValue;
-            }
-            int num6;
-            num6 = num4 - num5;
-            if (num6 >= 6)
-            {
-                Seek(num5);
-                WriteASCII("mage");
-                Write16((ushort)num6);
-            }
-        }
-
-        private bool AllocateSpace(ref int offset, int newLen)
-        {
-            int endOfData;
-            endOfData = FindEndOfData();
-            for (int i = 655360; i < endOfData; i += 4)
-            {
-                if (data[i] != 109 || data[i + 1] != 97 || data[i + 2] != 103 || data[i + 3] != 101)
-                {
-                    continue;
-                }
-                int num;
-                num = Read16(i + 4);
-                if (num < newLen)
-                {
-                    continue;
-                }
-                bool flag;
-                flag = true;
-                for (int j = 6; j < num; j++)
-                {
-                    if (data[i + j] != byte.MaxValue)
-                    {
-                        flag = false;
-                        break;
-                    }
-                }
-                if (!flag)
-                {
-                    continue;
-                }
-                int k;
-                for (k = i + newLen; k % 4 != 0; k++)
-                {
-                }
-                int num2;
-                num2 = i + num - k;
-                if (num2 >= 6)
-                {
-                    Seek(i + newLen);
-                    while (pos % 4 != 0)
-                    {
-                        data[pos++] = 0;
-                    }
-                    WriteASCII("mage");
-                    Write16((ushort)num2);
-                }
-                offset = i;
-                return false;
-            }
-
-            endOfData = Capacity;
-            FindEndOfRun(ref endOfData);
-
-            offset = endOfData;
-            return true;
-        }
-
         //public void Write2(ByteStream src, int origLen, ref int offset, bool fixPtrs)
         //{
         //    int num;

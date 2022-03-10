@@ -2,6 +2,7 @@
 //
 #include "KiNoMet.h"
 #include "../KiNomet/Cinepak.h"
+//#include "AllSight.h"
 #include <stdio.h>
 #define TAG_RIFF 0x46464952//  'RIFF' is 52 49 46 46, but we'll read it as long because costs
 #define LIST_LIST 0x5453494C//  'LIST' is 4C 49 53 54, but we'll read it as long because costs
@@ -43,10 +44,11 @@ static_assert(sizeof(AVIStreamHeader) == 56, "AVIStreamHeader size is wrong");
 
 unsigned char* Kinomet_FrameBuffer;
 
-void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*), void (*audiocallback)(KinometPacket*))
+void LoadAVI(unsigned char* file, int size, unsigned char* audiofile, int audiofsize, void (*callback)(KinometPacket*), void (*audiocallback)(KinometPacket*))
 {
 	rectangle screen;
-
+	//audioSystem = new AllSight(audiofile, audiofsize);
+	//audioSystem->Parse();
 	SmallBuffer* buf = new SmallBuffer(file, size);
 	//memset(&hdr, 0, sizeof(MainAVIHeader));
 	bool bValid = false;
@@ -167,8 +169,18 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*), vo
 	pack.frameid = -1;
 	pack.rect = (rectangle*)(sthread->dwRate);//packing hack
 	pack.screen = &screen;
-
 	callback(&pack);
+	if (audiocallback != nullptr)
+	{
+		int size = audiofsize;
+		pack.isAudio = true;
+		pack.frame = audiofile;
+		pack.frameid = 0;
+		pack.screen = (rectangle*)size;
+		pack.rect = &screen;
+		audiocallback(&pack);
+	}
+	pack.isAudio = false;//only sending it once rn.
 	//Send a faux packet over to init our consumer. 
 //Let's do setup
 	int sizescr = screen.w * screen.h * 2;//Rgb //hdrz->dwWidth * hdrz->dwHeight * 3;
@@ -205,7 +217,7 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*), vo
 		int framesize = *(unsigned long*)frame; frame += 4;
 
 		if (fourcc != cur->FourCC) continue;
-	//	if(audiocallback!=nullptr) audiocallback()
+
 		decode_cinepak(ci, frame, cur->dwSize, Kinomet_FrameBuffer, hdrz->dwWidth, hdrz->dwHeight);
 		
 		//Hello we have a full framedata 
@@ -214,7 +226,6 @@ void LoadAVI(unsigned char* file, int size, void (*callback)(KinometPacket*), vo
 		pack.screen = &screen;
 		pack.rect = &screen;
 		callback(&pack);
-		Sleep(1);
 	}
 #ifndef  GBA
 	free(Kinomet_FrameBuffer);

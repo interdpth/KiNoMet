@@ -2,12 +2,15 @@
 #define SEEK_CUR    1
 #define SEEK_END    2
 #define SEEK_SET    0
+#define LE 0
+#define BE 1
 class SmallBuffer
 {
 private:
 	unsigned char* start;
 	int pos;
 	int max;
+	int endian;
 public:
 	void SkipByte();
 	SmallBuffer(unsigned char* src, int len);
@@ -16,4 +19,6 @@ public:
     int Read(void* dst, int len);
 	int Pos();
 	unsigned char GetByte();
+	int Read32();
+	int Read16();
 };

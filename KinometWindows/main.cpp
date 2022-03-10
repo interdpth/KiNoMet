@@ -1,10 +1,16 @@
 #include "KiNoMet.h"
 #include "../KinoMet/Cinepak.h"
 #include "VideoFile.h"
+#include "audio_outputmain.h"
+#include "audio.h"
 #include <stdio.h>
 #include "SDL_windows.h"
 #include <SDL.h>
 #include <string>
+// variable declarations
+Uint8* audio_pos; // global pointer to the audio buffer to be played
+Uint32 audio_len; // remaining length of the sample we have to play
+
 using namespace std;
 int frameHandled;
 int codeBookSize();
@@ -18,6 +24,7 @@ long int end;
 SDL_Renderer* renderer;
 int movieFps;
 Uint64 start;
+bool SoundInited;
 void initFrame(KinometPacket* pack)
 {
 	height = pack->screen->h;
@@ -48,10 +55,19 @@ void initFrame(KinometPacket* pack)
 	);
 	movieFps = (int)pack->rect;
 	start = SDL_GetPerformanceCounter();
+	InitAudioPlayer();
+	SoundInited = 1;
 }
 Uint32 totalFrameTicks = 0;
 Uint32 totalFrames = 0;
+//Audio* mainAudio;
+//frame is raw decoded data
+//screen rect describes length
 
+void handleAudio(KinometPacket* pack)
+{
+	StartPlaying(pack->frame, (int)pack->screen);
+}
 void handleFrame(KinometPacket* pack)
 {
 	//IF this is called nad packet is null, we are just setting up. 
@@ -66,9 +82,10 @@ void handleFrame(KinometPacket* pack)
 	SDL_PollEvent(&event);
 		/* handle your event here */
 		 //User requests quit
-		if (event.type == SDL_QUIT)
-			exit(-1);
-	
+	if (event.type == SDL_QUIT)
+	{
+		exit(-1);
+	}
 
 
 	if (pack->frame == nullptr)
@@ -152,11 +169,13 @@ int SDL_main(int argc, char* argv[])
 	int b = sizeof(arachicoldcvid_codebook);
 	int intz = sizeof(int);
 	int uintz = sizeof(unsigned long);
-
+	
 	//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
 	frameHandled = 0;
 	start = SDL_GetPerformanceCounter();
-	LoadAVI((unsigned char*)VideoFile, VideoFile_size, &handleFrame, nullptr);
+
+	//YOU ARE GETTING AUDIO TO WORK NOW. 
+	LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &handleFrame, &handleAudio);
 	int overallSize = codeBookSize();
 	printf("%d", maxNum);
 	printf("%x", overallSize);

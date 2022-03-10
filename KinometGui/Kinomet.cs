@@ -33,7 +33,7 @@ namespace KinometGui
             string fn = fi.Name.Split('.')[0];
             string tmpVideo = $"{fn}.mp4";
             var vidInfoProp = ShellFile.FromFilePath(videoFile).Properties;
-                var vidInfo = vidInfoProp.System.Video;
+            var vidInfo = vidInfoProp.System.Video;
             long mInfo = (long)vidInfoProp.System.Media.Duration.Value;
 
             TimeSpan ts = TimeSpan.FromTicks(mInfo);
@@ -74,8 +74,9 @@ namespace KinometGui
             //}
             //audioframe = 
 
-            //  Do some intial conversions.
-            //var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -filter:v fps=fps={targetFps} -s 240x160 {Processing}\\{tmpVideo}" };
+            ////  Do some intial conversions.
+            ///
+            //var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -filter:v fps=fps={targetFps} -crf 25 -s 240x160 {Processing}\\{tmpVideo}" };
             //var P = Process.Start(PSI);
             //P.WaitForExit();
 
@@ -86,22 +87,28 @@ namespace KinometGui
                 if (fps > 100.0f) fps = 100.0f;
                 if (fps < 0.5f) fps = 0.5f;
             }
+            string temp = "";
+            if (fps != 1)
+            {
+                temp = $"-filter:a \"atempo = {fps}\"";
+            }
+            //////////4953 frames 
+            //////////792 audio files 
+            //string stamp = $"00:00:0{(float)(1.0 / targetFps)}";
+            //PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -filter:a \"atempo = {fps}\" -f segment -segment_time {stamp} {Processing}\\audio_output%09d.wav" };
+            //P = Process.Start(PSI);
+            //P.WaitForExit();
 
-            ////4953 frames 
-            ////792 audio files 
-           // string stamp = $"00:00:0{(float)(1.0 / 25)}";
-           // var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -filter:a \"atempo = {fps}\" -f segment -segment_time {stamp} {Processing}\\audio_output%09d.wav" };
-           // var P = Process.Start(PSI);
-           // P.WaitForExit();
-
-
-           //PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -filter:v fps=fps={targetFps} -c:v cinepak -max_strips 2  -q 31 -s 240x160 -an {Processing}\\{fn}_final.avi" };
-           //P = Process.Start(PSI);
-           // P.WaitForExit();
-
-             RenderAudio($"{Processing}");
-            ROM.MakeSource("VideoFileAudio", File.ReadAllBytes($"{OutputFolder}\\VideoAudio.Bragi"), $"{OutputFolder}");
-            ROM.Write(OutputFolder, "VideoFileAudio");
+        var  PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} {temp} -ac 1 {Processing}\\audio_outputmain.wav" };
+     var    P = Process.Start(PSI);
+            P.WaitForExit();
+            //PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -filter:v fps=fps={targetFps} -c:v cinepak -max_strips 3 -s 240x160 -q 25 -an {Processing}\\{fn}_final.avi" };
+            //P = Process.Start(PSI);
+            //P.WaitForExit();
+            RenderAudio_old($"{Processing}\\audio_outputmain.wav", targetFps);
+         //   RenderAudio($"{Processing}", targetFps);
+            //ROM.MakeSource("VideoFileAudio", File.ReadAllBytes($"{OutputFolder}\\VideoAudio.Bragi"), $"{OutputFolder}");
+            //ROM.Write(OutputFolder, "VideoFileAudio");
 
             //ROM.MakeSource("VideoFile", File.ReadAllBytes($"{Processing}\\{fn}_final.avi"), $"{OutputFolder}");
             //ROM.Write(OutputFolder, "VideoFile");
@@ -114,7 +121,7 @@ namespace KinometGui
             int zmfreq = 13379;
             int freq = zmfreq;
 
-            freq = mffreq;
+          //  freq = mffreq;
 
             FileInfo srcAudio = new FileInfo(srcFile);
 
@@ -189,12 +196,12 @@ namespace KinometGui
                         byte[] tmp = new byte[12];
                         raw.Read(tmp, 0, 12);
                         len += 12;
-                        for(int i = 0; i < 12;i++)
+                        for (int i = 0; i < 12; i++)
                         {
                             sbyte n = Convert.ToSByte(tmp[i] - 128);
                             data.Add(n);
                         }
-                   
+
 
                     }                    //Generate 
                                          //Write it
@@ -215,13 +222,13 @@ namespace KinometGui
                 }
             }
         }
-        
-        private void RenderAudio(string directory)
+
+        private void RenderAudio(string directory, int fps)
         {
             int mffreq = 10512;
             int zmfreq = 13379;
             int freq = zmfreq;
-       
+            int coutner = 0;
             freq = mffreq;
             AllSight odin = new AllSight();
             var files = Directory.GetFiles(directory).Where(x => x.Contains("audio_output")).OrderBy(x => x).ToList();
@@ -275,57 +282,21 @@ namespace KinometGui
                             for (int i = 0; i < data.Count; i++) fixedDat[i] = (byte)data[i];
 
 
-                            odin.AddFrame(fixedDat);
-                           
+                            odin.AddFrame(fixedDat, coutner);
+
 
                         }
                     }
                 }
                 catch (Exception e)
                 {
-                    //using (RawSourceWaveStream raw = new RawSourceWaveStream(srcStream, outFormat))
-                    //{
-                    //    //Convert to signed 8bit.
-                    //    raw.Seek(0, SeekOrigin.Begin);
-                    //    int len = 0;
-                    //    List<sbyte> data = new List<sbyte>();
-                    //    for (; len < raw.Length; len++)
-                    //    {
-                    //        byte[] tmp = new byte[12];
-                    //        raw.Read(tmp, 0, 12);
-                    //        len += 12;
-                    //        for (int i = 0; i < 12; i++)
-                    //        {
-                    //            sbyte n = Convert.ToSByte(tmp[i] - 128);
-                    //            data.Add(n);
-                    //        }
 
 
-                    //    }                    //Generate 
-                    //                         //Write it
-                    //    string fn = srcAudio.Name.Replace(".wav", "");
-                    //    using (FileStream fs = new FileStream($"{OutputFolder}\\{fn}.raw", FileMode.OpenOrCreate))
-                    //    using (BinaryWriter bw = new BinaryWriter(fs))
-                    //    {
-                    //        for (len = 0; len < data.Count; len++)
-                    //        {
-                    //            bw.Write(data[len]);
-                    //        }
-                    //        bw.Close();
-                    //    }
 
-                    //    ROM.MakeSource(fn, data.ToArray(), OutputFolder);
-                      
-                    //}
-
-
-                
                 }
-              
-              //  ROM.Write(OutputFolder, fn);
-
+                coutner++;
             }
-            odin.WriteToFile(OutputFolder);
+            odin.WriteToFile(OutputFolder, fps);
         }
     }
 }
