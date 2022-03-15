@@ -43,7 +43,8 @@ static_assert(sizeof(_avioldindex_entry) == 16, "_avioldindex_entry size is wron
 static_assert(sizeof(AVIStreamHeader) == 56, "AVIStreamHeader size is wrong");
 
 unsigned char* Kinomet_FrameBuffer;
-
+int frameCount;
+unsigned char* audioBuffer;
 void LoadAVI(unsigned char* file, int size, unsigned char* audiofile, int audiofsize, void (*callback)(KinometPacket*), void (*audiocallback)(KinometPacket*))
 {
 	rectangle screen;
@@ -169,7 +170,9 @@ void LoadAVI(unsigned char* file, int size, unsigned char* audiofile, int audiof
 	pack.frameid = -1;
 	pack.rect = (rectangle*)(sthread->dwRate);//packing hack
 	pack.screen = &screen;
+
 	callback(&pack);
+	//Start buffering
 	if (audiocallback != nullptr)
 	{
 		int size = audiofsize;
@@ -189,16 +192,21 @@ void LoadAVI(unsigned char* file, int size, unsigned char* audiofile, int audiof
 //	Kinomet_FrameBuffer = (unsigned char*)0x6000000;
 //#else
 	Kinomet_FrameBuffer = (unsigned char*)malloc(sizescr);
-	//#endif
+//	#endif
 	for (int i = 0; i < sizescr / 4; i++)//future iterations should size check but black out the screen
 	{
 		((unsigned long*)Kinomet_FrameBuffer)[i] = 0;
 	}
 	int numFrames = size / sizeof(_avioldindex_entry);
+	frameCount = audiofsize / numFrames;
+	//audioBuffer = (unsigned char*)malloc(frameCount * 23);
+	//we will make a small buffer
+
+
 	cinepak_info* ci = decode_cinepak_init();
 	//It's frame time.
 	_avioldindex_entry* idxList = (_avioldindex_entry*)buf->GetCurrentBuffer();
-
+	int fps = sthread->dwRate;
 	for (int i = 0; i < numFrames; i++)
 	{	//so we will point to
 		_avioldindex_entry* cur = &idxList[i];
@@ -218,8 +226,22 @@ void LoadAVI(unsigned char* file, int size, unsigned char* audiofile, int audiof
 
 		if (fourcc != cur->FourCC) continue;
 
+		if (audiocallback != nullptr )
+		{
+			pack.frameid = i;
+	
+			pack.frame = audiofile + (i * frameCount);
+			pack.screen = (rectangle*)frameCount;
+			audiocallback(&pack);
+		}
 		decode_cinepak(ci, frame, cur->dwSize, Kinomet_FrameBuffer, hdrz->dwWidth, hdrz->dwHeight);
-		
+
+
+
+		//Update audio where to be 
+
+
+
 		//Hello we have a full framedata 
 		pack.frame = Kinomet_FrameBuffer;
 		pack.frameid = i;

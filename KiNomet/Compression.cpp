@@ -111,7 +111,7 @@ void Compression::RawCopy(unsigned char* src, unsigned char** dst, int size)
 	unsigned char* realDst = *dst;
 
 #ifdef GBA
-	memcpy16_dma(realDst, src, size>>1); realDst += size;
+	memcpy16_dma((unsigned short*)realDst, (unsigned short*)src, size>>1); realDst += size;
 #else
 	memcpy(realDst, src, size);
 #endif

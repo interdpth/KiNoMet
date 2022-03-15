@@ -455,9 +455,10 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 
 	drawing = 1;
 	cvid_codebook* v4_codebook, * v1_codebook, * codebook = NULL;
-	unsigned long x, y, y_bottom, frame_flags, strips, cv_width, cv_height,
-		cnum, strip_id, chunk_id, x0, y0, x1, y1, ci, flag, mask;
+	unsigned long  frame_flags, strips, cv_width, cv_height,
+		cnum, strip_id, chunk_id, ci, flag, mask;
 	long len, top_size, chunk_size;
+	signed long x, y, y_bottom, x0, y0, x1, y1 ;
 	unsigned char* frm_ptr;
 	unsigned int i, cur_strip;
 	int d0, d1, d2, d3, frm_stride, bpp = 2;
@@ -505,13 +506,13 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 			exit(-1);
 		}
 
-		for (i = 0; i < strips; i++)//Init our codebooks.
+		for (i = cvinfo->strip_num; i < strips; i++)//Init our codebooks.
 		{
 			InitCodeBook(cvinfo, i);
 
-			int cvidSize = sizeof(cvid_codebook);
-			sizeVar += 2 * sizeof(cvid_codebook) * 260;
-			codeBooks += 2;
+			//int cvidSize = sizeof(cvid_codebook);
+			//sizeVar += 2 * sizeof(cvid_codebook) * 260;
+			//codeBooks += 2;
 			//#endif
 		}
 	}

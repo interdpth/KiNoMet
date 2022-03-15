@@ -99,7 +99,7 @@ void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount) {
 
 #ifdef GBA
 
-memcpy(void* dest, const void* src, int olen)
+void* memcpy(void* dest, const void* src, int olen)
 {
 
     memcpy16_dma((unsigned short*)dest, (unsigned short*)src, olen >> 1);
@@ -110,53 +110,53 @@ memcpy(void* dest, const void* src, int olen)
 
 
 
-
-int SwiDiv(int num, int denom)
-{
-	int ret = 0;
-	
-
-	__asm("swi 6");
-	
-
-
-	
-	return ret;
-
-}
-
-
-
-int Div(int num, int denom)
-{
-#ifdef GBA
-	return SwiDiv(num, denom);
-#else
-	return num / denom;
-#endif
-}
-
-
-int __aeabi_div(int num, int denom)
-{
-	return SwiDiv(num, denom);
-}
-
-
-int __aeabi_ldiv0(int num, int denom)
-{
-	return SwiDiv(num, denom);
-}
-
-
-int _aeabi_idiv0(int num, int denom)
-{
-	return SwiDiv(num, denom);
-}
-int __aeabi_idiv0(int num, int denom)
-{
-	return SwiDiv(num, denom);
-}
+//
+//int SwiDiv(int num, int denom)
+//{
+//	int ret = 0;
+//	
+//
+//	__asm("swi 6");
+//	
+//
+//
+//	
+//	return ret;
+//
+//}
+//
+//
+//
+//int Div(int num, int denom)
+//{
+//#ifdef GBA
+//	return SwiDiv(num, denom);
+//#else
+//	return num / denom;
+//#endif
+//}
+//
+//
+//int __aeabi_div(int num, int denom)
+//{
+//	return SwiDiv(num, denom);
+//}
+//
+//
+//int __aeabi_ldiv0(int num, int denom)
+//{
+//	return SwiDiv(num, denom);
+//}
+//
+//
+//int _aeabi_idiv0(int num, int denom)
+//{
+//	return SwiDiv(num, denom);
+//}
+//int __aeabi_idiv0(int num, int denom)
+//{
+//	return SwiDiv(num, denom);
+//}
 
 
 //

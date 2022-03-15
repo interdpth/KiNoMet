@@ -145,7 +145,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AllSight.cpp" />
+    <ClCompile Include="AudioHandler.cpp" />
     <ClCompile Include="Cinepak.cpp" />
     <ClCompile Include="CodeBookManager.cpp" />
     <ClCompile Include="Compression.cpp" />
@@ -154,7 +154,7 @@
     <ClCompile Include="SmallBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AllSight.h" />
+    <ClInclude Include="AudioHandler.h" />
     <ClInclude Include="Cinepak.h" />
     <ClInclude Include="CodeBookManager.h" />
     <ClInclude Include="Compression.h" />

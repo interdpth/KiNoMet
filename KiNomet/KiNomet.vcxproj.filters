@@ -36,10 +36,10 @@
     <ClCompile Include="CodeBookManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AllSight.cpp">
-      <Filter>audiohandlers</Filter>
-    </ClCompile>
     <ClCompile Include="Compression.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -59,10 +59,10 @@
     <ClInclude Include="CodeBookManager.h">
       <Filter>Includes</Filter>
     </ClInclude>
-    <ClInclude Include="AllSight.h">
-      <Filter>audiohandlers</Filter>
-    </ClInclude>
     <ClInclude Include="Compression.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
