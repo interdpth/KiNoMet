@@ -12,45 +12,64 @@ struct AudioHeader
 	unsigned char* datPtr;//whever your buffer is after reading freq 
 };
 
-
+enum flags
+{
+	START,
+	DATA,
+	END,
+};
 struct AudioPacket
 {
+	unsigned char eventFlag;
 	unsigned char* start;
 	int len;
 	int tracked;
 };
+//we need a callback to get data 
+extern int (*getSize)();
 
 class AudioHandler
 {
 private:
-
-
 	vector<AudioPacket> packets;
-
-	//Source info.
+		//Source info.
 	unsigned char* srcBuffer; 
-
 
 	//Playing pointers
 	unsigned char* startBuf;
 	unsigned char* endBuf;
-
 	unsigned char* tmpBuf;
-
 	unsigned char* currentBuf;
 	unsigned char* limitBuf;
 	int type;
 	int fps;
 	int sample_rate;
+	/// <summary>
+	/// Main INit
+	/// </summary>
+	/// <param name="type"></param>
+	/// <param name="fp"></param>
+	/// <param name="sam"></param>
+	/// 
 	void Init(int type, int fp, int sam);
+	/// <summary>
+	/// Calls maint init
+	/// </summary>
+	/// <param name="type"></param>
+	/// <param name="fp"></param>
+	/// <param name="sam"></param>
+
 	void Init(AudioHeader* hdr, int len);
+	//we need a callback to get data 
+	int (*GetSize)();
+
 public:
 	/// <summary>
 	/// Basic init.
 	/// </summary>
 	/// <param name="type">Type of audio handler</param>
 	/// <param name="fps">FPS we are </param>
-	AudioHandler(int type, int fp, int sam);
+	AudioHandler(int type, int fp, int sam, int (*func)());
 
 	/// <summary>
 	/// Basic init, but also queues track.
@@ -60,7 +79,7 @@ public:
 	/// <param name="sam"></param>
 	/// <param name="src"></param>
 	/// <param name="len"></param>
-	AudioHandler(unsigned char* src, int len);
+	AudioHandler(unsigned char* src, int len, int (*func)());
 
 	/// <summary>
 	/// Returns current packet beging processed.
@@ -82,7 +101,7 @@ public:
 	void QueueAudio(AudioPacket* packet);
 
 	/// <summary>
-	/// DUmp audio to buffer.
+	/// Dump audio to buffer.
 	/// </summary>
 	void Processs();
 
@@ -105,5 +124,11 @@ public:
 	/// Returns ring byte position
 	/// </summary>
 	int GetBytesUsed();
+
+	int GetSampleFreq();
+
+	int GetType();
+	unsigned char* GetBuffer();
+
 };
 

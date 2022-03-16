@@ -181,6 +181,20 @@ namespace KinometGui
                         using (FileStream fs = new FileStream($"{OutputFolder}\\{fn}.raw", FileMode.OpenOrCreate))
                         using (BinaryWriter bw = new BinaryWriter(fs))
                         {
+                            UInt16 atype = (UInt16)audiov;
+
+                            byte[] hdr = BitConverter.GetBytes(atype);
+                            bw.Write(hdr);
+
+                            atype = (UInt16)fps;
+
+                            hdr = BitConverter.GetBytes(atype);
+                            bw.Write(hdr);
+
+                            var atype2 = freq;
+
+                            hdr = BitConverter.GetBytes(atype2);
+                            bw.Write(hdr);
                             for (len = 0; len < raw.Length; len++)
                             {
                                 bw.Write(data[len]);
@@ -188,7 +202,7 @@ namespace KinometGui
                             bw.Close();
                         }
 
-                        ROM.MakeSource(fn, data.ToArray(), OutputFolder);
+                        ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder) ;
                         ROM.Write(OutputFolder, fn);
 
                     }
@@ -295,7 +309,7 @@ namespace KinometGui
 
 
                             MimirData dat = new MimirData(new IOStream(fixedDat));
-                            dat.
+
                             ChariotWheels compType = ChariotWheels.Raw;
                             IOStream stream = dat.srcDat;
                             int best = (int)dat.srcDat.Length;

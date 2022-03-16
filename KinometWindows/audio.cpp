@@ -24,6 +24,10 @@ void StartPlaying(unsigned char* buff, int len)
         exit(-1);
     }
 }
+int GetQueuedBytes()
+{
+    return SDL_GetQueuedAudioSize(deviceid);
+}
 static SDL_AudioCallback myAudioCallback(void* userdata, Uint8* stream, int Glen)
 {
 

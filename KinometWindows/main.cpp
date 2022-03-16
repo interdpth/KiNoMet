@@ -69,10 +69,10 @@ void handleAudio(KinometPacket* pack)
 	if (pack->frameid == -1)
 	{
 		InitAudioPlayer((int)pack->screen);
-		audioType = (int)pack->rect;
-		return;
+		audioType = (int)pack->type;
+	
 	}
-	StartPlaying(pack->frame, (int)pack->screen);
+	StartPlaying(pack->frame, (int)pack->rect);
 }
 void handleFrame(KinometPacket* pack)
 {
@@ -164,7 +164,7 @@ int SDL_main(int argc, char* argv[])
 	start = SDL_GetPerformanceCounter();
 
 	//YOU ARE GETTING AUDIO TO WORK NOW. 
-	LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &handleFrame, &handleAudio);
+	LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &handleFrame, &handleAudio, &GetQueuedBytes);
 	int overallSize = codeBookSize();
 	printf("%d", maxNum);
 	printf("%x", overallSize);

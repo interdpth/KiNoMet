@@ -95,9 +95,9 @@ void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount) {
 }
 void VBlankIntrWait()
 {
-
+#ifdef GBA
     __asm("swi 0x05");
-
+#endif
 }
 
 

@@ -13,6 +13,7 @@ struct rectangle
 
 struct KinometPacket
 {
+	unsigned char type;
 	unsigned char isAudio;
 	unsigned char* frame;
 	rectangle* rect;
@@ -30,7 +31,14 @@ struct KinometPacket
 
 
 #pragma pack(pop)
-void LoadAVI(unsigned char* file, int size, unsigned char* audiofile, int audiofsize, void (*callback)(KinometPacket*), void (*audiocallback)(KinometPacket*));
-extern unsigned char* Kinomet_FrameBuffer;
+void LoadAVI(unsigned char* file,
+		int size,
+		unsigned char* audiofile,
+		int audiofsize,
+		void (*callback)(KinometPacket*),
+		void (*audiocallback)(KinometPacket*),
+		int(*GetSize)());
+	
+	extern unsigned char* Kinomet_FrameBuffer;
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
 #endif // ! KINOMET_H

@@ -5,3 +5,5 @@ int InitAudioPlayer(int sampleSize);
 
 
 void StartPlaying(unsigned char* buff, int len);
+
+int GetQueuedBytes();

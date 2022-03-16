@@ -59,9 +59,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="KiNoMet.h">
-      <Filter>Includes</Filter>
-    </ClInclude>
     <ClInclude Include="SmallBuffer.h">
       <Filter>Includes</Filter>
     </ClInclude>
@@ -81,6 +78,9 @@
       <Filter>Cinepak</Filter>
     </ClInclude>
     <ClInclude Include="AviApi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KiNoMet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
