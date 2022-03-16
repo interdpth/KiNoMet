@@ -1,13 +1,34 @@
 #pragma once
-
+#include <vector>
+using namespace std;
 //save on memory lol
+
+struct AudioHeader
+{
+	unsigned short type;
+	unsigned short fps;
+	unsigned long freq;
+	
+	unsigned char* datPtr;//whever your buffer is after reading freq 
+};
+
+
+struct AudioPacket
+{
+	unsigned char* start;
+	int len;
+	int tracked;
+};
 
 class AudioHandler
 {
 private:
+
+
+	vector<AudioPacket> packets;
+
 	//Source info.
 	unsigned char* srcBuffer; 
-	int length;
 
 
 	//Playing pointers
@@ -20,22 +41,50 @@ private:
 	unsigned char* limitBuf;
 	int type;
 	int fps;
-	void Init(int type, int fp);
+	int sample_rate;
+	void Init(int type, int fp, int sam);
+	void Init(AudioHeader* hdr, int len);
 public:
 	/// <summary>
 	/// Basic init.
 	/// </summary>
 	/// <param name="type">Type of audio handler</param>
 	/// <param name="fps">FPS we are </param>
-	AudioHandler(int type, int fps);
-	AudioHandler(int type, int fps, unsigned char* src, int len);
+	AudioHandler(int type, int fp, int sam);
+
+	/// <summary>
+	/// Basic init, but also queues track.
+	/// </summary>
+	/// <param name="type"></param>
+	/// <param name="fps"></param>
+	/// <param name="sam"></param>
+	/// <param name="src"></param>
+	/// <param name="len"></param>
+	AudioHandler(unsigned char* src, int len);
+
+	/// <summary>
+	/// Returns current packet beging processed.
+	/// </summary>
+	/// <returns></returns>
+	AudioPacket* GetCurrentPacket();
+
+	/// <summary>
+	/// True when main buffer is exhausted
+	/// </summary>
+	/// <returns></returns>
 	bool Exhausted();
+
 	/// <summary>
 	/// Queues Audio into the ring buffer. 
 	/// </summary>
 	/// <param name="src">Audio being added</param>
 	/// <param name="len">Length of audio</param>
-	void QueueAudio(unsigned char* src, int len);
+	void QueueAudio(AudioPacket* packet);
+
+	/// <summary>
+	/// DUmp audio to buffer.
+	/// </summary>
+	void Processs();
 
 	/// <summary>
 	/// Attempts to sync audio to frame. Handly differently per type.

@@ -181,7 +181,7 @@ typedef enum irqMASKS {
 #define REG_TM3CNT_L		*(volatile unsigned short*)(MEM_IO+0x010c)
 #define REG_TM3CNT_H		*(volatile unsigned short*)(MEM_IO+0x010e)
 typedef void (*IntFn)(void);
-
+void VBlankIntrWait();
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
 #ifdef GBA
 void* memcpy(void* dest, const void* src, int olen);

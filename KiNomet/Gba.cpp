@@ -93,7 +93,12 @@ void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount) {
     *dma3_control = DMA_ENABLE | DMA_16 | amount;
     /*for (int i = 0; i < amount; i++) dest[i] = source[i];*/
 }
+void VBlankIntrWait()
+{
 
+    __asm("swi 0x05");
+
+}
 
 
 

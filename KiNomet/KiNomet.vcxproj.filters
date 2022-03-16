@@ -19,12 +19,18 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Cinepak">
+      <UniqueIdentifier>{94156310-213f-4166-b846-ad3aa6d2b05e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tests">
+      <UniqueIdentifier>{f353e7aa-2fb6-4ecb-a2c4-5e7f842356db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AviApi">
+      <UniqueIdentifier>{3379f032-a838-4d24-8ff5-aa253f5e6d24}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KiNomet.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Cinepak.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SmallBuffer.cpp">
@@ -42,11 +48,17 @@
     <ClCompile Include="AudioHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Cinepak.cpp">
+      <Filter>Cinepak</Filter>
+    </ClCompile>
+    <ClCompile Include="Test.cpp">
+      <Filter>Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="AviApi.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Cinepak.h">
-      <Filter>Includes</Filter>
-    </ClInclude>
     <ClInclude Include="KiNoMet.h">
       <Filter>Includes</Filter>
     </ClInclude>
@@ -65,13 +77,19 @@
     <ClInclude Include="AudioHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Cinepak.h">
+      <Filter>Cinepak</Filter>
+    </ClInclude>
+    <ClInclude Include="AviApi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Documentation.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cinepak_asm.s">
-      <Filter>Source Files</Filter>
+      <Filter>Cinepak</Filter>
     </None>
   </ItemGroup>
 </Project>

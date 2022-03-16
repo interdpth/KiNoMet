@@ -40,10 +40,10 @@ static SDL_AudioCallback myAudioCallback(void* userdata, Uint8* stream, int Glen
     //audio->position += length;
     //audio->length -= length;
 }
-int InitAudioPlayer()
+int InitAudioPlayer(int sampleSize)
 {
     SDL_zero(desiredSpec);
-    desiredSpec.freq = 13379;
+    desiredSpec.freq = sampleSize;
     desiredSpec.format = AUDIO_S8;
     desiredSpec.channels = 1;
     desiredSpec.samples = 1;

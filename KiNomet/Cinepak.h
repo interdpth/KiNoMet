@@ -15,7 +15,7 @@ using namespace std;
 #define DBUG    0
 
 #define cinepak_strip_Length 260
-#define MAX_STRIPS 4
+#define MAX_STRIPS 4+1
 
 #define ERR printf
 #define WARN printf

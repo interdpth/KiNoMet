@@ -9,7 +9,7 @@
 #define GBA_RING_MEM 0x6000000 + 240 * 160 * 2 + 0x1000
 //Ring buffer is 0x4000 bytes.
 
-void AudioHandler::Init(int t, int fp)
+void AudioHandler::Init(int t, int fp, int sam)
 {
 #ifndef GBA
 	startBuf = (unsigned char*)malloc(RING_SIZE);
@@ -21,32 +21,58 @@ void AudioHandler::Init(int t, int fp)
 	currentBuf = startBuf;
 	type = t;
 	fps = fp;
+	sample_rate = sam;
 }
-AudioHandler::AudioHandler(int t, int fp)
+
+
+
+
+void AudioHandler::Init(AudioHeader* p, int len)
+{	
+	Init(p->type, p->fps, p->freq);
+	  
+}
+
+
+AudioHandler::AudioHandler(int t, int fp, int sam)
 {
-	Init( t,  fp);
+	Init(t, fp, sam);
 }
 
 //Ring buffer is 0x4000 bytes.
-AudioHandler::AudioHandler(int t, int fp, unsigned char* src, int len)
+AudioHandler::AudioHandler(unsigned char* src, int len)
 {
-	Init(t, fp);
-	QueueAudio(src, len);
-}
-void AudioHandler::QueueAudio(unsigned char* src, int len)
-{
-
-
-		
-	
+	AudioHeader* hdr = (AudioHeader*)src;
+	Init(hdr->type, hdr->fps, hdr->freq);
+	AudioPacket* p;
+	memset(&p, 0, sizeof(AudioPacket));
+	p.start = hdr->datPtr;
+	p.len = len;
+	QueueAudio(&p);
 }
 
+
+void AudioHandler::Processs()
+{
+
+}
+
+void AudioHandler::QueueAudio(AudioPacket* packet)
+{
+	  
+}
+
+AudioPacket* AudioHandler::GetCurrentPacket()
+{
+	return &packets[0];
+
+}
 bool  AudioHandler::SeekAudio(int frame)
 {
 	return false;
 }
 
-bool  AudioHandler::Exhausted()
+bool AudioHandler::Exhausted()
 {
 	return GetRemainingBytes() == 0;
 }

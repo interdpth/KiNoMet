@@ -55,7 +55,7 @@ void initFrame(KinometPacket* pack)
 	);
 	movieFps = (int)pack->rect;
 	start = SDL_GetPerformanceCounter();
-	InitAudioPlayer();
+	
 	SoundInited = 1;
 }
 Uint32 totalFrameTicks = 0;
@@ -63,9 +63,15 @@ Uint32 totalFrames = 0;
 //Audio* mainAudio;
 //frame is raw decoded data
 //screen rect describes length
-
+int audioType;
 void handleAudio(KinometPacket* pack)
 {
+	if (pack->frameid == -1)
+	{
+		InitAudioPlayer((int)pack->screen);
+		audioType = (int)pack->rect;
+		return;
+	}
 	StartPlaying(pack->frame, (int)pack->screen);
 }
 void handleFrame(KinometPacket* pack)
@@ -114,27 +120,6 @@ void handleFrame(KinometPacket* pack)
 	SDL_RenderCopy(renderer, texture, NULL, &destination);
 	SDL_RenderPresent(renderer);
 
-	//frames++;
-	//const Uint64 end = SDL_GetPerformanceCounter();
-	//const static Uint64 freq = SDL_GetPerformanceFrequency();
-	//const double seconds = (end - start) / static_cast<double>(freq);
-	//if (seconds > 2.0)
-	//{
-	//	std::cout
-	//		<< frames << " frames in "
-	//		<< std::setprecision(1) << std::fixed << seconds << " seconds = "
-	//		<< std::setprecision(1) << std::fixed << frames / seconds << " FPS ("
-	//		<< std::setprecision(3) << std::fixed << (seconds * 1000.0) / frames << " ms/frame)"
-	//		<< std::endl;
-	//	start = end;
-	//	frames = 0;
-	//}
-	FILE* fp = fopen(strbuf, "wb");
-	if (pack->frame && fp)
-	{
-		fwrite(pack->frame, 2, width * height, fp);
-		fclose(fp);
-	}
 	Uint64 end = SDL_GetPerformanceCounter();
 
 	float elapsedMS = ((end - start) / totalFrames)/ (float)SDL_GetPerformanceFrequency() * 1000.0f;
@@ -150,6 +135,9 @@ extern "C" {
 #endif
 int SDL_main(int argc, char* argv[])
 {
+#ifdef  DEBUG
+
+
 	printf("sizeof(int) %d\n", (int)sizeof(int));
 	printf("sizeof(char) %d\n", (int)sizeof(char));
 	printf("sizeof(short) %d\n", (int)sizeof(short));
@@ -169,7 +157,8 @@ int SDL_main(int argc, char* argv[])
 	int b = sizeof(arachicoldcvid_codebook);
 	int intz = sizeof(int);
 	int uintz = sizeof(unsigned long);
-	
+#endif // DEBUG
+
 	//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
 	frameHandled = 0;
 	start = SDL_GetPerformanceCounter();

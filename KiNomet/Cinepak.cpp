@@ -458,7 +458,8 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	unsigned long  frame_flags, strips, cv_width, cv_height,
 		cnum, strip_id, chunk_id, ci, flag, mask;
 	long len, top_size, chunk_size;
-	signed long x, y, y_bottom, x0, y0, x1, y1 ;
+	unsigned long x, y;
+	signed long	y_bottom, x0, y0, x1, y1 ;
 	unsigned char* frm_ptr;
 	unsigned int i, cur_strip;
 	int d0, d1, d2, d3, frm_stride, bpp = 2;

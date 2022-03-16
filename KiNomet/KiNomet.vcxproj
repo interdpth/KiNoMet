@@ -146,15 +146,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AudioHandler.cpp" />
+    <ClCompile Include="AviApi.cpp" />
     <ClCompile Include="Cinepak.cpp" />
     <ClCompile Include="CodeBookManager.cpp" />
     <ClCompile Include="Compression.cpp" />
     <ClCompile Include="Gba.cpp" />
     <ClCompile Include="KiNomet.cpp" />
     <ClCompile Include="SmallBuffer.cpp" />
+    <ClCompile Include="Test.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AudioHandler.h" />
+    <ClInclude Include="AviApi.h" />
     <ClInclude Include="Cinepak.h" />
     <ClInclude Include="CodeBookManager.h" />
     <ClInclude Include="Compression.h" />
