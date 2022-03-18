@@ -1,12 +1,12 @@
 #include "audio.h"
 #include <SDL_audio.h>
 #include <SDL.h>
-
-SDL_AudioSpec desiredSpec;
+SDL_AudioSpec os;//What we want
+SDL_AudioSpec desiredSpec;//What we get 
 SDL_AudioDeviceID deviceid;
 int inited = false;
 
-SDL_AudioSpec os;
+
 
 void stopPlaying()
 {
@@ -15,7 +15,6 @@ void stopPlaying()
 
 void StartPlaying(unsigned char* buff, int len)
 {
-
 	int err = SDL_QueueAudio(deviceid, buff, len);
 	auto b = SDL_GetError();
 	if (err > 0)
@@ -35,11 +34,11 @@ int InitAudioPlayer(int sampleSize)
 	desiredSpec.freq = sampleSize;
 	desiredSpec.format = AUDIO_S8;
 	desiredSpec.channels = 1;
-	desiredSpec.samples =4096;
+	desiredSpec.samples = 4096;
 	desiredSpec.callback = NULL;
 
 	desiredSpec.userdata = NULL;;
-	
+
 	deviceid = SDL_OpenAudioDevice(NULL, 0, &desiredSpec, &os, NULL);
 	if (deviceid < 0)
 	{
@@ -47,6 +46,6 @@ int InitAudioPlayer(int sampleSize)
 		return 1;
 	}
 
-	SDL_PauseAudioDevice(deviceid, 0);
+	SDL_PauseAudioDevice(deviceid, 0);//Start playing right away.
 	return 0;
 }
