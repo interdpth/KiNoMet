@@ -54,12 +54,10 @@ AudioHandler::AudioHandler(unsigned char* src, int len, int (*func)())
 }
 
 
-void AudioHandler::Processs()
+int AudioHandler::Processs()
 {
-	//How much data is empty? 
-
 	AudioPacket* curPack = GetCurrentPacket();
-	if (curPack == nullptr) return;
+	if (curPack == nullptr) return 0;
 	if (curPack->tracked >= curPack->len)
 	{	
 		free(&packets[0]);
@@ -70,15 +68,24 @@ void AudioHandler::Processs()
 
 		if (packets.size())packets.pop_back();//bringing all entries forward.
 		curPack = GetCurrentPacket();
-		if (curPack == nullptr) return;
+		if (curPack == nullptr) return 0;
 		curPack->tracked = 0;
 	}
 
 	int bytesLeft = RING_SIZE - GetSize();//Gotta love pointers.
-
-	memcpy(startBuf, &curPack->start[curPack->tracked], bytesLeft);
-
-	curPack->tracked += bytesLeft;
+	//if (bytesLeft==0 || bytesLeft == RING_SIZE)
+	//{
+		int bytesCopy = 0x4000;
+		if (curPack->tracked + 0x4000 > curPack->len)
+		{
+			bytesCopy = curPack->len - (curPack->tracked);
+		}
+		memcpy(startBuf, &curPack->start[curPack->tracked], bytesCopy);
+	
+		curPack->tracked += bytesCopy;
+		return bytesCopy;
+	//}
+	//return 0;
 }
 
 void AudioHandler::QueueAudio(AudioPacket* packet)
@@ -101,6 +108,7 @@ bool AudioHandler::Exhausted()
 {
 	return GetRemainingBytes() == 0;
 }
+
 int AudioHandler::GetRemainingBytes()
 {
 	return (int)(&limitBuf - &endBuf);;
