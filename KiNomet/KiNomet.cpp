@@ -148,7 +148,7 @@ void LoadAVI(unsigned char* file,
 			pack.type = audio->GetType();
 			pack.rect = (rectangle*)readSize;
 
-			audiocallback(&pack);
+		//	audiocallback(&pack);
 		}
 
 

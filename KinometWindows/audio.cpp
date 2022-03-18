@@ -20,7 +20,7 @@ void StartPlaying(unsigned char* buff, int len)
 	{
 		exit(-1);
 	}
-	SDL_PauseAudioDevice(deviceid, 0);
+
 }
 int GetQueuedBytes()
 {
@@ -61,6 +61,6 @@ int InitAudioPlayer(int sampleSize)
 		return 1;
 	}
 
-
+	SDL_PauseAudioDevice(deviceid, 0);
 	return 0;
 }
