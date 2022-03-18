@@ -37,7 +37,8 @@ void LoadAVI(unsigned char* file,
 		int audiofsize,
 		void (*callback)(KinometPacket*),
 		void (*audiocallback)(KinometPacket*),
-		int(*GetSize)());
+		int(*GetSize)(),
+	unsigned int(*GetTicks)());
 	
 	extern unsigned char* Kinomet_FrameBuffer;
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);

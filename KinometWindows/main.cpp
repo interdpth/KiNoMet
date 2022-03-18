@@ -25,6 +25,10 @@ SDL_Renderer* renderer;
 int movieFps;
 Uint64 start;
 bool SoundInited;
+unsigned int GetTicks(void)
+{
+	return SDL_GetTicks();
+}
 void initFrame(KinometPacket* pack)
 {
 	height = pack->screen->h;
@@ -41,7 +45,7 @@ void initFrame(KinometPacket* pack)
 		exit(-1);
 	}
 
-	 renderer = SDL_CreateRenderer(mainWindow, -1,0);
+	renderer = SDL_CreateRenderer(mainWindow, -1, 0);
 	if (!renderer) {
 		fprintf(stderr, "Could not create renderer\n");
 		exit(-1);
@@ -55,7 +59,7 @@ void initFrame(KinometPacket* pack)
 	);
 	movieFps = (int)pack->rect;
 	start = SDL_GetPerformanceCounter();
-	
+
 	SoundInited = 1;
 }
 Uint32 totalFrameTicks = 0;
@@ -70,10 +74,14 @@ void handleAudio(KinometPacket* pack)
 	{
 		InitAudioPlayer((int)pack->screen);
 		audioType = (int)pack->type;
-	
+
 	}
 	StartPlaying(pack->frame, (int)pack->rect);
 }
+
+
+float last = 0;
+extern bool canRender;
 void handleFrame(KinometPacket* pack)
 {
 	//IF this is called nad packet is null, we are just setting up. 
@@ -82,12 +90,12 @@ void handleFrame(KinometPacket* pack)
 		initFrame(pack);
 		return;
 	}
-	totalFrames++;
-	
+
+
 	SDL_Event event;
 	SDL_PollEvent(&event);
-		/* handle your event here */
-		 //User requests quit
+	/* handle your event here */
+	 //User requests quit
 	if (event.type == SDL_QUIT)
 	{
 		exit(-1);
@@ -98,6 +106,8 @@ void handleFrame(KinometPacket* pack)
 	{
 		return;
 	}
+	
+	totalFrames++;
 	int height = pack->rect->h;
 	int width = pack->rect->w;
 	//we are gba so frame is always 240*160*2;
@@ -113,68 +123,61 @@ void handleFrame(KinometPacket* pack)
 		&pitch
 	);
 
-	std::memcpy(lockedPixels, pack->frame, width * height *2);
+	std::memcpy(lockedPixels, pack->frame, width * height * 2);
 	SDL_UnlockTexture(texture);
 
 	SDL_Rect destination = { 0, 0, width, height };
 	SDL_RenderCopy(renderer, texture, NULL, &destination);
 	SDL_RenderPresent(renderer);
-
-	Uint64 end = SDL_GetPerformanceCounter();
-
-	float elapsedMS = ((end - start) / totalFrames)/ (float)SDL_GetPerformanceFrequency() * 1000.0f;
-	float valu = elapsedMS > movieFps ?  movieFps : elapsedMS;
-	// Cap to 60 FPS
-	SDL_Delay(valu);
-
+	//SDL_Delay(1);
 }
 extern int maxNum;
 extern int codeBooks;
 #ifdef __cplusplus
 extern "C" {
 #endif
-int SDL_main(int argc, char* argv[])
-{
+	int SDL_main(int argc, char* argv[])
+	{
 #ifdef  DEBUG
 
 
-	printf("sizeof(int) %d\n", (int)sizeof(int));
-	printf("sizeof(char) %d\n", (int)sizeof(char));
-	printf("sizeof(short) %d\n", (int)sizeof(short));
-	printf("sizeof(long) %d\n", (int)sizeof(long));
-	printf("sizeof(unsigned int) %d\n", (int)sizeof(unsigned int));
-	printf("sizeof(unsigned char) %d\n", (int)sizeof(unsigned char));
-	printf("sizeof(unsigned short) %d\n", (int)sizeof(unsigned short));
-	printf("sizeof(unsigned long) %d\n", (int)sizeof(unsigned long));
-	printf("sizeof(unsigned char*) %d\n", (int)sizeof(unsigned char*));
-	printf("sizeof(unsigned short*) %d\n", (int)sizeof(unsigned short*));
-	printf("sizeof(cvid_codebook) %d\n", (int)sizeof(cvid_codebook));
-	printf("sizeof(cinepak_info) %d\n", (int)sizeof(cinepak_info));
-	printf("sizeof(BITMAPINFOHEADER) %d\n", (int)sizeof(BITMAPINFOHEADER));
-	printf("sizeof(MainAVIHeader) %d\n", (int)sizeof(MainAVIHeader));
-	printf("sizeof(_avioldindex_entry) %d\n", (int)sizeof(_avioldindex_entry));
-	printf("sizeof(AVIStreamHeader) %d\n", (int)sizeof(AVIStreamHeader));
-	int b = sizeof(arachicoldcvid_codebook);
-	int intz = sizeof(int);
-	int uintz = sizeof(unsigned long);
+		printf("sizeof(int) %d\n", (int)sizeof(int));
+		printf("sizeof(char) %d\n", (int)sizeof(char));
+		printf("sizeof(short) %d\n", (int)sizeof(short));
+		printf("sizeof(long) %d\n", (int)sizeof(long));
+		printf("sizeof(unsigned int) %d\n", (int)sizeof(unsigned int));
+		printf("sizeof(unsigned char) %d\n", (int)sizeof(unsigned char));
+		printf("sizeof(unsigned short) %d\n", (int)sizeof(unsigned short));
+		printf("sizeof(unsigned long) %d\n", (int)sizeof(unsigned long));
+		printf("sizeof(unsigned char*) %d\n", (int)sizeof(unsigned char*));
+		printf("sizeof(unsigned short*) %d\n", (int)sizeof(unsigned short*));
+		printf("sizeof(cvid_codebook) %d\n", (int)sizeof(cvid_codebook));
+		printf("sizeof(cinepak_info) %d\n", (int)sizeof(cinepak_info));
+		printf("sizeof(BITMAPINFOHEADER) %d\n", (int)sizeof(BITMAPINFOHEADER));
+		printf("sizeof(MainAVIHeader) %d\n", (int)sizeof(MainAVIHeader));
+		printf("sizeof(_avioldindex_entry) %d\n", (int)sizeof(_avioldindex_entry));
+		printf("sizeof(AVIStreamHeader) %d\n", (int)sizeof(AVIStreamHeader));
+		int b = sizeof(arachicoldcvid_codebook);
+		int intz = sizeof(int);
+		int uintz = sizeof(unsigned long);
 #endif // DEBUG
 
-	//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
-	frameHandled = 0;
-	start = SDL_GetPerformanceCounter();
+		//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
+		frameHandled = 0;
+		start = SDL_GetPerformanceCounter();
 
-	//YOU ARE GETTING AUDIO TO WORK NOW. 
-	LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &handleFrame, &handleAudio, &GetQueuedBytes);
-	int overallSize = codeBookSize();
-	printf("%d", maxNum);
-	printf("%x", overallSize);
-	printf("%d", codeBooks);
-	SDL_DestroyWindow(mainWindow);
+		//YOU ARE GETTING AUDIO TO WORK NOW. 
+		LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &handleFrame, &handleAudio, &GetQueuedBytes, &GetTicks);
+		int overallSize = codeBookSize();
+		printf("%d", maxNum);
+		printf("%x", overallSize);
+		printf("%d", codeBooks);
+		SDL_DestroyWindow(mainWindow);
 
-	// Clean up
-	SDL_Quit();
-	return 0;
-}
+		// Clean up
+		SDL_Quit();
+		return 0;
+	}
 #ifdef __cplusplus
 }
 #endif

@@ -46,6 +46,7 @@
 
 #include "Gba.h"
 #include "Cinepak.h"
+#define bpp 2
 unsigned char* basePointer;
 int drawing = 0;
 void Trace(char* a, ...)
@@ -66,6 +67,8 @@ unsigned char* uiclp = NULL;
 //basic tests
 static_assert(sizeof(uiclip) == 1024, "Size is not 1024");
 //static_assert(sizeof(cvid_codebook) == 18, "Codebook Size is not 18 bytes");
+//WE are not acccepting changing videos at this time :D
+int screenwidth, screenheight, frm_stride;
 
 #define REG_VCOUNT *(volatile unsigned short*)0x04000006
 void vid_vsync()
@@ -121,7 +124,7 @@ void  read_codebook(cvid_codebook* c, int mode)
 #endif
 /* ---------------------------------------------------------------------- */
 {
-	int uvr, uvg, uvb;
+	signed int uvr, uvg, uvb;
 	oldcvid_codebook* curbk = ((oldcvid_codebook*)(in_buffer));
 	int y0 = curbk->y0;
 	int y1 = curbk->y1;
@@ -137,8 +140,8 @@ void  read_codebook(cvid_codebook* c, int mode)
 	}
 	else            /* colour */
 	{		
-		int v = curbk->v;
-		int u = curbk->u;
+		signed 	int v = curbk->v;
+		signed 	int u = curbk->u;
 		in_buffer += 2;//we read v and u
 		uvr = v << 1;
 		uvg = -((u + 1) >> 1) - v;
@@ -349,8 +352,11 @@ cinepak_info* newpack()
  * Call this function once at the start of the sequence and save the
  * returned context for calls to decode_cinepak().
  */
-cinepak_info* decode_cinepak_init(void)
+cinepak_info* decode_cinepak_init(int srcwidth, int srcheight)
 {
+	screenwidth = srcwidth;
+	screenheight = srcheight;
+	frm_stride = srcwidth * 2;
 	sizeVar = 0;
 	int i;
 	cinepak_info* cvinfo = newpack();
@@ -446,10 +452,10 @@ int maxNum = 0;
 #define KillChunk in_buffer+=chunk_size;//while (chunk_size > 0) { skip_byte(); chunk_size--; }
 #ifdef GBA
 IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
-	unsigned char* frame, unsigned int width, unsigned int height)
+	unsigned char* frame)
 #else 
 void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
-	unsigned char* frame, unsigned int width, unsigned int height)
+	unsigned char* frame)
 #endif
 {
 
@@ -462,7 +468,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	signed long	y_bottom, x0, y0, x1, y1 ;
 	unsigned char* frm_ptr;
 	unsigned int i, cur_strip;
-	int d0, d1, d2, d3, frm_stride, bpp = 2;
+	int d0, d1, d2, d3;
 	fn_cvid_v1 cvid_v1 = (fn_cvid_v1)cvid_v1_16;
 	fn_cvid_v4 cvid_v4 = (fn_cvid_v4)cvid_v4_16;
 	y = 0;
@@ -474,8 +480,6 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	len |= get_byte() << 8;
 	len |= get_byte();
 
-
-	frm_stride = width * bpp;
 	frm_ptr = frame;
 
 	if (len != size)
@@ -554,8 +558,8 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 		y_bottom += y1;
 		top_size -= 12;
 		x = 0;
-		if (x1 != width)
-			WARN("CVID: Warning x1 (%ld) != width (%d)\n", x1, width);
+		if (x1 != screenwidth)
+			WARN("CVID: Warning x1 (%ld) != width (%d)\n", x1, screenwidth);
 
 		TRACE("   %d) %04lx %04ld <%ld,%ld> <%ld,%ld> yt %ld\n",
 			cur_strip, strip_id, top_size, x0, y0, x1, y1, y_bottom);
@@ -666,7 +670,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 						}
 
 						x += 4;
-						if (x >= width)
+						if (x >= screenwidth)
 						{
 							x = 0;
 							y += 4;
@@ -724,7 +728,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 
 						mask >>= 1;
 						x += 4;
-						if (x >= width)
+						if (x >= screenwidth)
 						{
 							x = 0;
 							y += 4;
@@ -745,7 +749,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 #endif
 					chunk_size--;
 					x += 4;
-					if (x >= width)
+					if (x >= screenwidth)
 					{
 						x = 0;
 						y += 4;

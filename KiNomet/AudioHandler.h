@@ -103,7 +103,7 @@ public:
 	/// <summary>
 	/// Dump audio to buffer.
 	/// </summary>
-	void Processs();
+	int Processs();
 
 	/// <summary>
 	/// Attempts to sync audio to frame. Handly differently per type.

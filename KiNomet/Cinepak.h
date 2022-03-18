@@ -76,11 +76,11 @@ extern "C" int GBA_RLEDECOMP(void* src, void* dst);
 extern "C"  int GBA_LZDECOMP(void* src, void* dst);
 #endif
 #ifdef GBA 
-IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame, unsigned int width, unsigned int height);
-cinepak_info* decode_cinepak_init(void);
+IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame);
+cinepak_info* decode_cinepak_init(int srcwidth, int srcheight);
 #else
-void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame, unsigned int width, unsigned int height);
-cinepak_info* decode_cinepak_init(void);
+void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame);
+cinepak_info* decode_cinepak_init(int srcwidth, int srcheight);
 #endif 
 
 void free_cvinfo(cinepak_info* cvinfo);

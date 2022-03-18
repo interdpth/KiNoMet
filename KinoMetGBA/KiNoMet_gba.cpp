@@ -4,21 +4,17 @@
 #include "audio_outputmain.h"
 #include "..\KiNomet\Gba.h"
 #include <stdio.h>
+#include "../KiNomet/AudioHandler.h"
 int frameHandled;
 #define ARM __attribute__((__target__("arm")))
 #define REG_IFBIOS (*(unsigned short*)(0x3007FF8))
 #define BG2X *(short long*)0x4000020// - BG2X_L - BG2 Reference Point X-Coordinate, lower 16 bit (W)
 #define BG2Y *(signed long*)0x400002c// - BG2X_L - BG2 Reference Point X-Coordinate, lower 16 bit (W)
-
+AudioHandler* audio;
 //indicates if framebufer can be used as a buffer or not.
 int canDmaImage;
 int vblankcounter = 0;
-void VBlankIntrWait()
-{
 
-	__asm("swi 0x05");
-
-}
 char frameReady;
 int lastDrawn;
 int numFrames = 0;
@@ -105,7 +101,7 @@ void Setup(KinometPacket* packet)
 
 	int screenType = (packet->screen->h == 160 && packet->screen->w == 240 ? 3 : 5);
 	fps = ((int)(packet->rect)) + 1;//we don't use rect early on, fps gets packed into rect.
-
+	audio = new AudioHandler(0, fps, 10512);
 
 	(*(unsigned short*)0x4000000) = (0x400 | screenType);
 
@@ -153,7 +149,7 @@ void play_sound(const signed char* sound, int total_samples, int sample_rate) {
 
 	*dma1_source = (unsigned int)sound;
 	*dma1_destination = (unsigned int)fifo_buffer_a;
-	*dma1_control = DMA_DEST_FIXED | DMA_REPEAT | DMA_32 | DMA_SYNC_TO_TIMER | DMA_ENABLE;
+	*dma1_control = DMA_DEST_FIXED | DMA_REPEAT | DMA_16 | DMA_SYNC_TO_TIMER | DMA_ENABLE;
 
 
 	/* set the timer so that it increments once each time a sample is due
@@ -177,17 +173,14 @@ void play_sound(const signed char* sound, int total_samples, int sample_rate) {
 	*timer0_control = TIMER_ENABLE | TIMER_FREQ_1;
 }
 //screen rect describes length
+
+
 int lastFrame;
 void handleAudio(KinometPacket* pack)
 {
-	//every fps frames we resync 
 
-	//lastFrame++;
-	//if (lastFrame > fps) {
-		//*dma1_source = (unsigned int)pack->frame;
-		//play_sound((const signed char*) pack->frame, (int)pack->screen, 10512);
-//	}
 }
+
 void handleFrame(KinometPacket* packet)
 {
 	//we are gba so frame is always 240*160*2;
