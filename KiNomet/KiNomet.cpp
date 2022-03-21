@@ -5,6 +5,9 @@
 #include "AviApi.h"
 #include <stdio.h>
 #include "AudioHandler.h"
+#ifdef GBA
+#include <tgmath.h>
+#endif
 void error(char* str)
 {
 	//printf("%s", str);
@@ -37,6 +40,9 @@ void SetAudioPacket(KinometPacket* pack)
 {
 
 }
+#ifdef GBA
+
+#endif
 bool canRender = false;
 
 void LoadAVI(unsigned char* file,
@@ -114,11 +120,21 @@ void LoadAVI(unsigned char* file,
 	_avioldindex_entry* idxList = (_avioldindex_entry*)buf->GetCurrentBuffer();
 	int fps = sthread->dwRate;
 	canRender = true;
+#ifndef GBA
 	UINT64 last = GetTicks();
 	UINT64 current = GetTicks();
+#else 
+	
+	unsigned long  last = GetTicks();
+	unsigned long  current = GetTicks();
+#endif
 	int i = 0;
 	int lastDrawn = -1;
-	while (i < numFrames)
+	//Process AUDIO before processing frames.
+
+
+
+	while (i < numFrames + 30)
 	{
 		_avioldindex_entry* cur = &idxList[i];
 
@@ -138,6 +154,8 @@ void LoadAVI(unsigned char* file,
 		int framesize = *(unsigned long*)frame; frame += 4;
 #endif //  DEBUG
 		//handle audio
+
+
 		pack.frameid = i;
 		readSize = audio->Processs();
 		if (readSize)
@@ -148,17 +166,8 @@ void LoadAVI(unsigned char* file,
 			pack.type = audio->GetType();
 			pack.rect = (rectangle*)readSize;
 
-		//	audiocallback(&pack);
+			audiocallback(&pack);
 		}
-
-
-		decode_cinepak(ci, frame, cur->dwSize, Kinomet_FrameBuffer);
-		//Hello we have a full framedata 
-		pack.frame = Kinomet_FrameBuffer;
-
-		pack.screen = &screen;
-		pack.rect = &screen;
-		callback(&pack);
 
 
 
@@ -170,55 +179,20 @@ void LoadAVI(unsigned char* file,
 		float framesToUpdate = floor(dT / floored);
 		if (framesToUpdate > 0) {
 			i++;
+
+
+			decode_cinepak(ci, frame, cur->dwSize, Kinomet_FrameBuffer);
+			//Hello we have a full framedata 
+
+
+			pack.frame = Kinomet_FrameBuffer;
+			pack.screen = &screen;
+			pack.rect = &screen;
+			callback(&pack);
+
 			last = current;
 		}
-
-
 	}
-	//
-	//	for (int i = 0; i < numFrames; i++)
-	//	{	//so we will point to
-	//		_avioldindex_entry* cur = &idxList[i];
-	//
-	//		//Make sure we are a frame.
-	//		if (cur->FourCC != TAG_00DC) continue;
-	//
-	//		//sanity stuff.
-	//#ifdef  DEBUG
-	//		unsigned char* frame = moviPointer + cur->dwOffset - 4;
-	//		unsigned int fourcc = *(unsigned long*)frame; frame += 4;
-	//
-	//		if (fourcc != cur->FourCC) continue;
-	//
-	//		int framesize = *(unsigned long*)frame; frame += 4;
-	//#else
-	//		unsigned char* frame = moviPointer + cur->dwOffset;
-	//		int framesize = *(unsigned long*)frame; frame += 4;
-	//#endif //  DEBUG
-	//		//handle audio
-	//		pack.frameid = i;
-	//		readSize = audio->Processs();
-	//		if (readSize)
-	//		{
-	//
-	//			pack.frame = audio->GetBuffer();
-	//			pack.screen = (rectangle*)audio->GetSampleFreq();
-	//			pack.type = audio->GetType();
-	//			pack.rect = (rectangle*)readSize;
-	//
-	//			audiocallback(&pack);
-	//		}
-	//
-	//		decode_cinepak(ci, frame, cur->dwSize, Kinomet_FrameBuffer);
-	//		//Hello we have a full framedata 
-	//		pack.frame = Kinomet_FrameBuffer;
-	//
-	//		pack.screen = &screen;
-	//		pack.rect = &screen;
-	//		callback(&pack);
-	//	}
-	//
-
 
 
 #ifndef  GBA

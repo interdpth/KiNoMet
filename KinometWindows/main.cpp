@@ -58,7 +58,7 @@ void initFrame(KinometPacket* pack)
 		width, height
 	);
 	movieFps = (int)pack->rect;
-	start = SDL_GetPerformanceCounter();
+	start = SDL_GetTicks();
 
 	SoundInited = 1;
 }
@@ -74,12 +74,10 @@ void handleAudio(KinometPacket* pack)
 	{
 		InitAudioPlayer((int)pack->screen);
 		audioType = (int)pack->type;
-
+		return;
 	}
 	StartPlaying(pack->frame, (int)pack->rect);
 }
-
-
 float last = 0;
 extern bool canRender;
 void handleFrame(KinometPacket* pack)
@@ -129,7 +127,7 @@ void handleFrame(KinometPacket* pack)
 	SDL_Rect destination = { 0, 0, width, height };
 	SDL_RenderCopy(renderer, texture, NULL, &destination);
 	SDL_RenderPresent(renderer);
-	//SDL_Delay(1);
+
 }
 extern int maxNum;
 extern int codeBooks;

@@ -87,7 +87,8 @@ typedef struct {
 
 #define get_byte() *(in_buffer++)
 #define skip_byte() in_buffer++
-
+#define V1C cvid_v1_16(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v1_codebook + get_byte()); chunk_size--;
+#define V4C cvid_v4_16(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3); chunk_size -= 4;
 #ifdef GBA
 IWRAM unsigned short get_word()
 #else 
@@ -286,32 +287,7 @@ void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 
 	cvid_codebook* curBook = cb0;
 	unsigned short* clrs = curBook->rgb;
-	//*((unsigned long*)(vptr[0 * width + 0])) = longcolors
-	//	* ((unsigned long*)(vptr[0 * width + 1])) = longcolors
-	//	* ((unsigned long*)(vptr[1 * width + 0])) = longcolors
-	//	* ((unsigned long*)(vptr[1 * width + 1])) = longcolors
 
-	//	curBook = cb1;
-	//clrs = curBook->rgb;
-	//*((unsigned long*)(vptr[0 * width + 2])) = longcolors
-	//	* ((unsigned long*)(vptr[0 * width + 3])) = longcolors
-	//	* ((unsigned long*)(vptr[1 * width + 2])) = longcolors
-	//	* ((unsigned long*)(vptr[1 * width + 3])) = longcolors
-
-	//	curBook = cb2;
-	//clrs = curBook->rgb;
-	//*((unsigned long*)(vptr[2 * width + 0])) = longcolors
-	//	* ((unsigned long*)(vptr[2 * width + 1])) = longcolors
-	//	* ((unsigned long*)(vptr[3 * width + 0])) = longcolors
-	//	* ((unsigned long*)(vptr[3 * width + 1])) = longcolors
-
-	//	curBook = cb3;
-	//
-
-	//*((unsigned long*)(vptr[2 * width + 2])) = longcolors
-	//	* ((unsigned long*)(vptr[2 * width + 3])) = longcolors
-	//	* ((unsigned long*)(vptr[3 * width + 2])) = longcolors
-	//	* ((unsigned long*)(vptr[3 * width + 3])) = longcolors*/
 		//screw calculattions.
 	vptr[0 * width + 0] = *clrs++;
 	vptr[0 * width + 1] = *clrs++;
@@ -463,14 +439,13 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	cvid_codebook* v4_codebook, * v1_codebook, * codebook = NULL;
 	unsigned long  frame_flags, strips, cv_width, cv_height,
 		cnum, strip_id, chunk_id, ci, flag, mask;
-	long len, top_size, chunk_size;
+	long len,  chunk_size;
 	unsigned long x, y;
-	signed long	y_bottom, x0, y0, x1, y1 ;
+	signed long	top_size, y_bottom, x0, y0, x1, y1 ;
 	unsigned char* frm_ptr;
 	unsigned int i, cur_strip;
 	int d0, d1, d2, d3;
-	fn_cvid_v1 cvid_v1 = (fn_cvid_v1)cvid_v1_16;
-	fn_cvid_v4 cvid_v4 = (fn_cvid_v4)cvid_v4_16;
+
 	y = 0;
 	y_bottom = 0;
 	in_buffer = inputFrame;
@@ -656,17 +631,12 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 							d1 = get_byte();
 							d2 = get_byte();
 							d3 = get_byte();
-							chunk_size -= 4;
-
-							cvid_v4(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3);
+							V4C
 
 						}
 						else        /* 1 byte per block */
 						{
-
-							cvid_v1(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v1_codebook + get_byte());
-
-							chunk_size--;
+							V1C						
 						}
 
 						x += 4;
@@ -708,21 +678,11 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 								d1 = get_byte();
 								d2 = get_byte();
 								d3 = get_byte();
-								chunk_size -= 4;
-#ifdef ORIGINAL
-								cvid_v4(frm_ptr + (y * frm_stride + x * bpp), frm_end, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3);
-#else
-								cvid_v4(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3);
-#endif
+								V4C
 							}
 							else        /* V1 */
 							{
-								chunk_size--;
-#ifdef ORIGINAL
-								cvid_v1(frm_ptr + (y * frm_stride + x * bpp), frm_end, frm_stride, v1_codebook + get_byte());
-#else
-								cvid_v1(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v1_codebook + get_byte());
-#endif
+								V1C 
 							}
 						}        /* else SKIP */
 
@@ -742,12 +702,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 			case 0x3200:        /* each byte is a V1 codebook */
 				while ((chunk_size > 0) && (y < y_bottom))
 				{
-#ifdef ORIGINAL
-					cvid_v1(frm_ptr + (y * frm_stride + x * bpp), frm_end, frm_stride, v1_codebook + get_byte());
-#else
-					cvid_v1(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v1_codebook + get_byte());
-#endif
-					chunk_size--;
+					V1C
 					x += 4;
 					if (x >= screenwidth)
 					{
@@ -783,319 +738,3 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 
 	drawing = 0;
 }
-//
-//void ICCVID_dump_BITMAPINFO(const BITMAPINFO* bmi)
-//{
-//    TRACE(
-//        "planes = %d\n"
-//        "bpp    = %d\n"
-//        "height = %d\n"
-//        "width  = %d\n"
-//        "compr  = %s\n",
-//        bmi->bmiHeader.biPlanes,
-//        bmi->bmiHeader.biBitCount,
-//        bmi->bmiHeader.biHeight,
-//        bmi->bmiHeader.biWidth,
-//        debugstr_an((const char*)&bmi->bmiHeader.biCompression, 4));
-//}
-//
-//static inline int ICCVID_CheckMask(RGBQUAD bmiColors[3], COLORREF redMask, COLORREF blueMask, COLORREF greenMask)
-//{
-//    COLORREF realRedMask = MAKECOLOUR32(bmiColors[0].rgbRed, bmiColors[0].rgbGreen, bmiColors[0].rgbBlue);
-//    COLORREF realBlueMask = MAKECOLOUR32(bmiColors[1].rgbRed, bmiColors[1].rgbGreen, bmiColors[1].rgbBlue);
-//    COLORREF realGreenMask = MAKECOLOUR32(bmiColors[2].rgbRed, bmiColors[2].rgbGreen, bmiColors[2].rgbBlue);
-//
-//    TRACE("\nbmiColors[0] = 0x%08x\nbmiColors[1] = 0x%08x\nbmiColors[2] = 0x%08x\n",
-//        realRedMask, realBlueMask, realGreenMask);
-//
-//    if ((realRedMask == redMask) &&
-//        (realBlueMask == blueMask) &&
-//        (realGreenMask == greenMask))
-//        return TRUE;
-//    return FALSE;
-//}
-//
-//static LRESULT ICCVID_DecompressQuery(ICCVID_Info* info, LPBITMAPINFO in, LPBITMAPINFO out)
-//{
-//    TRACE("ICM_DECOMPRESS_QUERY %p %p %p\n", info, in, out);
-//
-//    if ((info == NULL) || (info->dwMagic != ICCVID_MAGIC))
-//        return ICERR_BADPARAM;
-//
-//    TRACE("in: ");
-//    ICCVID_dump_BITMAPINFO(in);
-//
-//    if (in->bmiHeader.biCompression != ICCVID_MAGIC)
-//        return ICERR_BADFORMAT;
-//
-//    if (out)
-//    {
-//        TRACE("out: ");
-//        ICCVID_dump_BITMAPINFO(out);
-//
-//        if (in->bmiHeader.biPlanes != out->bmiHeader.biPlanes)
-//            return ICERR_BADFORMAT;
-//        if (in->bmiHeader.biHeight != out->bmiHeader.biHeight)
-//            return ICERR_BADFORMAT;
-//        if (in->bmiHeader.biWidth != out->bmiHeader.biWidth)
-//            return ICERR_BADFORMAT;
-//
-//        switch (out->bmiHeader.biBitCount)
-//        {
-//        case 16:
-//            if (out->bmiHeader.biCompression == BI_BITFIELDS)
-//            {
-//                if (!ICCVID_CheckMask(out->bmiColors, 0x7C00, 0x03E0, 0x001F) &&
-//                    !ICCVID_CheckMask(out->bmiColors, 0xF800, 0x07E0, 0x001F))
-//                {
-//                    TRACE("unsupported output bit field(s) for 16-bit colors\n");
-//                    return ICERR_BADFORMAT;
-//                }
-//            }
-//            break;
-//        case 24:
-//        case 32:
-//            break;
-//        default:
-//            TRACE("unsupported output bitcount = %d\n", out->bmiHeader.biBitCount);
-//            return ICERR_BADFORMAT;
-//        }
-//    }
-//
-//    return ICERR_OK;
-//}
-//
-//static LRESULT ICCVID_DecompressGetFormat(ICCVID_Info* info, LPBITMAPINFO in, LPBITMAPINFO out)
-//{
-//    DWORD size;
-//
-//    TRACE("ICM_DECOMPRESS_GETFORMAT %p %p %p\n", info, in, out);
-//
-//    if ((info == NULL) || (info->dwMagic != ICCVID_MAGIC))
-//        return ICERR_BADPARAM;
-//
-//    size = in->bmiHeader.biSize;
-//    if (in->bmiHeader.biBitCount <= 8)
-//        size += in->bmiHeader.biClrUsed * sizeof(RGBQUAD);
-//
-//    if (out)
-//    {
-//        memcpy(out, in, size);
-//        out->bmiHeader.biCompression = BI_RGB;
-//        out->bmiHeader.biSizeImage = in->bmiHeader.biHeight
-//            * in->bmiHeader.biWidth * 4;
-//        return ICERR_OK;
-//    }
-//    return size;
-//}
-//
-//static LRESULT ICCVID_DecompressBegin(ICCVID_Info* info, LPBITMAPINFO in, LPBITMAPINFO out)
-//{
-//    TRACE("ICM_DECOMPRESS_BEGIN %p %p %p\n", info, in, out);
-//
-//    if ((info == NULL) || (info->dwMagic != ICCVID_MAGIC))
-//        return ICERR_BADPARAM;
-//
-//    info->bits_per_pixel = out->bmiHeader.biBitCount;
-//
-//    if (info->bits_per_pixel == 16)
-//    {
-//        if (out->bmiHeader.biCompression == BI_BITFIELDS)
-//        {
-//            if (ICCVID_CheckMask(out->bmiColors, 0x7C00, 0x03E0, 0x001F))
-//                info->bits_per_pixel = 15;
-//            else if (ICCVID_CheckMask(out->bmiColors, 0xF800, 0x07E0, 0x001F))
-//                info->bits_per_pixel = 16;
-//            else
-//            {
-//                TRACE("unsupported output bit field(s) for 16-bit colors\n");
-//                return ICERR_UNSUPPORTED;
-//            }
-//        }
-//        else
-//            info->bits_per_pixel = 15;
-//    }
-//
-//    TRACE("bit_per_pixel = %d\n", info->bits_per_pixel);
-//
-//    if (info->cvinfo)
-//        free_cvinfo(info->cvinfo);
-//    info->cvinfo = decode_cinepak_init();
-//
-//    return ICERR_OK;
-//}
-//
-//static LRESULT ICCVID_Decompress(ICCVID_Info* info, ICDECOMPRESS* icd, DWORD size)
-//{
-//    LONG width, height;
-//
-//    TRACE("ICM_DECOMPRESS %p %p %d\n", info, icd, size);
-//
-//    if ((info == NULL) || (info->dwMagic != ICCVID_MAGIC))
-//        return ICERR_BADPARAM;
-//    if (info->cvinfo == NULL)
-//    {
-//        ERR("ICM_DECOMPRESS sent after ICM_DECOMPRESS_END\n");
-//        return ICERR_BADPARAM;
-//    }
-//
-//    width = icd->lpbiInput->biWidth;
-//    height = icd->lpbiInput->biHeight;
-//
-//    decode_cinepak(info->cvinfo, icd->lpInput, icd->lpbiInput->biSizeImage,
-//        icd->lpOutput, width, height, info->bits_per_pixel);
-//
-//    return ICERR_OK;
-//}
-//
-//static LRESULT ICCVID_DecompressEx(ICCVID_Info* info, ICDECOMPRESSEX* icd, DWORD size)
-//{
-//    LONG width, height;
-//
-//    TRACE("ICM_DECOMPRESSEX %p %p %d\n", info, icd, size);
-//
-//    if ((info == NULL) || (info->dwMagic != ICCVID_MAGIC))
-//        return ICERR_BADPARAM;
-//    if (info->cvinfo == NULL)
-//    {
-//        ERR("ICM_DECOMPRESSEX sent after ICM_DECOMPRESS_END\n");
-//        return ICERR_BADPARAM;
-//    }
-//
-//    /* FIXME: flags are ignored */
-//
-//    width = icd->lpbiSrc->biWidth;
-//    height = icd->lpbiSrc->biHeight;
-//
-//    decode_cinepak(info->cvinfo, icd->lpSrc, icd->lpbiSrc->biSizeImage,
-//        icd->lpDst, width, height, info->bits_per_pixel);
-//
-//    return ICERR_OK;
-//}
-
-//static LRESULT ICCVID_Close(ICCVID_Info* info)
-//{
-//    if ((info == NULL) || (info->dwMagic != ICCVID_MAGIC))
-//        return 0;
-//    if (info->cvinfo)
-//        free_cvinfo(info->cvinfo);
-//    heap_free(info);
-//    return 1;
-//}
-
-//static LRESULT ICCVID_GetInfo(ICCVID_Info* info, ICINFO* icinfo, DWORD dwSize)
-//{
-//    if (!icinfo) return sizeof(ICINFO);
-//    if (dwSize < sizeof(ICINFO)) return 0;
-//
-//    icinfo->dwSize = sizeof(ICINFO);
-//    icinfo->fccType = ICTYPE_VIDEO;
-//    icinfo->fccHandler = info ? info->dwMagic : ICCVID_MAGIC;
-//    icinfo->dwFlags = 0;
-//    icinfo->dwVersion = ICVERSION;
-//    icinfo->dwVersionICM = ICVERSION;
-//
-//    LoadStringW(ICCVID_hModule, IDS_NAME, icinfo->szName, sizeof(icinfo->szName) / sizeof(WCHAR));
-//    LoadStringW(ICCVID_hModule, IDS_DESCRIPTION, icinfo->szDescription, sizeof(icinfo->szDescription) / sizeof(WCHAR));
-//    /* msvfw32 will fill icinfo->szDriver for us */
-//
-//    return sizeof(ICINFO);
-//}
-
-//static LRESULT ICCVID_DecompressEnd(ICCVID_Info* info)
-//{
-//    if (info->cvinfo)
-//    {
-//        free_cvinfo(info->cvinfo);
-//        info->cvinfo = NULL;
-//    }
-//    return ICERR_OK;
-//}
-
-//LRESULT WINAPI ICCVID_DriverProc(DWORD_PTR dwDriverId, HDRVR hdrvr, UINT msg,
-//    LPARAM lParam1, LPARAM lParam2)
-//{
-//    ICCVID_Info* info = (ICCVID_Info*)dwDriverId;
-//
-//    TRACE("%ld %p %d %ld %ld\n", dwDriverId, hdrvr, msg, lParam1, lParam2);
-//
-//    switch (msg)
-//    {
-//    case DRV_LOAD:
-//        TRACE("Loaded\n");
-//        return 1;
-//    case DRV_ENABLE:
-//        return 0;
-//    case DRV_DISABLE:
-//        return 0;
-//    case DRV_FREE:
-//        return 0;
-//
-//    case DRV_OPEN:
-//    {
-//        ICINFO* icinfo = (ICINFO*)lParam2;
-//
-//        TRACE("Opened\n");
-//
-//        if (icinfo && compare_fourcc(icinfo->fccType, ICTYPE_VIDEO)) return 0;
-//
-//        info = heap_alloc(sizeof(ICCVID_Info));
-//        if (info)
-//        {
-//            info->dwMagic = ICCVID_MAGIC;
-//            info->cvinfo = NULL;
-//        }
-//        return (LRESULT)info;
-//    }
-//
-//    case DRV_CLOSE:
-//        return ICCVID_Close(info);
-//
-//    case ICM_GETINFO:
-//        return ICCVID_GetInfo(info, (ICINFO*)lParam1, (DWORD)lParam2);
-//
-//    case ICM_DECOMPRESS_QUERY:
-//        return ICCVID_DecompressQuery(info, (LPBITMAPINFO)lParam1,
-//            (LPBITMAPINFO)lParam2);
-//    case ICM_DECOMPRESS_GET_FORMAT:
-//        return ICCVID_DecompressGetFormat(info, (LPBITMAPINFO)lParam1,
-//            (LPBITMAPINFO)lParam2);
-//    case ICM_DECOMPRESS_BEGIN:
-//        return ICCVID_DecompressBegin(info, (LPBITMAPINFO)lParam1,
-//            (LPBITMAPINFO)lParam2);
-//    case ICM_DECOMPRESS:
-//        return ICCVID_Decompress(info, (ICDECOMPRESS*)lParam1,
-//            (DWORD)lParam2);
-//    case ICM_DECOMPRESSEX:
-//        return ICCVID_DecompressEx(info, (ICDECOMPRESSEX*)lParam1,
-//            (DWORD)lParam2);
-//
-//    case ICM_DECOMPRESS_END:
-//        return ICCVID_DecompressEnd(info);
-//
-//    case ICM_COMPRESS_QUERY:
-//        FIXME("compression not implemented\n");
-//        return ICERR_BADFORMAT;
-//
-//    case ICM_CONFIGURE:
-//        return ICERR_UNSUPPORTED;
-//
-//    default:
-//        FIXME("Unknown message: %04x %ld %ld\n", msg, lParam1, lParam2);
-//    }
-//    return ICERR_UNSUPPORTED;
-//}
-
-//BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID lpReserved)
-//{
-//    TRACE("(%p,%d,%p)\n", hModule, dwReason, lpReserved);
-//
-//    switch (dwReason)
-//    {
-//    case DLL_PROCESS_ATTACH:
-//        DisableThreadLibraryCalls(hModule);
-//        ICCVID_hModule = hModule;
-//        break;
-//    }
-//    return TRUE;
-//}

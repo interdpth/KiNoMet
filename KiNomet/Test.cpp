@@ -1,0 +1,16 @@
+static_assert(sizeof(int) == 4, "int size is wrong");
+static_assert(sizeof(char) == 1, "char size is wrong");
+static_assert(sizeof(short) == 2, "short size is wrong");
+static_assert(sizeof(long) == 4, "long size is wrong");
+static_assert(sizeof(unsigned int) == 4, "unsigned int in size is wrong");
+static_assert(sizeof(unsigned char) == 1, "unsigned char size is wrong");
+static_assert(sizeof(unsigned short) == 2, "unsigned short size is wrong");
+static_assert(sizeof(unsigned long) == 4, "unsigned long size is wrong");
+static_assert(sizeof(unsigned char*) == 4, "unsigned char* size is wrong");
+static_assert(sizeof(unsigned short*) == 4, "unsigned short* size is wrong");
+//static_assert(sizeof(cvid_codebook)==18, "cvid_codebook size is wrong");
+//static_assert(sizeof(cinepak_info)==260, "cinepak_info size is wrong");
+//static_assert(sizeof(BITMAPINFOHEADER) == 40, "BITMAPINFOHEADER size is wrong");
+//static_assert(sizeof(MainAVIHeader) == 56, "MainAVIHeader size is wrong");
+//static_assert(sizeof(_avioldindex_entry) == 16, "_avioldindex_entry size is wrong");
+//static_assert(sizeof(AVIStreamHeader) == 56, "AVIStreamHeader size is wrong");

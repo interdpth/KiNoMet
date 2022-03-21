@@ -31,7 +31,7 @@ extern int (*getSize)();
 class AudioHandler
 {
 private:
-	vector<AudioPacket> packets;
+	vector<AudioPacket*> packets;
 		//Source info.
 	unsigned char* srcBuffer; 
 
@@ -44,6 +44,8 @@ private:
 	int type;
 	int fps;
 	int sample_rate;
+	bool swapped;
+	int swapsize;
 	/// <summary>
 	/// Main INit
 	/// </summary>
@@ -62,6 +64,9 @@ private:
 	void Init(AudioHeader* hdr, int len);
 	//we need a callback to get data 
 	int (*GetSize)();
+
+
+	void Swap();
 
 public:
 	/// <summary>
