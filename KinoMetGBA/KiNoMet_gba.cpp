@@ -82,7 +82,6 @@ IWRAM void onInterrupt() {
 	if ((*REG_IF & INTERRUPT_T3) == INTERRUPT_T3)
 	{
 		frameRequest();
-		totalFrames++;
 	}
 	vblankcounter++;
 	//if ((*REG_IF & INTERRUPT_T0) == INTERRUPT_T0) {
@@ -98,9 +97,10 @@ int GetSiz()
 {
 	return (*dma1_control) & 0xFFFF;
 }
+int TickCounter = 0;
 IWRAM unsigned int GetTicks()
 {
-	return totalFrames;
+	return TickCounter++;
 }
 
 
