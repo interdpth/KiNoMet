@@ -83,6 +83,9 @@
     <ClInclude Include="KiNoMet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="tonc_asminc.h">
+      <Filter>Includes</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Documentation.txt" />
@@ -90,6 +93,9 @@
   <ItemGroup>
     <None Include="cinepak_asm.s">
       <Filter>Cinepak</Filter>
+    </None>
+    <None Include="print.asm">
+      <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
 </Project>

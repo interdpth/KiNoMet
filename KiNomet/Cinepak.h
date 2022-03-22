@@ -17,9 +17,15 @@ using namespace std;
 #define cinepak_strip_Length 260
 #define MAX_STRIPS 4+1
 
+#ifdef GBA
+#define ERR printDebug
+#define WARN printDebug
+#define TRACE printDebug
+#else 
 #define ERR printf
 #define WARN printf
 #define TRACE printf
+#endif 
 /* ------------------------------------------------------------------------ */
 #ifdef GBA
 typedef struct __attribute__((__packed__))

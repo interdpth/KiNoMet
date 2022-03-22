@@ -113,65 +113,67 @@ void* memcpy(void* dest, const void* src, int olen)
 
 }
 
+void printf(char* string)
+{
+
+}
 
 
-//
-//int SwiDiv(int num, int denom)
-//{
-//	int ret = 0;
-//	
-//
-//	__asm("swi 6");
-//	
-//
-//
-//	
-//	return ret;
-//
-//}
-//
-//
-//
-//int Div(int num, int denom)
-//{
-//#ifdef GBA
-//	return SwiDiv(num, denom);
-//#else
-//	return num / denom;
-//#endif
-//}
-//
-//
-//int __aeabi_div(int num, int denom)
-//{
-//	return SwiDiv(num, denom);
-//}
-//
-//
-//int __aeabi_ldiv0(int num, int denom)
-//{
-//	return SwiDiv(num, denom);
-//}
-//
-//
-//int _aeabi_idiv0(int num, int denom)
-//{
-//	return SwiDiv(num, denom);
-//}
-//int __aeabi_idiv0(int num, int denom)
-//{
-//	return SwiDiv(num, denom);
-//}
 
 
-//
-//int __aeabi_idivmod(int num, int denom)
-//{
-//	return SwiDivMod(num, denom);
-//}
-//
-//int __divsi3(int num, int denom)
-//{
-//	return SwiDiv(num, denom);
-//}
+
+int SwiDiv(int num, int denom)
+{
+	int ret = 0;
+	
+
+	__asm("swi 6");
+	
+
+
+	
+	return ret;
+
+}
+
+
+
+int Div(int num, int denom)
+{
+#ifdef GBA
+	return SwiDiv(num, denom);
+#else
+	return num / denom;
+#endif
+}
+
+
+int __aeabi_div(int num, int denom)
+{
+	return SwiDiv(num, denom);
+}
+
+
+int __aeabi_ldiv0(int num, int denom)
+{
+	return SwiDiv(num, denom);
+}
+
+
+int _aeabi_idiv0(int num, int denom)
+{
+	return SwiDiv(num, denom);
+}
+int __aeabi_idiv0(int num, int denom)
+{
+	return SwiDiv(num, denom);
+}
+
+
+
+
+int __divsi3(int num, int denom)
+{
+	return SwiDiv(num, denom);
+}
 #endif

@@ -164,6 +164,7 @@
     <ClInclude Include="Gba.h" />
     <ClInclude Include="KiNoMet.h" />
     <ClInclude Include="SmallBuffer.h" />
+    <ClInclude Include="tonc_asminc.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Documentation.txt" />

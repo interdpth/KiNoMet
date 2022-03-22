@@ -47,6 +47,9 @@ AudioHandler::AudioHandler(int t, int fp, int sam, int (*func)())
 }
 
 //Ring buffer is 0x4000 bytes.
+#ifdef GBA 
+IWRAM
+#endif
 AudioHandler::AudioHandler(unsigned char* src, int len, int (*func)())
 {
 	AudioHeader* hdr = (AudioHeader*)src;
@@ -69,7 +72,10 @@ AudioHandler::AudioHandler(unsigned char* src, int len, int (*func)())
 
 //Next data is coopied to start buf
 
-//Swap is called 
+//Swap is called
+#ifdef GBA 
+IWRAM
+#endif
 void AudioHandler::Swap()
 {
 
@@ -77,6 +83,9 @@ void AudioHandler::Swap()
 }
 
 //Next time this is called, Swap is called again
+#ifdef GBA 
+IWRAM
+#endif
 int AudioHandler::Processs()
 {
 	AudioPacket* curPack = GetCurrentPacket();
@@ -167,7 +176,9 @@ void AudioHandler::QueueAudio(AudioPacket* packet)
 {
 	packets.push_back(packet);
 }
-
+#ifdef GBA 
+IWRAM
+#endif
 AudioPacket* AudioHandler::GetCurrentPacket()
 {
 	if (packets.size() == 0) return nullptr;
@@ -204,7 +215,9 @@ int AudioHandler::GetType()
 	return type;
 }
 
-
+#ifdef GBA 
+IWRAM
+#endif
 unsigned char* AudioHandler::GetBuffer()
 {
 	if (swapped)

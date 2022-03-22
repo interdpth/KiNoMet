@@ -29,8 +29,6 @@ struct KinometPacket
 #define 	AVIIF_NO_TIME   0x00000100
 //https://cdn.hackaday.io/files/274271173436768/avi.pdf
 
-
-#pragma pack(pop)
 void LoadAVI(unsigned char* file,
 		int size,
 		unsigned char* audiofile,

@@ -44,7 +44,9 @@ void SetAudioPacket(KinometPacket* pack)
 
 #endif
 bool canRender = false;
-
+#ifdef GBA 
+IWRAM
+#endif
 void LoadAVI(unsigned char* file,
 	int size,
 	unsigned char* audiofile,
@@ -157,27 +159,35 @@ void LoadAVI(unsigned char* file,
 
 
 		pack.frameid = i;
-		readSize = audio->Processs();
-		if (readSize)
-		{
+		//readSize = audio->Processs();
+		//if (readSize)
+		//{
 
-			pack.frame = audio->GetBuffer();
-			pack.screen = (rectangle*)audio->GetSampleFreq();
-			pack.type = audio->GetType();
-			pack.rect = (rectangle*)readSize;
+		//	pack.frame = audio->GetBuffer();
+		//	pack.screen = (rectangle*)audio->GetSampleFreq();
+		//	pack.type = audio->GetType();
+		//	pack.rect = (rectangle*)readSize;
 
-			audiocallback(&pack);
-		}
+		//	audiocallback(&pack);
+		//}
 
 
 
 
 		current = GetTicks();
-
+#ifndef GBA
 		float dT = (current - last) / 1000.0f;
 		float floored = (1.0f / fps);
 		float framesToUpdate = floor(dT / floored);
 		if (framesToUpdate > 0) {
+#else
+		//no floats here plz 
+		int dt = (current - last) % fps;
+		if (!dt)
+		{
+
+#endif 
+		
 			i++;
 
 

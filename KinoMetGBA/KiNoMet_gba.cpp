@@ -82,6 +82,7 @@ IWRAM void onInterrupt() {
 	if ((*REG_IF & INTERRUPT_T3) == INTERRUPT_T3)
 	{
 		frameRequest();
+		totalFrames++;
 	}
 	vblankcounter++;
 	//if ((*REG_IF & INTERRUPT_T0) == INTERRUPT_T0) {
@@ -93,6 +94,15 @@ IWRAM void onInterrupt() {
 	*interrupt_enable = 1;
 
 }
+int GetSiz()
+{
+	return (*dma1_control) & 0xFFFF;
+}
+IWRAM unsigned int GetTicks()
+{
+	return totalFrames;
+}
+
 
 //5 is bgmode5
 //3 is bgmode3
@@ -101,7 +111,7 @@ void Setup(KinometPacket* packet)
 
 	int screenType = (packet->screen->h == 160 && packet->screen->w == 240 ? 3 : 5);
 	fps = ((int)(packet->rect)) + 1;//we don't use rect early on, fps gets packed into rect.
-	audio = new AudioHandler(0, fps, 10512);
+	
 
 	(*(unsigned short*)0x4000000) = (0x400 | screenType);
 
@@ -125,63 +135,54 @@ void Setup(KinometPacket* packet)
 	//timerEnable(0);
 	//timerSet(0x4000, 0, TIMER_FREQ_1024 | TIMER_ENABLE);
 	/* clear the sound control initially */
-	*sound_control = 0;
+
 }
 
 
 /* play a sound with a number of samples, and sample rate on one channel 'A' or 'B' */
-void play_sound(const signed char* sound, int total_samples, int sample_rate) {
+IWRAM void StartPlaying(const signed char* sound, int len) {
 	/* start by disabling the timer and dma controller (to reset a previous sound) */
 	*timer0_control = 0;
 
 	*dma1_control = 0;
 
-	/* output to both sides and reset the FIFO */
 
-	*sound_control |= SOUND_A_RIGHT_CHANNEL | SOUND_A_LEFT_CHANNEL | SOUND_A_FIFO_RESET;
-
-
-
-	/* enable all sound */
-	*master_sound = SOUND_MASTER_ENABLE;
 
 	/* set the dma channel to transfer from the sound array to the sound buffer */
 
 	*dma1_source = (unsigned int)sound;
 	*dma1_destination = (unsigned int)fifo_buffer_a;
-	*dma1_control = DMA_DEST_FIXED | DMA_REPEAT | DMA_16 | DMA_SYNC_TO_TIMER | DMA_ENABLE;
+	*dma1_control = DMA_DEST_FIXED | DMA_ENABLE | (len&0xFFFF) ;
 
 
-	/* set the timer so that it increments once each time a sample is due
-	 * we divide the clock (ticks/second) by the sample rate (samples/second)
-	 * to get the number of ticks/samples */
-	unsigned short ticks_per_sample = CLOCK / sample_rate;
-
-	/* the timers all count up to 65536 and overflow at that point, so we count up to that
-	 * now the timer will trigger each time we need a sample, and cause DMA to give it one! */
-	*timer0_data = 65536 - ticks_per_sample;
-
-	/* determine length of playback in vblanks
-	 * this is the total number of samples, times the number of clock ticks per sample,
-	 * divided by the number of machine cycles per vblank (a constant) */
-
-	channel_a_vblanks_remaining = (total_samples * ticks_per_sample) / CYCLES_PER_BLANK;
-	channel_a_total_vblanks = channel_a_vblanks_remaining;
-
-
-	/* enable the timer */
-	*timer0_control = TIMER_ENABLE | TIMER_FREQ_1;
 }
 //screen rect describes length
 
 
 int lastFrame;
-void handleAudio(KinometPacket* pack)
+IWRAM void handleAudio(KinometPacket* pack)
 {
+	//if (pack->frameid == -1)
+	//{
+	//	auto funcPoint = ((int (*)() )&GetSiz);
+	//	audio = new AudioHandler(0, fps, 10512, funcPoint);
+	//	*sound_control = 0;
+	//	/* output to both sides and reset the FIFO */
 
+	//	*sound_control |= SOUND_A_RIGHT_CHANNEL | SOUND_A_LEFT_CHANNEL | SOUND_A_FIFO_RESET;
+
+
+
+	//	/* enable all sound */
+	//	*master_sound = SOUND_MASTER_ENABLE;
+	//	return;
+	//}
+
+
+	//StartPlaying((const signed char*)pack->frame, (int)pack->rect );
 }
 
-void handleFrame(KinometPacket* packet)
+IWRAM void handleFrame(KinometPacket* packet)
 {
 	//we are gba so frame is always 240*160*2;
 	if (packet->frame == nullptr)
@@ -192,7 +193,6 @@ void handleFrame(KinometPacket* packet)
 		frameHandled = 0;
 		lastDrawn = 0;
 
-		play_sound((const signed char*)audio_outputmain, audio_outputmain_size, 10512);
 		return;
 	}
 
@@ -211,7 +211,6 @@ void handleFrame(KinometPacket* packet)
 
 	frameReady = 0;
 	numFrames = 0;
-	totalFrames++;
 	int newfps = totalFrames / vblankcounter; //We should be getting 30
 }
 
@@ -219,7 +218,7 @@ void handleFrame(KinometPacket* packet)
 int main()
 {
 	lastFrame = 0;
-	LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &handleFrame, &handleAudio);
+	LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, (void (*)(KinometPacket*) )&handleFrame, (void (*)(KinometPacket*)) &handleAudio,  (int (*)()) &GetSiz, (unsigned int (*)())&GetTicks);
 
 	return 0;
 }

@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #else 
-void printf(char* message, ...);
-
+void printDebug(char* message, ...);
+int nocash_puts(const char* str);
 #endif
 extern "C" {
 	extern void timerSet(unsigned long num, unsigned short reload, unsigned short flags);
@@ -186,4 +186,35 @@ void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
 #ifdef GBA
 void* memcpy(void* dest, const void* src, int olen);
 #endif
+
+/*!	\defgroup grpNocash no$gba debugging
+	\ingroup grpCore
+	The non-freeware versions of no$gba have window to which you
+	can output messages for debugging purposes. These functions allow
+	you to work with that.
+*/
+
+
+/*! \addtogroup grpNocash	*/
+/*!	\{	*/
+
+// --------------------------------------------------------------------
+// GLOBALS 
+// --------------------------------------------------------------------
+
+extern char nocash_buffer[80];
+
+// --------------------------------------------------------------------
+// PROTOTYPES 
+// --------------------------------------------------------------------
+
+//!	Output a string to no$gba debugger.
+/*!
+	\param str	Text to print.
+	\return		Number of characters printed.
+*/
+int nocash_puts(const char* str);
+
+/*!	\}	*/
+
 #endif
