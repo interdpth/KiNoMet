@@ -151,6 +151,8 @@
     <ClCompile Include="CodeBookManager.cpp" />
     <ClCompile Include="Compression.cpp" />
     <ClCompile Include="Gba.cpp" />
+    <ClCompile Include="GDL_Audio.cpp" />
+    <ClCompile Include="KinoAudio.cpp" />
     <ClCompile Include="KiNomet.cpp" />
     <ClCompile Include="SmallBuffer.cpp" />
     <ClCompile Include="Test.cpp" />
@@ -162,6 +164,8 @@
     <ClInclude Include="CodeBookManager.h" />
     <ClInclude Include="Compression.h" />
     <ClInclude Include="Gba.h" />
+    <ClInclude Include="GDL_Audio.h" />
+    <ClInclude Include="KinoAudio.h" />
     <ClInclude Include="KiNoMet.h" />
     <ClInclude Include="SmallBuffer.h" />
     <ClInclude Include="tonc_asminc.h" />

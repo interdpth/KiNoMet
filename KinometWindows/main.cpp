@@ -164,8 +164,12 @@ extern "C" {
 		frameHandled = 0;
 		start = SDL_GetPerformanceCounter();
 
-		//YOU ARE GETTING AUDIO TO WORK NOW. 
-		LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &handleFrame, &handleAudio, &GetQueuedBytes, &GetTicks);
+		aviLoader l;
+		l.audiocallback = &handleAudio;
+		l.videoCallBack = &handleFrame;
+		l.GetSize = &GetQueuedBytes;
+		l.GetTicks = &GetTicks;
+		LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);
 		int overallSize = codeBookSize();
 		printf("%d", maxNum);
 		printf("%x", overallSize);

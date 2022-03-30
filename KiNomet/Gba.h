@@ -78,7 +78,7 @@ extern volatile unsigned short* timer0_control;
 
 /* this causes the DMA destination to be the same each time rather than increment */
 #define DMA_DEST_FIXED 0x400000
-
+#define DMA_SRC_FIXED 0x1000000
 /* this causes the DMA to repeat the transfer automatically on some interval */
 #define DMA_REPEAT 0x2000000
 #define VIDEOCAPTURE 0x20000000

@@ -15,6 +15,7 @@ void stopPlaying()
 
 void StartPlaying(unsigned char* buff, int len)
 {
+	
 	int err = SDL_AudioStreamPut(stream, buff, len); //SDL_QueueAudio(deviceid, buff, len);
 	auto b = SDL_GetError();
 	if (err > 0)

@@ -57,6 +57,12 @@
     <ClCompile Include="AviApi.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="GDL_Audio.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="KinoAudio.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SmallBuffer.h">
@@ -86,6 +92,12 @@
     <ClInclude Include="tonc_asminc.h">
       <Filter>Includes</Filter>
     </ClInclude>
+    <ClInclude Include="GDL_Audio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KinoAudio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Documentation.txt" />
@@ -93,9 +105,6 @@
   <ItemGroup>
     <None Include="cinepak_asm.s">
       <Filter>Cinepak</Filter>
-    </None>
-    <None Include="print.asm">
-      <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
 </Project>

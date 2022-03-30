@@ -28,15 +28,18 @@ struct KinometPacket
 #define 	AVIIF_KEYFRAME   0x00000010
 #define 	AVIIF_NO_TIME   0x00000100
 //https://cdn.hackaday.io/files/274271173436768/avi.pdf
-
+struct aviLoader
+{
+	void (*videoCallBack)(KinometPacket*);
+		void (*audiocallback)(KinometPacket*);
+		int(*GetSize)();
+		unsigned int(*GetTicks)();
+};
 void LoadAVI(unsigned char* file,
 		int size,
 		unsigned char* audiofile,
 		int audiofsize,
-		void (*callback)(KinometPacket*),
-		void (*audiocallback)(KinometPacket*),
-		int(*GetSize)(),
-	unsigned int(*GetTicks)());
+	aviLoader* options);
 	
 	extern unsigned char* Kinomet_FrameBuffer;
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);

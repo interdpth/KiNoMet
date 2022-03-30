@@ -13,17 +13,17 @@
 
 void AudioHandler::Init(int t, int fp, int sam)
 {
-#ifndef GBA
+	//#ifndef GBA
 	startBuf = (unsigned char*)malloc(RING_SIZE);
 	tmpBuf = (unsigned char*)malloc(TMP_SIZE);
-#else
-	startBuf = (unsigned char*)(0x6000000 + 240 * 160 * 2);
-	
-	tmpBuf = startBuf + RING_SIZE;
-#endif
+	//#else
+	//	startBuf = (unsigned char*)(0x6000000 + 240 * 160 * 2);
+	//
+	//	tmpBuf = startBuf + RING_SIZE;
+	//#endif
 	limitBuf = startBuf + RING_SIZE;
-	
-	
+
+
 	endBuf = startBuf;
 	currentBuf = startBuf;
 	type = t;
@@ -35,8 +35,8 @@ void AudioHandler::Init(int t, int fp, int sam)
 
 
 void AudioHandler::Init(AudioHeader* p, int len)
-{	
-	Init(p->type, p->fps, p->freq);	  
+{
+	Init(p->type, p->fps, p->freq);
 }
 
 
@@ -82,16 +82,67 @@ void AudioHandler::Swap()
 	swapped = !swapped;
 }
 
-//Next time this is called, Swap is called again
-#ifdef GBA 
-IWRAM
-#endif
-int AudioHandler::Processs()
+int AudioHandler::Copy(AudioPacket* curPack, unsigned char* dstBuf,  int len)
 {
+
+	int bytesLeft = len;
+	if (curPack->tracked + bytesLeft > curPack->len)
+	{
+		bytesLeft = curPack->len - (curPack->tracked);
+	}
+
+#ifdef  GBA
+	memcpy16_dma((unsigned short*)dstBuf, (unsigned short*)&curPack->start[curPack->tracked], bytesLeft >> 1);
+#else
+	memcpy(dstBuf, &curPack->start[curPack->tracked], bytesLeft);
+#endif
+	curPack->tracked += bytesLeft;
+	return bytesLeft;
+}
+
+
+int AudioHandler::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
+{
+	int retVal = 0;
+	bool plsSwap = false;
+
+	//PC can ring buffer, gba will play full sample
+
+	if (bytesLeft <= TMP_SIZE)
+	{	//Handle transfer buffer write.
+
+		//Buffer check
+
+		bytesLeft = Copy(curPack, tmpBuf, TMP_SIZE);
+
+		
+		retVal = bytesLeft;
+		plsSwap = true;
+	}
+
+	//Write to main buffer for swap.
+
+	int newLen = Copy(curPack, startBuf, RING_SIZE);
+	if (plsSwap)
+	{
+		Swap();
+		swapsize = bytesLeft;
+	}
+	else
+	{
+		swapsize = 0;
+		retVal = newLen;
+	}
+
+	return retVal;
+}
+
+void AudioHandler::ProcessPackets()
+{
+
 	AudioPacket* curPack = GetCurrentPacket();
-	if (curPack == nullptr) return 0;
-	if (curPack->tracked >= curPack->len)
-	{	
+	if (curPack!=nullptr && curPack->tracked >= curPack->len)
+	{
 		free(&packets[0]);
 		for (int i = 1; i < packets.size(); i++)
 		{
@@ -100,9 +151,22 @@ int AudioHandler::Processs()
 
 		if (packets.size())packets.pop_back();//bringing all entries forward.
 		curPack = GetCurrentPacket();
-		if (curPack == nullptr) return 0;
+		if (curPack == nullptr) return;
 		curPack->tracked = 0;
 	}
+
+}
+
+//Next time this is called, Swap is called again
+
+#ifdef GBA 
+IWRAM
+#endif
+int AudioHandler::Processs()
+{
+	ProcessPackets();
+	AudioPacket* curPack = GetCurrentPacket();
+	if (curPack == nullptr) return 0;
 
 
 	if (swapped)
@@ -111,68 +175,28 @@ int AudioHandler::Processs()
 		return swapsize;
 	}
 
-
+	int tmp = 0xDEADBEEF;
 	int size = GetSize();
+	tmp = 0xDEADDEED;
 	unsigned int bytesLeft = RING_SIZE - size;//Gotta love pointers.
-
-	int retVal = RING_SIZE;
+#ifdef GBA
+	if (bytesLeft > 0x20)
+	{
+		bytesLeft = 0x20;
+	}
+#endif
+	bool plsSwap = false;
+//#ifdef GBA
+//	if (bytesLeft == 0) {
+//#else 
 	if (bytesLeft != 0) {
-		bool plsSwap = false;
-		if (bytesLeft <= TMP_SIZE)
-		{
-
-			bytesLeft = TMP_SIZE;
-			//Handle transfer buffer write.
-
-			//Buffer check
-
-			int bytesCopy = bytesLeft;
-			if (curPack->tracked + bytesLeft > curPack->len)
-			{
-				bytesLeft = curPack->len - (curPack->tracked);
-			}
-
-
-			memcpy(tmpBuf, &curPack->start[curPack->tracked], bytesLeft);
-
-			curPack->tracked += bytesLeft;
-			retVal = bytesLeft;
-			plsSwap = true;
-		}
-		//else
-		//{
-			//Write to main buffer for swap.
-		bytesLeft = RING_SIZE;
-		if (curPack->tracked + bytesLeft > curPack->len)
-		{
-			bytesLeft = curPack->len - (curPack->tracked);
-		}
-
-
-		memcpy(startBuf, &curPack->start[curPack->tracked], bytesLeft);
-
-		curPack->tracked += bytesLeft;
-		if (plsSwap)
-		{
-			Swap();
-			swapsize = bytesLeft;
-
-		}
-		else
-		{
-			swapsize = 0;
-			retVal = bytesLeft;
-		}
-			
-	//	}
-
-		
-		return retVal;
+//#endif
+		return Fillbuffers(bytesLeft, curPack);
 	}
 	return 0;
-}
+	}
 
-void AudioHandler::QueueAudio(AudioPacket* packet)
+void AudioHandler::QueueAudio(AudioPacket * packet)
 {
 	packets.push_back(packet);
 }
@@ -184,7 +208,7 @@ AudioPacket* AudioHandler::GetCurrentPacket()
 	if (packets.size() == 0) return nullptr;
 	return packets[0];
 
-}
+	}
 bool AudioHandler::SeekAudio(int frame)
 {
 	return false;

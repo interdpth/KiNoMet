@@ -67,7 +67,7 @@ private:
 
 
 	void Swap();
-
+	int Copy(AudioPacket* curPack, unsigned char* dstBuf, int size);
 public:
 	/// <summary>
 	/// Basic init.
@@ -85,7 +85,8 @@ public:
 	/// <param name="src"></param>
 	/// <param name="len"></param>
 	AudioHandler(unsigned char* src, int len, int (*func)());
-
+	int Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack);
+	void ProcessPackets();
 	/// <summary>
 	/// Returns current packet beging processed.
 	/// </summary>

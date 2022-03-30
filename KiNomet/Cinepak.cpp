@@ -46,6 +46,7 @@
 
 #include "Gba.h"
 #include "Cinepak.h"
+#include "SmallBuffer.h"
 #define bpp 2
 unsigned char* basePointer;
 int drawing = 0;
@@ -71,10 +72,7 @@ static_assert(sizeof(uiclip) == 1024, "Size is not 1024");
 int screenwidth, screenheight, frm_stride;
 
 #define REG_VCOUNT *(volatile unsigned short*)0x04000006
-void vid_vsync()
-{
-	while (REG_VCOUNT < 128);
-}
+
 
 /*
 typedef struct {
