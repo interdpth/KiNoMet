@@ -13,14 +13,8 @@
 
 void AudioHandler::Init(int t, int fp, int sam)
 {
-	//#ifndef GBA
 	startBuf = (unsigned char*)malloc(RING_SIZE);
 	tmpBuf = (unsigned char*)malloc(TMP_SIZE);
-	//#else
-	//	startBuf = (unsigned char*)(0x6000000 + 240 * 160 * 2);
-	//
-	//	tmpBuf = startBuf + RING_SIZE;
-	//#endif
 	limitBuf = startBuf + RING_SIZE;
 
 
@@ -107,7 +101,7 @@ int AudioHandler::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
 	bool plsSwap = false;
 
 	//PC can ring buffer, gba will play full sample
-
+//#ifndef GBA
 	if (bytesLeft <= TMP_SIZE)
 	{	//Handle transfer buffer write.
 
@@ -119,10 +113,11 @@ int AudioHandler::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
 		retVal = bytesLeft;
 		plsSwap = true;
 	}
-
+//#endif
 	//Write to main buffer for swap.
 
 	int newLen = Copy(curPack, startBuf, RING_SIZE);
+//#ifndef GBA
 	if (plsSwap)
 	{
 		Swap();
@@ -133,13 +128,15 @@ int AudioHandler::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
 		swapsize = 0;
 		retVal = newLen;
 	}
-
+//#endif
 	return retVal;
 }
 
+/// <summary>
+/// Check if we need to be on a new packet.
+/// </summary>
 void AudioHandler::ProcessPackets()
 {
-
 	AudioPacket* curPack = GetCurrentPacket();
 	if (curPack!=nullptr && curPack->tracked >= curPack->len)
 	{
@@ -168,29 +165,18 @@ int AudioHandler::Processs()
 	AudioPacket* curPack = GetCurrentPacket();
 	if (curPack == nullptr) return 0;
 
-
 	if (swapped)
 	{
 		Swap();
 		return swapsize;
 	}
 
-	int tmp = 0xDEADBEEF;
 	int size = GetSize();
-	tmp = 0xDEADDEED;
 	unsigned int bytesLeft = RING_SIZE - size;//Gotta love pointers.
-#ifdef GBA
-	if (bytesLeft > 0x20)
-	{
-		bytesLeft = 0x20;
-	}
-#endif
+
 	bool plsSwap = false;
-//#ifdef GBA
-//	if (bytesLeft == 0) {
-//#else 
-	if (bytesLeft != 0) {
-//#endif
+	if (bytesLeft != 0) 
+	{
 		return Fillbuffers(bytesLeft, curPack);
 	}
 	return 0;

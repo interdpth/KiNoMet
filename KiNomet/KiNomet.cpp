@@ -25,11 +25,11 @@ void CreateFrameBuffer(int w, int h)
 	//Let's do setup
 	int sizescr = w * h * 2;//Rgb //hdrz->dwWidth * hdrz->dwHeight * 3;
 
-//#ifdef GBA
-//	Kinomet_FrameBuffer = (unsigned char*)0x6000000;
-//#else
+#ifdef GBA
+	Kinomet_FrameBuffer = (unsigned char*)0x6000000;
+#else
 	Kinomet_FrameBuffer = (unsigned char*)malloc(sizescr);
-	//	#endif
+#endif
 	for (int i = 0; i < sizescr / 4; i++)//future iterations should size check but black out the screen
 	{
 		((unsigned long*)Kinomet_FrameBuffer)[i] = 0;
@@ -51,15 +51,11 @@ void LoadAVI(unsigned char* file,
 	int size,
 	unsigned char* audiofile,
 	int audiofsize,
-	void (*callback)(KinometPacket*),
-	void (*audiocallback)(KinometPacket*),
-	int(*GetSize)(),
-	unsigned int(*GetTicks)())
+	aviLoader* options)
 {
 	rectangle screen;
-	AudioHandler* audio;
-	//audioSystem = new AllSight(audiofile, audiofsize);
-	//audioSystem->Parse();
+	AudioHandler* audio=nullptr;
+
 	SmallBuffer* buf = new SmallBuffer(file, size);
 	//memset(&hdr, 0, sizeof(MainAVIHeader));
 	bool bValid = false;
@@ -86,22 +82,27 @@ void LoadAVI(unsigned char* file,
 	pack.rect = (rectangle*)(sthread->dwRate);//packing hack
 	pack.screen = &screen;
 
-	callback(&pack);
-
+	options->videoCallBack(&pack);
+	int readSize = 0;
 	//init on our side
-	audio = new AudioHandler(audiofile, audiofsize, GetSize);
+	if (audiofile != nullptr)
+	{
+		audio = new AudioHandler(audiofile, audiofsize, options->GetSize);
+		int readSize = audio->Processs();
+		pack.isAudio = true;
+		pack.frame = audio->GetBuffer();
+		pack.screen = (rectangle*)audio->GetSampleFreq();
+		pack.type = audio->GetType();
+
+
+		pack.rect = (rectangle*)readSize;
+
+		options->audiocallback(&pack);
+	}
+	
 	//Start buffering
 	//What are we doing???
-	int readSize = audio->Processs();
-	pack.isAudio = true;
-	pack.frame = audio->GetBuffer();
-	pack.screen = (rectangle*)audio->GetSampleFreq();
-	pack.type = audio->GetType();
 
-
-	pack.rect = (rectangle*)readSize;
-
-	audiocallback(&pack);
 
 	pack.isAudio = false;//only sending it once rn.
 	//Send a faux packet over to init our consumer. 
@@ -122,23 +123,17 @@ void LoadAVI(unsigned char* file,
 	_avioldindex_entry* idxList = (_avioldindex_entry*)buf->GetCurrentBuffer();
 	int fps = sthread->dwRate;
 	canRender = true;
-#ifndef GBA
-	UINT64 last = GetTicks();
-	UINT64 current = GetTicks();
-#else 
-	
-	unsigned long  last = GetTicks();
-	unsigned long  current = GetTicks();
-#endif
-	int i = 0;
+
+	unsigned long  last = options->GetTicks();
+	unsigned long  current = options->GetTicks();
+
+	int curFrame = 0;
 	int lastDrawn = -1;
 	//Process AUDIO before processing frames.
 
-
-
-	while (i < numFrames + 30)
+	while (curFrame < numFrames + 30)
 	{
-		_avioldindex_entry* cur = &idxList[i];
+		_avioldindex_entry* cur = &idxList[curFrame];
 
 		//Make sure we are a frame.
 		if (cur->FourCC != TAG_00DC) continue;
@@ -158,23 +153,25 @@ void LoadAVI(unsigned char* file,
 		//handle audio
 
 
-		pack.frameid = i;
-		//readSize = audio->Processs();
-		//if (readSize)
-		//{
+		pack.frameid = curFrame;
+		if (audio != nullptr)
+		{
+			readSize = audio->Processs();
+			if (readSize)
+			{
 
-		//	pack.frame = audio->GetBuffer();
-		//	pack.screen = (rectangle*)audio->GetSampleFreq();
-		//	pack.type = audio->GetType();
-		//	pack.rect = (rectangle*)readSize;
+				pack.frame = audio->GetBuffer();
+				pack.screen = (rectangle*)audio->GetSampleFreq();
+				pack.type = audio->GetType();
+				pack.rect = (rectangle*)readSize;
 
-		//	audiocallback(&pack);
-		//}
+				options->audiocallback(&pack);
+			}
+		}
 
 
 
-
-		current = GetTicks();
+		current = options->GetTicks();
 #ifndef GBA
 		float dT = (current - last) / 1000.0f;
 		float floored = (1.0f / fps);
@@ -188,7 +185,7 @@ void LoadAVI(unsigned char* file,
 
 #endif 
 		
-			i++;
+			curFrame++;
 
 
 			decode_cinepak(ci, frame, cur->dwSize, Kinomet_FrameBuffer);
@@ -198,7 +195,7 @@ void LoadAVI(unsigned char* file,
 			pack.frame = Kinomet_FrameBuffer;
 			pack.screen = &screen;
 			pack.rect = &screen;
-			callback(&pack);
+			options->videoCallBack(&pack);
 
 			last = current;
 		}

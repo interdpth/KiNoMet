@@ -65,15 +65,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="SmallBuffer.h">
-      <Filter>Includes</Filter>
-    </ClInclude>
-    <ClInclude Include="Gba.h">
-      <Filter>Includes</Filter>
-    </ClInclude>
-    <ClInclude Include="CodeBookManager.h">
-      <Filter>Includes</Filter>
-    </ClInclude>
     <ClInclude Include="Compression.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -89,13 +80,22 @@
     <ClInclude Include="KiNoMet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="tonc_asminc.h">
-      <Filter>Includes</Filter>
-    </ClInclude>
     <ClInclude Include="GDL_Audio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="KinoAudio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CodeBookManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Gba.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SmallBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tonc_asminc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

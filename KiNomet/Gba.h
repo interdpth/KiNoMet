@@ -216,5 +216,9 @@ extern char nocash_buffer[80];
 int nocash_puts(const char* str);
 
 /*!	\}	*/
-
+#define REG_IFBIOS (*(unsigned short*)(0x3007FF8))
+#define BG2X *(short long*)0x4000020// - BG2X_L - BG2 Reference Point X-Coordinate, lower 16 bit (W)
+#define BG2Y *(signed long*)0x400002c// - BG2X_L - BG2 Reference Point X-Coordinate, lower 16 bit (W)
+extern volatile unsigned short* timer0_data;
+extern volatile unsigned short* timer0_control;
 #endif

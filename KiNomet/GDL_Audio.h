@@ -43,7 +43,9 @@ struct GDL_Stream
 //insert audio 
 int GDL_AudioStreamPut(GDL_Stream* stream, unsigned char* buff, int len); //SDL_QueueAudio(deviceid, buff, len);
 int GDL_GetError();
+//How much has been snet. 
 int SDL_AudioStreamAvailable(GDL_Stream* stream);
 //tell buffer to add audio
-
+//Stops current playing
+//Plays what's now in the buffer.
 int SDL_AudioStreamGet(GDL_Stream* stream, unsigned char* buffer, int len);;

@@ -1,4 +1,13 @@
 /*
+
+Kinomet Cinepak Decoder 
+Original implementation notice below
+If used in commericial projects please add this file in plaintext into your compiled code.
+
+*/
+
+
+/*
  * Radius Cinepak Video Decoder
  *
  * Copyright 2001 Dr. Tim Ferguson (see below)
@@ -156,49 +165,11 @@ void  read_codebook(cvid_codebook* c, int mode)
 
 	}
 }
-
 #ifndef GBA
 unsigned short inline MAKECOLOUR16(unsigned char r, unsigned  char g, unsigned char b)
 {
-
 	return ((((r >> 3) & 31) | (((g >> 3) & 31) << 5) | (((b >> 3) & 31) << 10)));
-
-
 }
-#else
-//unsigned short MAKECOLOUR16(unsigned char r, unsigned  char g, unsigned char b)
-//{
-//	//give us registers to play with 
-//	__asm("PUSH   {R3-R4}");
-//	//r0 = r
-//	//r1 = g
-//	//r2 = b 
-//
-//
-//	__asm("mov r3, #3");
-//	__asm("mov r4, #31");
-//
-//	//shift the colors by 3
-//	__asm("lsr r0, r3");
-//	__asm("lsr r1, r3");
-//	__asm("lsr r2, r3");
-//
-//	//AND the colors by 31
-//	__asm("and r0, r4");
-//	__asm("and r1, r4");
-//	__asm("and r2, r4");
-//
-//	//perform the special operations
-//	__asm(" lsl r1, r1, #5"); // clear cotents, just store the proper bit pos
-//	__asm(" lsl r2, r2,  #10"); // clear cotents, just store the proper bit pos
-//	__asm(" orr r0, r1");//Combine it 
-//	__asm(" orr r0, r2");//Combine it  part 2
-//
-//	//Restore r3 and r4
-//	__asm("POP {R3-R4}");
-
-
-//}
 #endif
 /* ------------------------------------------------------------------------ */
 #ifdef GBA
@@ -211,11 +182,12 @@ void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 	unsigned short* vptr = (unsigned short*)frm;
 
 	int width = stride >> 1;
+	unsigned short* rgb = cb->rgb;
 
-	unsigned short r0 = cb->rgb[0];
-	unsigned short r1 = cb->rgb[1];
-	unsigned short r2 = cb->rgb[2];;
-	unsigned short r3 = cb->rgb[3];;
+	unsigned short r0 = *rgb++;
+	unsigned short r1 = *rgb++;
+	unsigned short r2 = *rgb++;
+	unsigned short r3 = *rgb++;
 
 	vptr[0 * width + 0] = r0;
 	vptr[0 * width + 1] = r0;
@@ -242,30 +214,44 @@ void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 	vptr[3 * width + 2] = r3;
 	vptr[3 * width + 3] = r3;
 
-	//vptr[0 * width + 0] = cb->rgb[0];
-	//vptr[0 * width + 1] = vptr[0 * width + 0];
-	//vptr[0 * width + 2] = cb->rgb[1];
-	//vptr[0 * width + 3] = vptr[0 * width + 2];
+
+	//int tmp = cb->rgb[0];
+	//unsigned long r0 = (tmp << 8) | tmp;
+
+	// tmp = cb->rgb[1];
+	//unsigned long r1 = (tmp << 8) | tmp;
+	// tmp = cb->rgb[2];
+	//unsigned long r2 = (tmp << 8) | tmp;
+	// tmp = cb->rgb[3];
+	//unsigned long r3 = (tmp << 8) | tmp;
+
+	//*((unsigned long*)vptr[0 * width + 0]) = r0;
 
 
-	//vptr[1 * width + 0] = cb->rgb[0];
-	//vptr[1 * width + 1] = vptr[1 * width + 0];
+	//*((unsigned long*)vptr[0 * width + 2]) = r1;
 
 
-	//vptr[1 * width + 2] = cb->rgb[1];
-	//vptr[1 * width + 3] = vptr[1 * width + 2];
+	//*((unsigned long*)vptr[1 * width + 0]) = r0;
 
-	//vptr[2 * width + 0] = cb->rgb[2];
-	//vptr[2 * width + 1] = vptr[2 * width + 0];
 
-	//vptr[2 * width + 2] = cb->rgb[3];
-	//vptr[2 * width + 3] = vptr[2 * width + 2];
 
-	//vptr[3 * width + 0] = cb->rgb[2];
-	//vptr[3 * width + 1] = vptr[3 * width + 0];
+	//*((unsigned long*)vptr[1 * width + 2]) = r1;
+	//
 
-	//vptr[3 * width + 2] = cb->rgb[3];
-	//vptr[3 * width + 3] = vptr[3 * width + 2];
+	//*((unsigned long*)vptr[2 * width + 0]) = r2;
+	//
+
+	//*((unsigned long*)vptr[2 * width + 2]) = r3;
+	//
+
+	//*((unsigned long*)vptr[3 * width + 0]) = r2;
+
+
+	//*((unsigned long*)vptr[3 * width + 2]) = r3;
+	
+
+
+
 }
 
 #define longcolors (*clrs++ << 16) | (*clrs++);
@@ -283,8 +269,7 @@ void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 
 	int width = stride >> 1;
 
-	cvid_codebook* curBook = cb0;
-	unsigned short* clrs = curBook->rgb;
+	unsigned short* clrs = cb0->rgb;
 
 		//screw calculattions.
 	vptr[0 * width + 0] = *clrs++;
@@ -292,22 +277,19 @@ void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 	vptr[1 * width + 0] = *clrs++;
 	vptr[1 * width + 1] = *clrs++;
 
-	curBook = cb1;
-	clrs = curBook->rgb;
+	clrs = cb1->rgb;
 	vptr[0 * width + 2] = *clrs++;
 	vptr[0 * width + 3] = *clrs++;
 	vptr[1 * width + 2] = *clrs++;
 	vptr[1 * width + 3] = *clrs++;
 
-	curBook = cb2;
-	clrs = curBook->rgb;
+	clrs = cb2->rgb;
 	vptr[2 * width + 0] = *clrs++;
 	vptr[2 * width + 1] = *clrs++;
 	vptr[3 * width + 0] = *clrs++;
 	vptr[3 * width + 1] = *clrs++;
 
-	curBook = cb3;
-	clrs = curBook->rgb;
+	clrs = cb3->rgb;
 
 	vptr[2 * width + 2] = *clrs++;
 	vptr[2 * width + 3] = *clrs++;

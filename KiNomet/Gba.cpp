@@ -72,7 +72,8 @@ unsigned int channel_a_vblanks_remaining = 0;
 unsigned int channel_a_total_vblanks = 0;
 unsigned int channel_b_vblanks_remaining = 0;
 
-
+volatile unsigned short* timer0_data = (volatile unsigned short*)0x4000100;
+volatile unsigned short* timer0_control = (volatile unsigned short*)0x4000102;
 //SWI 06h(GBA) or SWI 09h(NDS7 / NDS9 / DSi7 / DSi9) - Div
 //Signed Division, r0 / r1.
 //r0  signed 32bit Number
