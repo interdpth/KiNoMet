@@ -30,8 +30,8 @@ struct KinometPacket
 //https://cdn.hackaday.io/files/274271173436768/avi.pdf
 struct aviLoader
 {
-	void (*videoCallBack)(KinometPacket*);
-		void (*audiocallback)(KinometPacket*);
+	bool (*videoCallBack)(KinometPacket*);
+	bool (*audiocallback)(KinometPacket*);
 		int(*GetSize)();
 		unsigned int(*GetTicks)();
 };

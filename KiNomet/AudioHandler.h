@@ -41,6 +41,7 @@ private:
 	unsigned char* tmpBuf;
 	unsigned char* currentBuf;
 	unsigned char* limitBuf;
+	int ringSize;
 	int type;
 	int fps;
 	int sample_rate;
@@ -74,7 +75,7 @@ public:
 	/// </summary>
 	/// <param name="type">Type of audio handler</param>
 	/// <param name="fps">FPS we are </param>
-	AudioHandler(int type, int fp, int sam, int (*func)());
+	AudioHandler(int type, int fp, int sam, int frames, int (*func)());
 
 	/// <summary>
 	/// Basic init, but also queues track.
@@ -84,7 +85,7 @@ public:
 	/// <param name="sam"></param>
 	/// <param name="src"></param>
 	/// <param name="len"></param>
-	AudioHandler(unsigned char* src, int len, int (*func)());
+	AudioHandler(unsigned char* src, int len, int fps, int frames, int (*func)());
 	int Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack);
 	void ProcessPackets();
 	/// <summary>

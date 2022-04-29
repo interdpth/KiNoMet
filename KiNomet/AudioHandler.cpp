@@ -6,16 +6,16 @@
 #endif
 #include "Gba.h"
 #include <cstdlib>
-#define RING_SIZE 0x4000
-#define TMP_SIZE 0x1000
+//#define RING_SIZE 0x4000
+//#define TMP_SIZE 0x1000
 #define GBA_RING_MEM 0x6000000 + 240 * 160 * 2
 //Ring buffer is 0x4000 bytes.
 
 void AudioHandler::Init(int t, int fp, int sam)
 {
-	startBuf = (unsigned char*)malloc(RING_SIZE);
-	tmpBuf = (unsigned char*)malloc(TMP_SIZE);
-	limitBuf = startBuf + RING_SIZE;
+	startBuf = (unsigned char*)malloc(ringSize);
+	/*tmpBuf = (unsigned char*)malloc(TMP_SIZE);*/
+	limitBuf = startBuf + ringSize;
 
 
 	endBuf = startBuf;
@@ -31,12 +31,18 @@ void AudioHandler::Init(int t, int fp, int sam)
 void AudioHandler::Init(AudioHeader* p, int len)
 {
 	Init(p->type, p->fps, p->freq);
+
+
 }
 
 
-AudioHandler::AudioHandler(int t, int fp, int sam, int (*func)())
+AudioHandler::AudioHandler(int type, int fp, int sam, int frames, int (*func)())
 {
-	Init(t, fp, sam);
+	while (1)
+	{
+		;
+	}
+	Init(type, fp, sam);
 	GetSize = func;
 }
 
@@ -44,9 +50,10 @@ AudioHandler::AudioHandler(int t, int fp, int sam, int (*func)())
 #ifdef GBA 
 IWRAM
 #endif
-AudioHandler::AudioHandler(unsigned char* src, int len, int (*func)())
+AudioHandler::AudioHandler(unsigned char* src, int len, int fps, int frames, int (*func)())
 {
 	AudioHeader* hdr = (AudioHeader*)src;
+	ringSize = (len / frames) * fps;
 	Init(hdr->type, hdr->fps, hdr->freq);
 
 	GetSize = func;
@@ -72,11 +79,10 @@ IWRAM
 #endif
 void AudioHandler::Swap()
 {
-
 	swapped = !swapped;
 }
 
-int AudioHandler::Copy(AudioPacket* curPack, unsigned char* dstBuf,  int len)
+int AudioHandler::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
 {
 
 	int bytesLeft = len;
@@ -102,22 +108,22 @@ int AudioHandler::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
 
 	//PC can ring buffer, gba will play full sample
 //#ifndef GBA
-	if (bytesLeft <= TMP_SIZE)
-	{	//Handle transfer buffer write.
-
-		//Buffer check
-
-		bytesLeft = Copy(curPack, tmpBuf, TMP_SIZE);
-
-		
-		retVal = bytesLeft;
-		plsSwap = true;
-	}
+//	if (bytesLeft <= TMP_SIZE)
+//	{	//Handle transfer buffer write.
+//
+//		//Buffer check
+//
+//		bytesLeft = Copy(curPack, tmpBuf, TMP_SIZE);
+//
+//		
+//		retVal = bytesLeft;
+//		plsSwap = true;
+//	}
 //#endif
 	//Write to main buffer for swap.
 
-	int newLen = Copy(curPack, startBuf, RING_SIZE);
-//#ifndef GBA
+	int newLen = Copy(curPack, startBuf, bytesLeft);
+	//#ifndef GBA
 	if (plsSwap)
 	{
 		Swap();
@@ -128,7 +134,7 @@ int AudioHandler::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
 		swapsize = 0;
 		retVal = newLen;
 	}
-//#endif
+	//#endif
 	return retVal;
 }
 
@@ -138,7 +144,7 @@ int AudioHandler::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
 void AudioHandler::ProcessPackets()
 {
 	AudioPacket* curPack = GetCurrentPacket();
-	if (curPack!=nullptr && curPack->tracked >= curPack->len)
+	if (curPack != nullptr && curPack->tracked >= curPack->len)
 	{
 		free(&packets[0]);
 		for (int i = 1; i < packets.size(); i++)
@@ -165,24 +171,13 @@ int AudioHandler::Processs()
 	AudioPacket* curPack = GetCurrentPacket();
 	if (curPack == nullptr) return 0;
 
-	if (swapped)
-	{
-		Swap();
-		return swapsize;
-	}
 
-	int size = GetSize();
-	unsigned int bytesLeft = RING_SIZE - size;//Gotta love pointers.
+	return Fillbuffers(ringSize, curPack);
 
-	bool plsSwap = false;
-	if (bytesLeft != 0) 
-	{
-		return Fillbuffers(bytesLeft, curPack);
-	}
 	return 0;
-	}
+}
 
-void AudioHandler::QueueAudio(AudioPacket * packet)
+void AudioHandler::QueueAudio(AudioPacket* packet)
 {
 	packets.push_back(packet);
 }
@@ -194,7 +189,7 @@ AudioPacket* AudioHandler::GetCurrentPacket()
 	if (packets.size() == 0) return nullptr;
 	return packets[0];
 
-	}
+}
 bool AudioHandler::SeekAudio(int frame)
 {
 	return false;
@@ -233,6 +228,6 @@ unsigned char* AudioHandler::GetBuffer()
 	if (swapped)
 	{
 		return tmpBuf;
-	}
+}
 	return startBuf;
 }

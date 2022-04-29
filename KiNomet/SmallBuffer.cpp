@@ -23,6 +23,18 @@ unsigned char* SmallBuffer::GetCurrentBuffer()
 	return &start[pos];
 }
 
+int SmallBuffer::GetLen()
+{
+	return max;
+}
+
+int SmallBuffer :: GetRemaining()
+{
+	return max - pos;
+}
+
+
+
 unsigned char SmallBuffer::GetByte()
 {
 	return start[pos];

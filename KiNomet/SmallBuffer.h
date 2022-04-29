@@ -21,4 +21,7 @@ public:
 	unsigned char GetByte();
 	int Read32();
 	int Read16();
+	int GetLen();
+	int GetRemaining();
+
 };

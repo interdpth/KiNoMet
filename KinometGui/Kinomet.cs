@@ -41,7 +41,7 @@ namespace KinometGui
             TimeSpan ts = TimeSpan.FromTicks(mInfo);
             double minutesFromTs = ts.TotalMinutes;
             uint fr = (vidInfo.FrameRate.Value == null ? 0 : vidInfo.FrameRate.Value.Value) / 1000;
-            int targetFps = (int)30;
+            int targetFps = (int)fr;
 
 
 

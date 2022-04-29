@@ -15,7 +15,6 @@ void error(char* str)
 }
 
 
-
 unsigned char* Kinomet_FrameBuffer;
 int frameCount;
 unsigned char* audioBuffer;
@@ -35,7 +34,7 @@ void CreateFrameBuffer(int w, int h)
 		((unsigned long*)Kinomet_FrameBuffer)[i] = 0;
 	}
 }
-
+//Every FPS we will update audio buffers. 
 void SetAudioPacket(KinometPacket* pack)
 {
 
@@ -54,14 +53,14 @@ void LoadAVI(unsigned char* file,
 	aviLoader* options)
 {
 	rectangle screen;
-	AudioHandler* audio=nullptr;
+	AudioHandler* audio = nullptr;
 
 	SmallBuffer* buf = new SmallBuffer(file, size);
 	//memset(&hdr, 0, sizeof(MainAVIHeader));
 	bool bValid = false;
 	int pos = 0;
 
-
+	KinometPacket pack;
 	//Do we make it here? 
 	int debug = 0xFFFF1Daa;
 	BITMAPINFOHEADER* bmpinf = nullptr;
@@ -76,18 +75,18 @@ void LoadAVI(unsigned char* file,
 	screen.y = 0;
 	screen.w = bmpinf->biWidth;
 	screen.h = bmpinf->biHeight;
-	KinometPacket pack;
+
 	pack.frame = nullptr;
 	pack.frameid = -1;
 	pack.rect = (rectangle*)(sthread->dwRate);//packing hack
 	pack.screen = &screen;
-
+	int fps = sthread->dwRate;
 	options->videoCallBack(&pack);
 	int readSize = 0;
 	//init on our side
 	if (audiofile != nullptr)
 	{
-		audio = new AudioHandler(audiofile, audiofsize, options->GetSize);
+		audio = new AudioHandler(audiofile, audiofsize,fps, hdrz->dwTotalFrames, options->GetSize);
 		int readSize = audio->Processs();
 		pack.isAudio = true;
 		pack.frame = audio->GetBuffer();
@@ -99,7 +98,7 @@ void LoadAVI(unsigned char* file,
 
 		options->audiocallback(&pack);
 	}
-	
+
 	//Start buffering
 	//What are we doing???
 
@@ -114,47 +113,49 @@ void LoadAVI(unsigned char* file,
 	int sizescr = width * height * 2;//Rgb //hdrz->dwWidth * hdrz->dwHeight * 3;
 	CreateFrameBuffer(width, height);
 
-	int numFrames = size / sizeof(_avioldindex_entry);
-	frameCount = audiofsize / numFrames;
+
 
 
 	cinepak_info* ci = decode_cinepak_init(width, height);
 	//It's frame time.
 	_avioldindex_entry* idxList = (_avioldindex_entry*)buf->GetCurrentBuffer();
-	int fps = sthread->dwRate;
-	canRender = true;
 
+	canRender = true;
+	int numFrames = hdrz->dwTotalFrames;
+	frameCount = audiofsize / numFrames;
 	unsigned long  last = options->GetTicks();
 	unsigned long  current = options->GetTicks();
 
 	int curFrame = 0;
 	int lastDrawn = -1;
 	//Process AUDIO before processing frames.
-
-	while (curFrame < numFrames + 30)
+	int audioFrames = audiofsize / 0x4000;
+	int audioUpdate = 0;
+	while (curFrame < numFrames)
 	{
 		_avioldindex_entry* cur = &idxList[curFrame];
 
 		//Make sure we are a frame.
 		if (cur->FourCC != TAG_00DC) continue;
-
+		unsigned char* frame = moviPointer + cur->dwOffset;
 		//sanity stuff.
 #ifdef  DEBUG
-		unsigned char* frame = moviPointer + cur->dwOffset - 4;
+		frame -= 4;
 		unsigned int fourcc = *(unsigned long*)frame; frame += 4;
 
 		if (fourcc != cur->FourCC) continue;
 
 		int framesize = *(unsigned long*)frame; frame += 4;
 #else
-		unsigned char* frame = moviPointer + cur->dwOffset;
+
 		int framesize = *(unsigned long*)frame; frame += 4;
 #endif //  DEBUG
 		//handle audio
 
 
 		pack.frameid = curFrame;
-		if (audio != nullptr)
+
+		if (audio != nullptr && (audioUpdate == fps))
 		{
 			readSize = audio->Processs();
 			if (readSize)
@@ -167,38 +168,28 @@ void LoadAVI(unsigned char* file,
 
 				options->audiocallback(&pack);
 			}
+			audioUpdate = 0;
 		}
 
 
+		decode_cinepak(ci, frame, cur->dwSize, Kinomet_FrameBuffer);
+		//Hello we have a full framedata 
 
-		current = options->GetTicks();
-#ifndef GBA
-		float dT = (current - last) / 1000.0f;
-		float floored = (1.0f / fps);
-		float framesToUpdate = floor(dT / floored);
-		if (framesToUpdate > 0) {
-#else
-		//no floats here plz 
-		int dt = (current - last) % fps;
-		if (!dt)
+
+		pack.frame = Kinomet_FrameBuffer;
+		pack.screen = &screen;
+		pack.rect = &screen;
+		//The caller should handle framerate.
+		if (options->videoCallBack(&pack))
 		{
-
-#endif 
-		
 			curFrame++;
-
-
-			decode_cinepak(ci, frame, cur->dwSize, Kinomet_FrameBuffer);
-			//Hello we have a full framedata 
-
-
-			pack.frame = Kinomet_FrameBuffer;
-			pack.screen = &screen;
-			pack.rect = &screen;
-			options->videoCallBack(&pack);
-
-			last = current;
+			audioUpdate++;
 		}
+
+
+		//Capture timestamp after draw.
+		last = options->GetTicks();
+
 	}
 
 
