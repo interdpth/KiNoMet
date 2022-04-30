@@ -23,7 +23,6 @@ SDL_Texture* texture;
 long int end;
 SDL_Renderer* renderer;
 int movieFps;
-Uint64 start;
 bool SoundInited;
 unsigned int GetTicks(void)
 {
@@ -58,7 +57,6 @@ void initFrame(KinometPacket* pack)
 		width, height
 	);
 	movieFps = (int)pack->rect;
-	start = SDL_GetTicks();
 
 	SoundInited = 1;
 }
@@ -68,25 +66,27 @@ Uint32 totalFrames = 0;
 //frame is raw decoded data
 //screen rect describes length
 int audioType;
-void handleAudio(KinometPacket* pack)
+bool handleAudio(KinometPacket* pack)
 {
 	if (pack->frameid == -1)
 	{
 		InitAudioPlayer((int)pack->screen);
 		audioType = (int)pack->type;
-		return;
+		return true;;
 	}
 	StartPlaying(pack->frame, (int)pack->rect);
+	return true;;
 }
 float last = 0;
 extern bool canRender;
-void handleFrame(KinometPacket* pack)
+bool handleFrame(KinometPacket* pack)
 {
+	auto start = SDL_GetPerformanceCounter();
 	//IF this is called nad packet is null, we are just setting up. 
 	if (pack->frame == nullptr && !height && !width)
 	{
 		initFrame(pack);
-		return;
+		return false;
 	}
 
 
@@ -98,11 +98,11 @@ void handleFrame(KinometPacket* pack)
 	{
 		exit(-1);
 	}
-
+	Uint32 current = SDL_GetTicks();
 
 	if (pack->frame == nullptr)
 	{
-		return;
+		return false;
 	}
 	
 	totalFrames++;
@@ -127,7 +127,17 @@ void handleFrame(KinometPacket* pack)
 	SDL_Rect destination = { 0, 0, width, height };
 	SDL_RenderCopy(renderer, texture, NULL, &destination);
 	SDL_RenderPresent(renderer);
+	Uint64 end = SDL_GetPerformanceCounter();
 
+	float elapsedMS = (end - start) /( (float)SDL_GetPerformanceFrequency() * 1000.0f);
+	float time = ((1000.0f / movieFps));
+	// Cap to 60 FPS
+	float dT = (current - last) / 1000.0f;
+	float v = (float)floor((float)time - (float)elapsedMS);
+	SDL_Delay(abs(v));
+
+	last = current;
+	return true;
 }
 extern int maxNum;
 extern int codeBooks;
@@ -162,14 +172,15 @@ extern "C" {
 
 		//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
 		frameHandled = 0;
-		start = SDL_GetPerformanceCounter();
 
 		aviLoader l;
 		l.audiocallback = &handleAudio;
 		l.videoCallBack = &handleFrame;
 		l.GetSize = &GetQueuedBytes;
 		l.GetTicks = &GetTicks;
-		LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);
+		//InitAudioPlayer(10512);
+		//StartPlaying((unsigned char*)audio_outputmain, audio_outputmain_size);
+		LoadAVI((unsigned char*)VideoFile, VideoFile_size,(unsigned char*)audio_outputmain, audio_outputmain_size, &l);//  NULL, NULL, &l);
 		int overallSize = codeBookSize();
 		printf("%d", maxNum);
 		printf("%x", overallSize);
