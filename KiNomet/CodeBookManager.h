@@ -14,11 +14,11 @@ typedef struct RawCodeBook
 private:
 	vector<RawCodeBook*> codePointers;
 	int strip;
-	cvid_codebook* v4Book; 
-	cvid_codebook* v1Book; 
+	memoryCodeBook* v4Book; 
+	memoryCodeBook* v1Book; 
 public:
 	CodeBookManager();
-	cvid_codebook* GetCodeBook(int thisStrip, int version);
+	memoryCodeBook* GetCodeBook(int thisStrip, int version);
 	void SetCodeBook(int thisStrip);
 	void AddCodeBook(RawCodeBook* book);
 	void AddCodeBook(int strip);

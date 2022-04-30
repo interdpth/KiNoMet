@@ -45,36 +45,6 @@ namespace KinometGui
 
 
 
-            ////assuming 25 fps
-
-            //int bitrate = 10512;
-            //var b = File.ReadAllBytes($"{Processing}\\VideoFileAudio.mp3");
-            ////assuming 8bit audio
-            //double fileLen = 3170260;
-            //double TotalSeconds = 198.12; // 3:18.12
-            //double frameTime = TotalSeconds / 25;
-            //double TotalFrames = TotalSeconds * 25;
-            //double FrameSize = fileLen / TotalFrames;
-
-            //int tmpIndex = 11;
-            //double audioFrame = tmpIndex * FrameSize;
-
-            //for (int i = 0; i < TotalSeconds; i++)
-            //{
-            //    byte[] tmp = new byte[(int)bitrate];
-            //    audioFrame = i * FrameSize;
-            //    Array.Copy(b, (int)audioFrame, tmp, 0, (int)bitrate);
-            //    IWaveProvider provider = new RawSourceWaveStream(
-            //                             new MemoryStream(tmp), new WaveFormat(bitrate, 1));
-
-            //    var _waveOut = new WaveOut();
-            //    _waveOut.Init(provider);
-
-            //    _waveOut.Play();
-
-            //   // Console.WriteLine(audioFrame.ToString());
-            //}
-            //audioframe = 
 
             ////  Do some intial conversions.
             ///
@@ -118,7 +88,7 @@ namespace KinometGui
             }
             //   
 
-            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -filter:v fps=fps={targetFps} -c:v cinepak -max_strips 4 -s 240x160 -q 30 -an {Processing}\\{fn}_final.avi" };
+            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -filter:v fps=fps={targetFps} -c:v cinepak -max_strips 10 -s 240x160 -q 30 -an {Processing}\\{fn}_final.avi" };
             P = Process.Start(PSI);
             P.WaitForExit();
             ROM.MakeSource("VideoFile", File.ReadAllBytes($"{Processing}\\{fn}_final.avi"), $"{OutputFolder}");

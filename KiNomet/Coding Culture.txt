@@ -1,0 +1,11 @@
+Match what's around
+
+use full braces
+void function()
+{
+}
+
+
+if writing a function that's different use #ifdefs
+try to run gba code in wram
+auto is okay we work with like 4 bytes max, it's whatever

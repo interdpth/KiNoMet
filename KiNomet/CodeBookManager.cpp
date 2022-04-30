@@ -26,7 +26,7 @@ void CodeBookManager::SetCodeBook(int thisStrip)
 {
 
 }
-cvid_codebook* CodeBookManager::GetCodeBook(int thisStrip, int version)
+memoryCodeBook* CodeBookManager::GetCodeBook(int thisStrip, int version)
 {
 
 	//is index loaded? 

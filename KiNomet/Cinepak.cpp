@@ -49,8 +49,6 @@ If used in commericial projects please add this file in plaintext into your comp
   *       Tim Ferguson: http://www.csse.monash.edu.au/~timf/
   * ------------------------------------------------------------------------ */
 
-  //#define ORIGINAL
-
 #include <stdlib.h>
 
 #include "Gba.h"
@@ -64,7 +62,6 @@ void Trace(char* a, ...)
 }
 
 void ERR(char* a, ...)
-
 {
 }
 int sizeVar = 0;
@@ -80,18 +77,8 @@ static_assert(sizeof(uiclip) == 1024, "Size is not 1024");
 //WE are not acccepting changing videos at this time :D
 int screenwidth, screenheight, frm_stride;
 
-#define REG_VCOUNT *(volatile unsigned short*)0x04000006
 
-
-/*
-typedef struct {
-	cvid_codebook* v4_codebook[MAX_STRIPS];
-	cvid_codebook* v1_codebook[MAX_STRIPS];
-	unsigned int strip_num;
-} cinepak_info;
-
-*/
-
+///Some macros we can get rid of in a recode
 #define get_byte() *(in_buffer++)
 #define skip_byte() in_buffer++
 #define V1C cvid_v1_16(frm_ptr + ((y * frm_stride) + (x * bpp)), frame, frm_stride, v1_codebook + get_byte()); chunk_size--;
@@ -101,8 +88,7 @@ IWRAM unsigned short get_word()
 #else 
 unsigned short get_word()
 #endif
-{//	((unsigned short)(in_buffer += 2, (in_buffer[-2] << 8 | in_buffer[-1])))
-
+{
 	unsigned short val2 = (in_buffer[0] << 8 | in_buffer[1]);
 
 	in_buffer += 2;
@@ -115,8 +101,7 @@ IWRAM unsigned long get_long()
 #else 
 unsigned long get_long()
 #endif
-{//	((unsigned short)(in_buffer += 2, (in_buffer[-2] << 8 | in_buffer[-1])))
-
+{
 	unsigned long val2 = (in_buffer[0] << 24 | in_buffer[1] << 16 | in_buffer[2] << 8 | in_buffer[3]);
 
 	in_buffer += 4;
@@ -128,7 +113,7 @@ unsigned long get_long()
 #ifdef GBA
 IWRAM void read_codebook(cvid_codebook* c, int mode)
 #else 
-void  read_codebook(cvid_codebook* c, int mode)
+void  read_codebook(memoryCodeBook* c, int mode)
 #endif
 /* ---------------------------------------------------------------------- */
 {
@@ -171,11 +156,14 @@ unsigned short inline MAKECOLOUR16(unsigned char r, unsigned  char g, unsigned c
 	return ((((r >> 3) & 31) | (((g >> 3) & 31) << 5) | (((b >> 3) & 31) << 10)));
 }
 #endif
+
+
+//Converts codebook v1 to gba colors
 /* ------------------------------------------------------------------------ */
 #ifdef GBA
 IWRAM void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb)
 #else 
-void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb)
+void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, memoryCodeBook* cb)
 #endif
 {
 
@@ -215,53 +203,17 @@ void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codeb
 	vptr[3 * width + 3] = r3;
 
 
-	//int tmp = cb->rgb[0];
-	//unsigned long r0 = (tmp << 8) | tmp;
-
-	// tmp = cb->rgb[1];
-	//unsigned long r1 = (tmp << 8) | tmp;
-	// tmp = cb->rgb[2];
-	//unsigned long r2 = (tmp << 8) | tmp;
-	// tmp = cb->rgb[3];
-	//unsigned long r3 = (tmp << 8) | tmp;
-
-	//*((unsigned long*)vptr[0 * width + 0]) = r0;
-
-
-	//*((unsigned long*)vptr[0 * width + 2]) = r1;
-
-
-	//*((unsigned long*)vptr[1 * width + 0]) = r0;
-
-
-
-	//*((unsigned long*)vptr[1 * width + 2]) = r1;
-	//
-
-	//*((unsigned long*)vptr[2 * width + 0]) = r2;
-	//
-
-	//*((unsigned long*)vptr[2 * width + 2]) = r3;
-	//
-
-	//*((unsigned long*)vptr[3 * width + 0]) = r2;
-
-
-	//*((unsigned long*)vptr[3 * width + 2]) = r3;
-	
-
-
-
 }
 
-#define longcolors (*clrs++ << 16) | (*clrs++);
+
+//Converts codebook v4 to gba colors
 /* ------------------------------------------------------------------------ */
 #ifdef GBA
 IWRAM void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb0,
 	cvid_codebook* cb1, cvid_codebook* cb2, cvid_codebook* cb3)
 #else 
-void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb0,
-	cvid_codebook* cb1, cvid_codebook* cb2, cvid_codebook* cb3)
+void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, memoryCodeBook* cb0,
+	memoryCodeBook* cb1, memoryCodeBook* cb2, memoryCodeBook* cb3)
 #endif
 {
 
@@ -366,10 +318,10 @@ int codeBookSize()
 }
 //current frame pointer, limit is lowest frame pointer can hit, stride is width in bytes, cb is the proper code book to use
 typedef void (*fn_cvid_v1)(unsigned char* frm, unsigned char* limit,
-	int stride, cvid_codebook* cb);
+	int stride, memoryCodeBook* cb);
 typedef void (*fn_cvid_v4)(unsigned char* frm, unsigned char* limit, int stride,
-	cvid_codebook* cb0, cvid_codebook* cb1,
-	cvid_codebook* cb2, cvid_codebook* cb3);
+	memoryCodeBook* cb0, memoryCodeBook* cb1,
+	memoryCodeBook* cb2, memoryCodeBook* cb3);
 
 /* ------------------------------------------------------------------------
  * This function decodes a buffer containing a Cinepak encoded frame.
@@ -386,7 +338,7 @@ typedef void (*fn_cvid_v4)(unsigned char* frm, unsigned char* limit, int stride,
 
 void InitCodeBook(cinepak_info* cvinfo, int i)
 {
-	if ((cvinfo->v4_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
+	if ((cvinfo->v4_codebook[i] = (memoryCodeBook*)malloc(sizeof(memoryCodeBook) * 260)) == NULL)
 	{
 		while (1)
 		{
@@ -394,7 +346,7 @@ void InitCodeBook(cinepak_info* cvinfo, int i)
 		}
 		return;
 	}
-	if ((cvinfo->v1_codebook[i] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260)) == NULL)
+	if ((cvinfo->v1_codebook[i] = (memoryCodeBook*)malloc(sizeof(memoryCodeBook) * 260)) == NULL)
 	{
 		while (1)
 		{
@@ -416,7 +368,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 {
 
 	drawing = 1;
-	cvid_codebook* v4_codebook, * v1_codebook, * codebook = NULL;
+	memoryCodeBook* v4_codebook, * v1_codebook, * codebook = NULL;
 	unsigned long  frame_flags, strips, cv_width, cv_height,
 		cnum, strip_id, chunk_id, ci, flag, mask;
 	long len,  chunk_size;
@@ -487,12 +439,12 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 
 		if (v4_codebook == nullptr)
 		{
-			cvinfo->v4_codebook[cur_strip] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260);
+			cvinfo->v4_codebook[cur_strip] = (memoryCodeBook*)malloc(sizeof(memoryCodeBook) * 260);
 			v4_codebook = cvinfo->v4_codebook[cur_strip];
 		}
 		if (v1_codebook == nullptr)
 		{
-			cvinfo->v1_codebook[cur_strip] = (cvid_codebook*)malloc(sizeof(cvid_codebook) * 260);
+			cvinfo->v1_codebook[cur_strip] = (memoryCodeBook*)malloc(sizeof(memoryCodeBook) * 260);
 			v1_codebook = cvinfo->v1_codebook[cur_strip];
 		}
 

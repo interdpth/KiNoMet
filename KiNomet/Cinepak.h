@@ -15,8 +15,9 @@ using namespace std;
 #define DBUG    0
 
 #define cinepak_strip_Length 260
-#define MAX_STRIPS 5+1
+#define MAX_STRIPS 10+1
 
+//Honestly someththing better can happen in this chunk
 #ifdef GBA
 #define ERR printDebug
 #define WARN printDebug
@@ -38,20 +39,22 @@ typedef struct
    /* unsigned char reds[4], greens[4], blues[4];*/
 } oldcvid_codebook;
 
+//Archival, delete one day
+//#ifdef GBA
+//typedef struct __attribute__((__packed__))
+//#else
+//typedef struct
+//#endif
+//{
+//    unsigned char y0, y1, y2, y3;
+//    signed char u, v;
+//     unsigned char reds[4], greens[4], blues[4];
+//} arachicoldcvid_codebook;
+//
 
-#ifdef GBA
-typedef struct __attribute__((__packed__))
-#else
-typedef struct
-#endif
-{
-    unsigned char y0, y1, y2, y3;
-    signed char u, v;
-     unsigned char reds[4], greens[4], blues[4];
-} arachicoldcvid_codebook;
-
-
-
+/// <summary>
+/// We only store converted colors in this doo hickey
+/// </summary>
 typedef struct
 {
     //unsigned char y0, y1, y2, y3;
@@ -59,18 +62,21 @@ typedef struct
 
     unsigned short rgb[4];
     //  unsigned char reds[4], greens[4], blues[4];
-} cvid_codebook;
+} memoryCodeBook;
 
+//CinePak instance info
 #ifdef GBA
 typedef struct __attribute__((__packed__))
 #else
 typedef struct
 #endif
 {
-    cvid_codebook* v4_codebook[MAX_STRIPS];
-    cvid_codebook* v1_codebook[MAX_STRIPS];
+    memoryCodeBook* v4_codebook[MAX_STRIPS];
+    memoryCodeBook* v1_codebook[MAX_STRIPS];
     unsigned int strip_num;
 } cinepak_info;
+
+
 extern int drawing;
 void free_codebooks(cinepak_info* cvinfo);
 

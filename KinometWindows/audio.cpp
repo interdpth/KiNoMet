@@ -17,6 +17,7 @@ void StartPlaying(unsigned char* buff, int len)
 {
 	
 	int err = SDL_AudioStreamPut(stream, buff, len); //SDL_QueueAudio(deviceid, buff, len);
+
 	auto b = SDL_GetError();
 	if (err > 0)
 	{
@@ -26,7 +27,7 @@ void StartPlaying(unsigned char* buff, int len)
 
 int GetQueuedBytes()
 {
-	return SDL_AudioStreamAvailable(stream);;//SDL_GetQueuedAudioSize(deviceid);
+	return SDL_GetQueuedAudioSize(deviceid);
 }
 static void Sound_Callback(void* userdata, Uint8* buffer, int len)
 {
@@ -62,13 +63,15 @@ static void Sound_Callback(void* userdata, Uint8* buffer, int len)
         //                obtained_spec.samples);
     
 }
+bool inited2 = false;
 int InitAudioPlayer(int sampleSize)
 {
+	if (inited2) return 0;
 	SDL_zero(desiredSpec);
 	desiredSpec.freq = sampleSize;
 	desiredSpec.format = AUDIO_S8;
 	desiredSpec.channels = 1;
-	desiredSpec.samples = 2048;
+	desiredSpec.samples = 1;
 	desiredSpec.callback = Sound_Callback;
 
 	desiredSpec.userdata = NULL;;
@@ -88,5 +91,6 @@ int InitAudioPlayer(int sampleSize)
 		return 0;
 	}
 	SDL_PauseAudioDevice(deviceid, 0);//Start playing right away.
+	inited2 = 1;
 	return 0;
 }
