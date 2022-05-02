@@ -45,9 +45,6 @@
     <ClCompile Include="Compression.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AudioHandler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Cinepak.cpp">
       <Filter>Cinepak</Filter>
     </ClCompile>
@@ -63,12 +60,21 @@
     <ClCompile Include="KinoAudio.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AudioHandler.cpp">
+      <Filter>audiohandlers</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioV0.cpp">
+      <Filter>audiohandlers</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioV1.cpp">
+      <Filter>audiohandlers</Filter>
+    </ClCompile>
+    <ClCompile Include="UserInterface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Compression.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AudioHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Cinepak.h">
@@ -98,9 +104,22 @@
     <ClInclude Include="tonc_asminc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AudioV1.h">
+      <Filter>audiohandlers</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioV0.h">
+      <Filter>audiohandlers</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioHandler.h">
+      <Filter>audiohandlers</Filter>
+    </ClInclude>
+    <ClInclude Include="UserInterface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Documentation.txt" />
+    <Text Include="Coding Culture.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cinepak_asm.s">

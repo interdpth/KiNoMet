@@ -1,6 +1,6 @@
 #include "..\KiNomet\KiNoMet.h"
 #include "VideoFile.h"
-#include "VideoFile.h"
+
 #include "audio_outputmain.h"
 #include "..\KiNomet\Gba.h"
 #include <stdio.h>
@@ -176,13 +176,16 @@ IWRAM void StartPlaying(const signed char* sound, int len)
 
 //screen rect describes length
 int lastFrame;
-IWRAM void handleAudio(KinometPacket* pack)
+IWRAM bool handleAudio(KinometPacket* pack)
 {
-
-	//StartPlaying((const signed char*)pack->frame, ((int)pack->rect));
+	if(pack->frameid!=-1)
+	{
+		StartPlaying((const signed char*)pack->frame, ((int)pack->rect));
+	}
+	return true;
 }
 
-IWRAM void handleFrame(KinometPacket* packet)
+IWRAM bool handleFrame(KinometPacket* packet)
 {
 	//we are gba so frame is always 240*160*2;
 	if (packet->frame == nullptr)
@@ -190,7 +193,7 @@ IWRAM void handleFrame(KinometPacket* packet)
 		Setup(packet);
 
 
-		return;
+		return true;
 	}
 
 	while (requestCount < 1) {}
@@ -204,6 +207,7 @@ IWRAM void handleFrame(KinometPacket* packet)
 	frameReady = 0;
 	numFrames = 0;
 	int newfps = totalFrames / vblankcounter; //We should be getting 30
+	return true;
 }
 
 
@@ -217,8 +221,8 @@ int main()
 	ticks_per_sample = CLOCK / sample_rate;
 	channel_a_vblanks_remaining = (audio_outputmain_size * ticks_per_sample) / CYCLES_PER_BLANK;
 	aviLoader l;
-	l.audiocallback = (void (*)(KinometPacket*)) & handleAudio;
-	l.videoCallBack = (void (*)(KinometPacket*)) & handleFrame;
+	l.audiocallback = (bool (*)(KinometPacket*)) & handleAudio;
+	l.videoCallBack = (bool (*)(KinometPacket*)) & handleFrame;
 	l.GetSize = (int (*)()) & GetSiz;
 	l.GetTicks = (unsigned int (*)()) & GetTicks;
 

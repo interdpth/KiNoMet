@@ -111,7 +111,7 @@ unsigned long get_long()
 
 
 #ifdef GBA
-IWRAM void read_codebook(cvid_codebook* c, int mode)
+IWRAM void read_codebook(memoryCodeBook* c, int mode)
 #else 
 void  read_codebook(memoryCodeBook* c, int mode)
 #endif
@@ -161,7 +161,7 @@ unsigned short inline MAKECOLOUR16(unsigned char r, unsigned  char g, unsigned c
 //Converts codebook v1 to gba colors
 /* ------------------------------------------------------------------------ */
 #ifdef GBA
-IWRAM void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb)
+IWRAM void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, memoryCodeBook* cb)
 #else 
 void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, memoryCodeBook* cb)
 #endif
@@ -209,8 +209,8 @@ void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, memoryCode
 //Converts codebook v4 to gba colors
 /* ------------------------------------------------------------------------ */
 #ifdef GBA
-IWRAM void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, cvid_codebook* cb0,
-	cvid_codebook* cb1, cvid_codebook* cb2, cvid_codebook* cb3)
+IWRAM void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, memoryCodeBook* cb0,
+	memoryCodeBook* cb1, memoryCodeBook* cb2, memoryCodeBook* cb3)
 #else 
 void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, memoryCodeBook* cb0,
 	memoryCodeBook* cb1, memoryCodeBook* cb2, memoryCodeBook* cb3)

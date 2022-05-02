@@ -146,6 +146,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AudioHandler.cpp" />
+    <ClCompile Include="AudioV0.cpp" />
+    <ClCompile Include="AudioV1.cpp" />
     <ClCompile Include="AviApi.cpp" />
     <ClCompile Include="Cinepak.cpp" />
     <ClCompile Include="CodeBookManager.cpp" />
@@ -156,9 +158,12 @@
     <ClCompile Include="KiNomet.cpp" />
     <ClCompile Include="SmallBuffer.cpp" />
     <ClCompile Include="Test.cpp" />
+    <ClCompile Include="UserInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AudioHandler.h" />
+    <ClInclude Include="AudioV0.h" />
+    <ClInclude Include="AudioV1.h" />
     <ClInclude Include="AviApi.h" />
     <ClInclude Include="Cinepak.h" />
     <ClInclude Include="CodeBookManager.h" />
@@ -169,8 +174,10 @@
     <ClInclude Include="KiNoMet.h" />
     <ClInclude Include="SmallBuffer.h" />
     <ClInclude Include="tonc_asminc.h" />
+    <ClInclude Include="UserInterface.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="Coding Culture.txt" />
     <Text Include="Documentation.txt" />
   </ItemGroup>
   <ItemGroup>

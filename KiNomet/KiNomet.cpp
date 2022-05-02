@@ -4,7 +4,8 @@
 #include "../KiNomet/Cinepak.h"
 #include "AviApi.h"
 #include <stdio.h>
-#include "AudioHandler.h"
+#include "AudioV0.h"
+#include "AudioV1.h"
 #ifdef GBA
 #include <tgmath.h>
 #endif
@@ -86,7 +87,18 @@ void LoadAVI(unsigned char* file,
 	//init on our side
 	if (audiofile != nullptr)
 	{
-		audio = new AudioHandler(audiofile, audiofsize,fps, hdrz->dwTotalFrames, options->GetSize);
+		 //determien
+		int hdr = *(unsigned long*)audiofile;
+		if (hdr == 0x41555631)
+		{
+			audio = new AudioV1(audiofile, audiofsize, fps, hdrz->dwTotalFrames, options->GetSize);
+
+		}
+		else 
+		{
+			audio = new AudioV0(audiofile, audiofsize, fps, hdrz->dwTotalFrames, options->GetSize);
+
+		}
 		int readSize = audio->Processs();
 		pack.isAudio = true;
 		pack.frame = audio->GetBuffer();
@@ -155,21 +167,6 @@ void LoadAVI(unsigned char* file,
 
 		pack.frameid = curFrame;
 
-		if (audio != nullptr && (audioUpdate == fps))
-		{
-			readSize = audio->Processs();
-			if (readSize)
-			{
-
-				pack.frame = audio->GetBuffer();
-				pack.screen = (rectangle*)audio->GetSampleFreq();
-				pack.type = audio->GetType();
-				pack.rect = (rectangle*)readSize;
-
-				options->audiocallback(&pack);
-			}
-			audioUpdate = 0;
-		}
 
 
 		decode_cinepak(ci, frame, cur->dwSize, Kinomet_FrameBuffer);
@@ -179,12 +176,29 @@ void LoadAVI(unsigned char* file,
 		pack.frame = Kinomet_FrameBuffer;
 		pack.screen = &screen;
 		pack.rect = &screen;
+	  
 		//The caller should handle framerate.
 		if (options->videoCallBack(&pack))
 		{
 			curFrame++;
+			if (audio != nullptr && (audioUpdate == fps))
+			{
+				readSize = audio->Processs();
+				if (readSize)
+				{
+					pack.type = 1;
+					pack.frame = audio->GetBuffer();
+					pack.screen = (rectangle*)audio->GetSampleFreq();
+					pack.type = audio->GetType();
+					pack.rect = (rectangle*)readSize;
+
+					options->audiocallback(&pack);
+				}
+				audioUpdate = 0;
+			}
 			audioUpdate++;
 		}
+
 
 
 		//Capture timestamp after draw.
