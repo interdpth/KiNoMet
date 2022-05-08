@@ -37,7 +37,7 @@ namespace KinometGui
             var vidInfoProp = ShellFile.FromFilePath(videoFile).Properties;
             var vidInfo = vidInfoProp.System.Video;
             long mInfo = (long)vidInfoProp.System.Media.Duration.Value;
-         
+
             TimeSpan ts = TimeSpan.FromTicks(mInfo);
             double minutesFromTs = ts.TotalMinutes;
             uint fr = (vidInfo.FrameRate.Value == null ? 0 : vidInfo.FrameRate.Value.Value) / 1000;
@@ -82,7 +82,7 @@ namespace KinometGui
                 P = Process.Start(PSI);
                 P.WaitForExit();
                 RenderAudioV1($"{Processing}\\audio_outputmain.wav", targetFps, (int)numframes);
-     
+
             }
             else
             {
@@ -156,6 +156,7 @@ namespace KinometGui
                         using (FileStream fs = new FileStream($"{OutputFolder}\\{fn}.raw", FileMode.OpenOrCreate))
                         using (BinaryWriter bw = new BinaryWriter(fs))
                         {
+                            bw.Write(0x41555630);//AUV0
                             UInt16 atype = (UInt16)audiov;
 
                             byte[] hdr = BitConverter.GetBytes(atype);
@@ -177,7 +178,7 @@ namespace KinometGui
                             bw.Close();
                         }
 
-                        ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder) ;
+                        ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
                         ROM.Write(OutputFolder, fn);
 
                     }
@@ -223,7 +224,7 @@ namespace KinometGui
             }
         }
 
-        private string RenderAudioV1(string srcFile, int fps,int numframes)
+        private string RenderAudioV1(string srcFile, int fps, int numframes)
         {
             int mffreq = 10512;
             int zmfreq = 13379;
@@ -278,95 +279,97 @@ namespace KinometGui
                         using (FileStream fs = new FileStream($"{OutputFolder}\\{fn}.raw", FileMode.OpenOrCreate))
                         using (BinaryWriter bw = new BinaryWriter(fs))
                         {
-                            bw.Write(0x41555631);//AUV1
-
-                            UInt16 atype = (UInt16)audiov;
-
-                            byte[] hdr = BitConverter.GetBytes(atype);
-                            bw.Write(hdr);
-
-                            atype = (UInt16)fps;
-
-                            hdr = BitConverter.GetBytes(atype);
-                            bw.Write(hdr);
-
-                            var atype2 = freq;
-
-                            hdr = BitConverter.GetBytes(atype2);
-                            bw.Write(hdr);
-                            for (len = 0; len < raw.Length; len++)
+                            using (MemoryStream pointerTable = new MemoryStream())
                             {
-                                bw.Write(data[len]);
+                                using (MemoryStream dataTable = new MemoryStream())
+                                {
+
+                                    bw.Write(0x41555631);//AUV1
+
+                                    UInt16 atype = (UInt16)audiov;
+
+                                    byte[] hdr = BitConverter.GetBytes(atype);
+                                    bw.Write(hdr);
+
+                                    atype = (UInt16)fps;
+
+                                    hdr = BitConverter.GetBytes(atype);
+                                    bw.Write(hdr);
+
+                                    var atype2 = freq;
+
+                                    hdr = BitConverter.GetBytes(atype2);
+                                    bw.Write(hdr);
+
+                                    int hdrOffset = (int)bw.BaseStream.Position;
+                                    bw.Write(0xFFFFFFFF);//Count
+                                    bw.Write(0xFFFFFFFF);//Index Pointers
+                                    bw.Write(0xFFFFFFFF);//Data 
+                                    int bufsize = (int)raw.Length / numframes;
+                                    int fnsize = ((int)raw.Length / bufsize);
+                                    int sz = fps * bufsize;
+                                    int ezCount = 0;
+
+                                    for (int i = 0; i < raw.Length/ sz; i ++)
+                                    {
+                                        //buffer is fps*size;
+                                        byte[] buf = new byte[sz];
+                                        Buffer.BlockCopy(data.ToArray(), i*sz, buf, 0, sz);
+
+                                        MimirData dat = new MimirData(new IOStream(buf));
+
+                                        ChariotWheels compType = ChariotWheels.Raw;
+                                        IOStream stream = dat.srcDat;
+                                        int best = (int)dat.srcDat.Length;
+                                        //if (dat.lz.Length < best)
+                                        //{
+                                        //    compType = ChariotWheels.LZ;
+                                        //    stream = dat.lz;
+                                        //    best = (int)stream.Length;
+                                        //}
+
+                                        //if (dat.rle.Length < best)
+                                        //{
+                                        //    compType = ChariotWheels.RLE;
+                                        //    stream = dat.rle;
+                                        //    best = (int)stream.Length;
+                                        //}
+
+                                        pointerTable.Write(BitConverter.GetBytes(dataTable.Position), 0, 4);
+                                        dataTable.Write(BitConverter.GetBytes(0xDEADBEEF), 0, 4);
+                                        dataTable.Write(BitConverter.GetBytes(ezCount), 0, 4);//wtf
+                                        dataTable.WriteByte((byte)compType);
+                                        dataTable.Write(BitConverter.GetBytes((ushort)best), 0, 2);
+                                        dataTable.Write(stream.Data, 0, best);
+                                        ezCount++;
+                                    }
+
+
+
+
+                                    int pointerTableIndex = (int)bw.BaseStream.Position;
+                                    bw.Write(pointerTable.ToArray(), 0, (int)pointerTable.Length);
+
+                                    int dataTableOffset = (int)bw.BaseStream.Position;
+
+                                    bw.Write(dataTable.ToArray(), 0, (int)dataTable.Length);
+                                    bw.BaseStream.Position = hdrOffset;
+                                    bw.Write(ezCount);
+                                    bw.Write(pointerTableIndex);
+                                    bw.Write(dataTableOffset);
+                                    bw.Close();
+
+                                }
                             }
-                            bw.Close();
+
+
+                            ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
+                            ROM.Write(OutputFolder, fn);
+
                         }
-                        
-
-                        var fdat = File.ReadAllBytes($"{OutputFolder}\\{fn}.raw");
-                        int hdrLen = 4 + 2 + 2 + 4;
-                        int bufsize = (fdat.Length-hdrLen) / numframes;
-                        //Now math everything out. 
-
-                        IOStream outfile = new IOStream(8);
-                        IOStream infile = new IOStream(8);
-                        //write old file header
-                        outfile.Write32(0xFFFFFFFF);//Index Pointers
-                        outfile.Write32(0xFFFFFFFF);//Data 
-
-                        IOStream pointerTable = new IOStream();
-                        IOStream dataTable = new IOStream();
-
-                        int fnsize = (fdat.Length  / bufsize);
-                        int sz = fps * bufsize;
-                        int ezCount = 0;
-                        for (int i = 0; i < fnsize; i += sz)
-                        {
-                            //buffer is fps*size;
-                            byte[] buf = new byte[sz];
-                            Buffer.BlockCopy(fdat, i, buf, 0, sz);
-
-                            MimirData dat = new MimirData(new IOStream(buf));
-
-                            ChariotWheels compType = ChariotWheels.Raw;
-                            IOStream stream = dat.srcDat;
-                            int best = (int)dat.srcDat.Length;
-                            //if (dat.lz.Length < best)
-                            //{
-                            //    compType = ChariotWheels.LZ;
-                            //    stream = dat.lz;
-                            //    best = (int)stream.Length;
-                            //}
-
-                            //if (dat.rle.Length < best)
-                            //{
-                            //    compType = ChariotWheels.RLE;
-                            //    stream = dat.rle;
-                            //    best = (int)stream.Length;
-                            //}
-
-                            pointerTable.Write32((int)dataTable.Position);
-                            dataTable.Write32(0xDEADBEEF);
-                            dataTable.Write32(ezCount);//wtf
-                            dataTable.Write8((byte)compType);
-                            dataTable.Write16((ushort)best);
-                            dataTable.Write(stream.Data, best);
-                        }
-                        long pointerTableoff = outfile.Position;
-                        outfile.Write(pointerTable.Data, pointerTable.Data.Length);
-                        outfile.Write32(0x53455054);
-                        long dataOffTable = outfile.Position;
-                        outfile.Write(dataTable.Data, dataTable.Data.Length);
-                        outfile.Position = 4;
-                        outfile.Write32((int)pointerTableoff);
-                        outfile.Write32((int)dataOffTable);
-
-                        File.WriteAllBytes("holyshit.dmp", outfile.Data);
-                        ROM.MakeSource(fn, outfile.Data, OutputFolder);
-                        ROM.Write(OutputFolder, fn);
-
                     }
+                    return "holyshit.dmp";
                 }
-                return "holyshit.dmp";
             }
             catch (Exception e)
             {

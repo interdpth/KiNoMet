@@ -29,8 +29,8 @@ public:
     int SeekIndex();
     int Copy(AudioPacket* curPack, unsigned char* dstBuf, int len);
 
-   // unsigned char* GetBuffer();
-    int Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack);
+  unsigned char* GetBuffer();
+   // int Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack);
 
     /// <summary>
 /// Dump audio to buffer.

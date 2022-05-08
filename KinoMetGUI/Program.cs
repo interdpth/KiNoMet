@@ -22,7 +22,7 @@ namespace KinometGui
             }
             else
             {
-                (new Kinomet(args[0], "F:\\processing\\", "F:\\Output", 1)).Kinometize();
+                (new Kinomet(args[0], "F:\\processing\\", "F:\\Output", 0)).Kinometize();
             }
         }
     }

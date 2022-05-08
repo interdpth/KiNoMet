@@ -8,7 +8,7 @@ AudioManager::AudioManager(unsigned char* src, int len, int fps, int frames, int
 		hndlr = new AudioV1(src, len, fps, frames, func);
 		ver = V1;
 	}
-	else
+	else if(hdr == 0x41555630)
 	{
 		hndlr = new AudioHandler(src, len, fps, frames, func);
 		ver = V0;

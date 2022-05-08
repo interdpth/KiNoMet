@@ -5,6 +5,7 @@ using namespace std;
 
 struct AudioHeader
 {
+	unsigned long hdr;
 	unsigned short type;
 	unsigned short fps;
 	unsigned long freq;
