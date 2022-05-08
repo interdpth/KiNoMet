@@ -26,7 +26,47 @@ void AudioHandler::Init(int t, int fp, int sam)
 	swapped = false;
 }
 
+#ifdef GBA 
+IWRAM
+#endif
+int AudioHandler::Processs()
+{
+	ProcessPackets();
+	AudioPacket* curPack = GetCurrentPacket();
+	if (curPack == nullptr) return 0;
 
+
+	return Fillbuffers(ringSize, curPack);
+
+	return 0;
+}
+int AudioHandler::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
+{
+	int retVal = 0;
+
+	int newLen = Copy(curPack, GetBuffer(), bytesLeft);
+
+	//#endif
+	return newLen;
+}
+
+int AudioHandler::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
+{
+
+	int bytesLeft = len;
+	if (curPack->tracked + bytesLeft > curPack->len)
+	{
+		bytesLeft = curPack->len - (curPack->tracked);
+	}
+
+#ifdef  GBA
+	memcpy16_dma((unsigned short*)dstBuf, (unsigned short*)&curPack->start[curPack->tracked], bytesLeft >> 1);
+#else
+	memcpy(dstBuf, &curPack->start[curPack->tracked], bytesLeft);
+#endif
+	curPack->tracked += bytesLeft;
+	return bytesLeft;
+}
 
 void AudioHandler::Init(AudioHeader* p, int len)
 {
@@ -82,61 +122,61 @@ void AudioHandler::Swap()
 	swapped = !swapped;
 }
 
-int AudioHandler::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
-{
-
-	int bytesLeft = len;
-	if (curPack->tracked + bytesLeft > curPack->len)
-	{
-		bytesLeft = curPack->len - (curPack->tracked);
-	}
-
-#ifdef  GBA
-	memcpy16_dma((unsigned short*)dstBuf, (unsigned short*)&curPack->start[curPack->tracked], bytesLeft >> 1);
-#else
-	memcpy(dstBuf, &curPack->start[curPack->tracked], bytesLeft);
-#endif
-	curPack->tracked += bytesLeft;
-	return bytesLeft;
-}
-
-
-int AudioHandler::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
-{
-	int retVal = 0;
-	bool plsSwap = false;
-
-	//PC can ring buffer, gba will play full sample
-//#ifndef GBA
-//	if (bytesLeft <= TMP_SIZE)
-//	{	//Handle transfer buffer write.
+//int AudioHandler::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
+//{
 //
-//		//Buffer check
-//
-//		bytesLeft = Copy(curPack, tmpBuf, TMP_SIZE);
-//
-//		
-//		retVal = bytesLeft;
-//		plsSwap = true;
+//	int bytesLeft = len;
+//	if (curPack->tracked + bytesLeft > curPack->len)
+//	{
+//		bytesLeft = curPack->len - (curPack->tracked);
 //	}
+//
+//#ifdef  GBA
+//	memcpy16_dma((unsigned short*)dstBuf, (unsigned short*)&curPack->start[curPack->tracked], bytesLeft >> 1);
+//#else
+//	memcpy(dstBuf, &curPack->start[curPack->tracked], bytesLeft);
 //#endif
-	//Write to main buffer for swap.
+//	curPack->tracked += bytesLeft;
+//	return bytesLeft;
+//}
+//
 
-	int newLen = Copy(curPack, startBuf, bytesLeft);
-	//#ifndef GBA
-	if (plsSwap)
-	{
-		Swap();
-		swapsize = bytesLeft;
-	}
-	else
-	{
-		swapsize = 0;
-		retVal = newLen;
-	}
-	//#endif
-	return retVal;
-}
+//int AudioHandler::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
+//{
+//	int retVal = 0;
+//	bool plsSwap = false;
+//
+//	//PC can ring buffer, gba will play full sample
+////#ifndef GBA
+////	if (bytesLeft <= TMP_SIZE)
+////	{	//Handle transfer buffer write.
+////
+////		//Buffer check
+////
+////		bytesLeft = Copy(curPack, tmpBuf, TMP_SIZE);
+////
+////		
+////		retVal = bytesLeft;
+////		plsSwap = true;
+////	}
+////#endif
+//	//Write to main buffer for swap.
+//
+//	int newLen = Copy(curPack, startBuf, bytesLeft);
+//	//#ifndef GBA
+//	if (plsSwap)
+//	{
+//		Swap();
+//		swapsize = bytesLeft;
+//	}
+//	else
+//	{
+//		swapsize = 0;
+//		retVal = newLen;
+//	}
+//	//#endif
+//	return retVal;
+//}
 
 /// <summary>
 /// Check if we need to be on a new packet.
@@ -162,20 +202,20 @@ void AudioHandler::ProcessPackets()
 
 //Next time this is called, Swap is called again
 
-#ifdef GBA 
-IWRAM
-#endif
-int AudioHandler::Processs()
-{
-	ProcessPackets();
-	AudioPacket* curPack = GetCurrentPacket();
-	if (curPack == nullptr) return 0;
-
-
-	return Fillbuffers(ringSize, curPack);
-
-	return 0;
-}
+//#ifdef GBA 
+//IWRAM
+//#endif
+//int AudioHandler::Processs()
+//{
+//	ProcessPackets();
+//	AudioPacket* curPack = GetCurrentPacket();
+//	if (curPack == nullptr) return 0;
+//
+//
+//	return Fillbuffers(ringSize, curPack);
+//
+//	return 0;
+//}
 
 void AudioHandler::QueueAudio(AudioPacket* packet)
 {

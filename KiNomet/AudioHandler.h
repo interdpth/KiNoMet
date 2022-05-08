@@ -41,7 +41,7 @@ private:
 	unsigned char* tmpBuf;
 	unsigned char* currentBuf;
 	unsigned char* limitBuf;
-	int ringSize;
+	
 	int type;
 	int fps;
 	int sample_rate;
@@ -68,15 +68,16 @@ private:
 
 
 	void Swap();
-	int Copy(AudioPacket* curPack, unsigned char* dstBuf, int size);
+
 public:
+	int ringSize;
 	/// <summary>
 	/// Basic init.
 	/// </summary>
 	/// <param name="type">Type of audio handler</param>
 	/// <param name="fps">FPS we are </param>
 	AudioHandler(int type, int fp, int sam, int frames, int (*func)());
-
+	int Copy(AudioPacket* curPack, unsigned char* dstBuf, int size);
 	/// <summary>
 	/// Basic init, but also queues track.
 	/// </summary>

@@ -26,27 +26,23 @@ int AudioV0::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
 	return bytesLeft;
 }
 
+#ifdef GBA 
+IWRAM
+#endif
+int AudioV0::Processs()
+{
+	ProcessPackets();
+	AudioPacket* curPack = GetCurrentPacket();
+	if (curPack == nullptr) return 0;
 
+
+	return Fillbuffers(ringSize, curPack);
+
+	return 0;
+}
 int AudioV0::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
 {
 	int retVal = 0;
-	bool plsSwap = false;
-
-	//PC can ring buffer, gba will play full sample
-//#ifndef GBA
-//	if (bytesLeft <= TMP_SIZE)
-//	{	//Handle transfer buffer write.
-//
-//		//Buffer check
-//
-//		bytesLeft = Copy(curPack, tmpBuf, TMP_SIZE);
-//
-//		
-//		retVal = bytesLeft;
-//		plsSwap = true;
-//	}
-//#endif
-	//Write to main buffer for swap.
 
 	int newLen = Copy(curPack, GetBuffer(), bytesLeft);
 

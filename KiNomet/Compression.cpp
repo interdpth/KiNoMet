@@ -83,20 +83,20 @@ int GBA_RLEDECOMP(void* src, void* dst, int dstS)
 #endif
 
 
-void Compression::LZDecomp(unsigned char* src, unsigned char** dst, int size)
+int Compression::LZDecomp(unsigned char* src, unsigned char* dst, int size)
 {
-	unsigned char* realDst = *dst;
+	unsigned char* realDst = dst;
 
 
 
-	realDst += GBA_LZDECOMP(src, dst);
+	realDst += GBA_LZDECOMP(src, dst); 
 
 
-	* dst = realDst;
+	return realDst - dst;
 }
-void Compression::RLEDecomp(unsigned char* src, unsigned char** dst, int size)
+int Compression::RLEDecomp(unsigned char* src, unsigned char* dst, int size)
 {
-	unsigned char* realDst = *dst;
+	unsigned char* realDst = dst;
 
 
 #ifdef GBA
@@ -104,17 +104,17 @@ void Compression::RLEDecomp(unsigned char* src, unsigned char** dst, int size)
 	realDst += GBA_RLEDECOMP(src, dst);
 #else
 #endif
-	* dst = realDst;
+	return realDst - dst;
 }
-void Compression::RawCopy(unsigned char* src, unsigned char** dst, int size)
+int Compression::RawCopy(unsigned char* src, unsigned char* dst, int size)
 {
-	unsigned char* realDst = *dst;
+	unsigned char* realDst = dst;
 
 #ifdef GBA
 	memcpy16_dma((unsigned short*)realDst, (unsigned short*)src, size>>1); realDst += size;
 #else
-	memcpy(realDst, src, size);
+	memcpy(realDst, src, size); realDst += size;
 #endif
 
-	* dst = realDst;
+	return realDst - dst;
 }

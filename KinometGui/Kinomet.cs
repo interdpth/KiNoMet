@@ -37,7 +37,7 @@ namespace KinometGui
             var vidInfoProp = ShellFile.FromFilePath(videoFile).Properties;
             var vidInfo = vidInfoProp.System.Video;
             long mInfo = (long)vidInfoProp.System.Media.Duration.Value;
-
+         
             TimeSpan ts = TimeSpan.FromTicks(mInfo);
             double minutesFromTs = ts.TotalMinutes;
             uint fr = (vidInfo.FrameRate.Value == null ? 0 : vidInfo.FrameRate.Value.Value) / 1000;
@@ -48,7 +48,7 @@ namespace KinometGui
 
             ////  Do some intial conversions.
             ///
-            var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -filter:v fps=fps={targetFps} -crf 32 -s 240x160 {Processing}\\{tmpVideo}" };
+            var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -filter:v fps=fps={targetFps} -q 32 -s 240x160 {Processing}\\{tmpVideo}" };
             var P = Process.Start(PSI);
             P.WaitForExit();
 
@@ -59,28 +59,33 @@ namespace KinometGui
                 if (fps > 2.0f) fps = 2.0f;
                 if (fps < 0.5f) fps = 0.5f;
             }
+            uint numframes = (uint)(mInfo / 1000) / (uint)targetFps;
             string temp = "";
             if (fps != 1)
             {
                 temp = $"-filter:a \"atempo = {fps}\"";
             }
-            //////////4953 frames 
-            //////////792 audio files 
+            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} {temp} {Processing}\\audio_outputmain.wav" };
+
             if (audiov == 1)
             {
 
+                //Break audio file into n-chunks where n = fps*(audiofilezie/numvideoframes);
+                //Test compression
+                //for each
+                //store pointer
+                //write data
 
-                string stamp = $"00:00:0{(float)(1.0 / targetFps)}";
-                PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -filter:a \"atempo = {fps}\" -f segment -segment_time {stamp} {Processing}\\audio_output%09d.wav" };
+
+
+                string stamp = $"00:00:0{(float)(1.0 / fps)}";
                 P = Process.Start(PSI);
                 P.WaitForExit();
-                RenderAudio($"{Processing}", targetFps);
-                ROM.MakeSource("audio_outputmain", File.ReadAllBytes($"{Processing}\\audiopointer.dat"), $"{OutputFolder}");
-                ROM.Write(OutputFolder, "audio_outputmain");
+                RenderAudioV1($"{Processing}\\audio_outputmain.wav", targetFps, (int)numframes);
+     
             }
             else
             {
-                PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} {temp} {Processing}\\audio_outputmain.wav" };
                 P = Process.Start(PSI);
                 P.WaitForExit();
 
@@ -218,108 +223,190 @@ namespace KinometGui
             }
         }
 
-        private void RenderAudio(string directory, int fps)
+        private string RenderAudioV1(string srcFile, int fps,int numframes)
         {
             int mffreq = 10512;
             int zmfreq = 13379;
             int freq = zmfreq;
-            int coutner = 0;
+            string fn = "";
             freq = mffreq;
-            List<int> offsets = new List<int>();
-            IOStream fileOut = new IOStream(0);
-            var files = Directory.GetFiles(directory).Where(x => x.Contains("audio_output")).OrderBy(x => x).ToList();
-            Console.WriteLine($"Now converging {files.Count}, grab a drink and wait :)");
-            foreach (string srcFile in files)
+
+            FileInfo srcAudio = new FileInfo(srcFile);
+
+            //we need to be 8bit and mono channel, apply desired frequency.
+            var outFormat = new WaveFormat(freq, 8, 1);
+
+            //Find out level of decode 
+            WaveStream srcStream = null;
+
+            if (srcAudio.Extension.ToLower() == ".mp3")
             {
+                Console.WriteLine("Decoding mp3.");
+                srcStream = new Mp3FileReader(srcFile);
+            }
 
-                FileInfo srcAudio = new FileInfo(srcFile);
-                string fn = srcAudio.Name.Replace(srcAudio.Extension, "");
-                //we need to be 8bit and mono channel, apply desired frequency.
-                var outFormat = new WaveFormat(freq, 8, 1);
+            if (srcAudio.Extension.ToLower() == ".wav")
+            {
+                Console.WriteLine("Decoding wav.");
+                srcStream = new WaveFileReader(srcFile);
+            }
 
-                //Find out level of decode 
-                WaveStream srcStream = null;
-
-                if (srcAudio.Extension.ToLower() == ".mp3")
+            if (srcStream == null)
+            {
+                Console.WriteLine($"{srcAudio.Extension} is an unsupported format");
+                return null;
+            }
+            try
+            {
+                //Convert either source to wave.
+                using (WaveFormatConversionStream conversionStream = new WaveFormatConversionStream(outFormat, srcStream))
                 {
-                    Console.WriteLine("Decoding mp3.");
-                    srcStream = new Mp3FileReader(srcFile);
-                }
-
-                if (srcAudio.Extension.ToLower() == ".wav")
-                {
-                    Console.WriteLine("Decoding wav.");
-                    srcStream = new WaveFileReader(srcFile);
-                }
-
-                if (srcStream == null)
-                {
-                    Console.WriteLine($"{srcAudio.Extension} is an unsupported format");
-                    return;
-                }
-                try
-                {
-                    //Convert either source to wave.
-                    using (WaveFormatConversionStream conversionStream = new WaveFormatConversionStream(outFormat, srcStream))
+                    using (RawSourceWaveStream raw = new RawSourceWaveStream(conversionStream, outFormat))
                     {
-                        using (RawSourceWaveStream raw = new RawSourceWaveStream(conversionStream, outFormat))
+                        //Convert to signed 8bit.
+                        raw.Seek(0, SeekOrigin.Begin);
+                        int len = 0;
+                        List<sbyte> data = new List<sbyte>();
+                        for (; len < raw.Length; len++)
                         {
-                            //Convert to signed 8bit.
-                            raw.Seek(0, SeekOrigin.Begin);
-                            int len = 0;
-                            List<sbyte> data = new List<sbyte>();
-                            for (; len < raw.Length; len++)
+                            sbyte n = Convert.ToSByte(raw.ReadByte() - 128);
+                            data.Add(n);
+
+                        }                    //Generate 
+                                             //Write it
+                        fn = srcAudio.Name.Replace(srcAudio.Extension, "");
+                        using (FileStream fs = new FileStream($"{OutputFolder}\\{fn}.raw", FileMode.OpenOrCreate))
+                        using (BinaryWriter bw = new BinaryWriter(fs))
+                        {
+                            bw.Write(0x41555631);//AUV1
+
+                            UInt16 atype = (UInt16)audiov;
+
+                            byte[] hdr = BitConverter.GetBytes(atype);
+                            bw.Write(hdr);
+
+                            atype = (UInt16)fps;
+
+                            hdr = BitConverter.GetBytes(atype);
+                            bw.Write(hdr);
+
+                            var atype2 = freq;
+
+                            hdr = BitConverter.GetBytes(atype2);
+                            bw.Write(hdr);
+                            for (len = 0; len < raw.Length; len++)
                             {
-                                sbyte n = Convert.ToSByte(raw.ReadByte() - 128);
-                                data.Add(n);
-                            }                    //Generate 
-                                                 //Write it
-                            byte[] fixedDat = new byte[raw.Length];
-                            for (int i = 0; i < data.Count; i++) fixedDat[i] = (byte)data[i];
+                                bw.Write(data[len]);
+                            }
+                            bw.Close();
+                        }
+                        
 
+                        var fdat = File.ReadAllBytes($"{OutputFolder}\\{fn}.raw");
+                        int hdrLen = 4 + 2 + 2 + 4;
+                        int bufsize = (fdat.Length-hdrLen) / numframes;
+                        //Now math everything out. 
 
-                            MimirData dat = new MimirData(new IOStream(fixedDat));
+                        IOStream outfile = new IOStream(8);
+                        IOStream infile = new IOStream(8);
+                        //write old file header
+                        outfile.Write32(0xFFFFFFFF);//Index Pointers
+                        outfile.Write32(0xFFFFFFFF);//Data 
+
+                        IOStream pointerTable = new IOStream();
+                        IOStream dataTable = new IOStream();
+
+                        int fnsize = (fdat.Length  / bufsize);
+                        int sz = fps * bufsize;
+                        int ezCount = 0;
+                        for (int i = 0; i < fnsize; i += sz)
+                        {
+                            //buffer is fps*size;
+                            byte[] buf = new byte[sz];
+                            Buffer.BlockCopy(fdat, i, buf, 0, sz);
+
+                            MimirData dat = new MimirData(new IOStream(buf));
 
                             ChariotWheels compType = ChariotWheels.Raw;
                             IOStream stream = dat.srcDat;
                             int best = (int)dat.srcDat.Length;
-                            if (dat.lz.Length < best)
-                            {
-                                compType = ChariotWheels.LZ;
-                                stream = dat.lz;
-                                best = (int)stream.Length;
-                            }
+                            //if (dat.lz.Length < best)
+                            //{
+                            //    compType = ChariotWheels.LZ;
+                            //    stream = dat.lz;
+                            //    best = (int)stream.Length;
+                            //}
 
-                            if (dat.rle.Length < best)
-                            {
-                                compType = ChariotWheels.RLE;
-                                stream = dat.rle;
-                                best = (int)stream.Length;
-                            }
+                            //if (dat.rle.Length < best)
+                            //{
+                            //    compType = ChariotWheels.RLE;
+                            //    stream = dat.rle;
+                            //    best = (int)stream.Length;
+                            //}
 
-                            offsets.Add((int)fileOut.Position);
-                            fileOut.Write8((byte)compType);
-                            //fileOut.Write32(best);
-                            fileOut.Write(stream.Data, best);
-
-
+                            pointerTable.Write32((int)dataTable.Position);
+                            dataTable.Write32(0xDEADBEEF);
+                            dataTable.Write32(ezCount);//wtf
+                            dataTable.Write8((byte)compType);
+                            dataTable.Write16((ushort)best);
+                            dataTable.Write(stream.Data, best);
                         }
+                        long pointerTableoff = outfile.Position;
+                        outfile.Write(pointerTable.Data, pointerTable.Data.Length);
+                        outfile.Write32(0x53455054);
+                        long dataOffTable = outfile.Position;
+                        outfile.Write(dataTable.Data, dataTable.Data.Length);
+                        outfile.Position = 4;
+                        outfile.Write32((int)pointerTableoff);
+                        outfile.Write32((int)dataOffTable);
+
+                        File.WriteAllBytes("holyshit.dmp", outfile.Data);
+                        ROM.MakeSource(fn, outfile.Data, OutputFolder);
+                        ROM.Write(OutputFolder, fn);
+
                     }
                 }
-                catch (Exception e)
+                return "holyshit.dmp";
+            }
+            catch (Exception e)
+            {
+                using (RawSourceWaveStream raw = new RawSourceWaveStream(srcStream, outFormat))
                 {
+                    //Convert to signed 8bit.
+                    raw.Seek(0, SeekOrigin.Begin);
+                    int len = 0;
+                    List<sbyte> data = new List<sbyte>();
+                    for (; len < raw.Length; len++)
+                    {
+                        byte[] tmp = new byte[12];
+                        raw.Read(tmp, 0, 12);
+                        len += 12;
+                        for (int i = 0; i < 12; i++)
+                        {
+                            sbyte n = Convert.ToSByte(tmp[i] - 128);
+                            data.Add(n);
+                        }
 
 
+                    }                    //Generate 
+                                         //Write it
+                    fn = srcAudio.Name.Replace(".wav", "");
+                    using (FileStream fs = new FileStream($"{OutputFolder}\\{fn}.raw", FileMode.OpenOrCreate))
+                    using (BinaryWriter bw = new BinaryWriter(fs))
+                    {
+                        for (len = 0; len < data.Count; len++)
+                        {
+                            bw.Write(data[len]);
+                        }
+                        bw.Close();
+                    }
+
+                    ROM.MakeSource(fn, data.ToArray(), OutputFolder);
+                    ROM.Write(OutputFolder, fn);
 
                 }
-                coutner++;
             }
-            IOStream outf = new IOStream((int)(offsets.Count * 4 + fileOut.Length));
-            //write offsets
-            offsets.ForEach(x => outf.Write32(x));
-            //slow but whaetever
-            fileOut.Data.ToList().ForEach(x => outf.Write8(x));
-            File.WriteAllBytes($"{directory}\\audiopointer.dat", outf.Data);
+            return fn;
         }
     }
 }

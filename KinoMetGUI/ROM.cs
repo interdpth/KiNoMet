@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 
 namespace KinometGui
 {
@@ -54,10 +55,23 @@ namespace KinometGui
 
         public static void Write(string outputdir, string file)
         {
+            //Make sure files get DELETED
+            File.Delete($"{outputdir}\\{file}.h");  while (File.Exists($"{outputdir}\\{file}.h")) { Thread.Sleep(40); }
+            File.Delete($"{outputdir}\\{file}.cpp"); while (File.Exists($"{outputdir}\\{file}.cpp")) { Thread.Sleep(40); }
+
+
+
             File.WriteAllLines($"{outputdir}\\{file}.h", ROM.headerLines);
             List<string> newRom = new List<string> (){ $"#include \"{file}.h\"" };
             newRom.InsertRange(1, sourceLines);
-            File.WriteAllLines($"{outputdir}\\{file}.cpp", newRom);
+            using (var b = File.OpenWrite($"{outputdir}\\{file}.cpp"))
+            {
+                using (StreamWriter n = new StreamWriter(b)) 
+                {
+                    newRom.ForEach(x => n.WriteLine(x));
+                }
+            }
+                
             headerLines = new List<string>();
             sourceLines = new List<string>();
         }

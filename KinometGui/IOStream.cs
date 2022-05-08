@@ -201,15 +201,15 @@ namespace KinometGui
             //data[pos] = (byte)val;
             //data[pos + 1] = (byte)(val >> 8);
             BitConverter.GetBytes(val).ToList().ForEach(x => Write8(x));
-            pos += 2;
+          
         }
 
         public void Write32(int val)
         {
-            while (pos % 4 != 0)
-            {
-                Write8(0);
-            }
+            //while (pos % 4 != 0)
+            //{
+            //    Write8(0);
+            //}
             if (pos + 4 > length)
             {
                 length = pos + 4;
@@ -224,15 +224,15 @@ namespace KinometGui
             //data[pos + 1] = (byte)(val >> 8);
             //data[pos + 2] = (byte)(val >> 16);
             //data[pos + 3] = (byte)(val >> 24);
-            pos += 4;
+          
         }
 
         public void Write32(uint val)
         {
-            while (pos % 4 != 0)
-            {
-                Write8(0);
-            }
+            //while (pos % 4 != 0)
+            //{
+            //    Write8(0);
+            //}
             if (pos + 4 > length)
             {
                 length = pos + 4;
@@ -246,7 +246,7 @@ namespace KinometGui
             //data[pos + 2] = (byte)(val >> 16);
             //data[pos + 3] = (byte)(val >> 24);
             BitConverter.GetBytes(val).ToList().ForEach(x => Write8(x));
-            pos += 4;
+           
         }
 
         public void WriteU32(UInt32 val)
