@@ -76,8 +76,9 @@ void AudioHandler::Init(AudioHeader* p, int len)
 }
 
 
-AudioHandler::AudioHandler(int type, int fp, int sam, int frames, int (*func)())
+AudioHandler::AudioHandler(int type, int fp, int sam, int frames, int rsize, int (*func)())
 {
+	ringSize = rsize;// (len / frames)* fps;
 	while (1)
 	{
 		;
@@ -90,10 +91,10 @@ AudioHandler::AudioHandler(int type, int fp, int sam, int frames, int (*func)())
 #ifdef GBA 
 IWRAM
 #endif
-AudioHandler::AudioHandler(unsigned char* src, int len, int fps, int frames, int (*func)())
+AudioHandler::AudioHandler(unsigned char* src, int len, int fps, int frames , int rsize, int (*func)())
 {
 	AudioHeader* hdr = (AudioHeader*)src;
-	ringSize = (len / frames) * fps;
+	ringSize = rsize;// (len / frames)* fps;
 	Init(hdr->type, hdr->fps, hdr->freq);
 
 	GetSize = func;
@@ -216,7 +217,14 @@ void AudioHandler::ProcessPackets()
 //
 //	return 0;
 //}
-
+void AudioHandler::ClearAudio()
+{
+	while (packets.size())
+	{
+		free(packets[packets.size() - 1]);
+		packets.pop_back();
+	}
+}
 void AudioHandler::QueueAudio(AudioPacket* packet)
 {
 	packets.push_back(packet);

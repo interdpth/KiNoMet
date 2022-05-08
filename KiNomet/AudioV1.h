@@ -25,12 +25,12 @@ private:
     unsigned long* dataPointers;
     unsigned char* dataOffsetTable;
 public:
-    AudioV1(unsigned char* src, int len, int fps, int frames, int (*func)());
-    int SeekIndex();
-    int Copy(AudioPacket* curPack, unsigned char* dstBuf, int len);
+    AudioV1(unsigned char* src, int len, int fps, int frames, int rsize,int (*func)());
 
-  unsigned char* GetBuffer();
-   // int Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack);
+    //int Copy(AudioPacket* curPack, unsigned char* dstBuf, int len);
+
+  //unsigned char* GetBuffer();
+  // // int Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack);
 
     /// <summary>
 /// Dump audio to buffer.

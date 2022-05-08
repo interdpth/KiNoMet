@@ -5,12 +5,12 @@ AudioManager::AudioManager(unsigned char* src, int len, int fps, int frames, int
 	int hdr = *(unsigned long*)src;
 	if (hdr == 0x41555631)
 	{
-		hndlr = new AudioV1(src, len, fps, frames, func);
+		hndlr = new AudioV1(src, len, fps, frames, fps * ((len - sizeof(AudioHeader)) / frames), func);
 		ver = V1;
 	}
 	else if(hdr == 0x41555630)
 	{
-		hndlr = new AudioHandler(src, len, fps, frames, func);
+		hndlr = new AudioHandler(src, len, fps, frames,  (len / frames)* fps, func);
 		ver = V0;
 	}
 }
@@ -23,7 +23,8 @@ int AudioManager::Copy(AudioPacket* curPack, unsigned char* dstBuf, int size)
 	{
 	  return	((AudioV1*)hndlr)->Copy(curPack, dstBuf, size);
 	}
-	else {
+	else 
+	{
 		return	((AudioHandler*)hndlr)->Copy(curPack, dstBuf, size);
 	}
 	return -1;
@@ -34,7 +35,8 @@ int AudioManager::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
 	{
 		return	((AudioV1*)hndlr)->Fillbuffers(bytesLeft, curPack);
 	}
-	else {
+	else 
+	{
 		return	((AudioHandler*)hndlr)->Fillbuffers(bytesLeft, curPack);
 	}
 	return -1;
@@ -45,7 +47,8 @@ int AudioManager::Processs()
 	{
 		return	((AudioV1*)hndlr)->Processs();
 	}
-	else {
+	else 
+	{
 		return	((AudioHandler*)hndlr)->Processs();
 	}
 	return -1;
@@ -58,7 +61,8 @@ unsigned char* AudioManager::GetBuffer()
 	{
 		return	((AudioV1*)hndlr)->GetBuffer();
 	}
-	else {
+	else 
+	{
 		return	((AudioHandler*)hndlr)->GetBuffer();
 	}
 	return NULL;
@@ -69,14 +73,15 @@ unsigned char* AudioManager::GetBuffer()
 
 int AudioManager::GetSampleFreq()
 {
-	//if (ver == V1)
-	//{
-	//	return	((AudioV1*)hndlr)->GetSampleFreq();
-	//}
-	//else {
+	if (ver == V1)
+	{
+		return	((AudioV1*)hndlr)->GetSampleFreq();
+	}
+	else
+	{
 		return	((AudioHandler*)hndlr)->GetSampleFreq();
-	//}
-	//return -1;
+	}
+	return -1;
 }
 
 int AudioManager::GetType()
@@ -85,7 +90,8 @@ int AudioManager::GetType()
 	{
 		return	((AudioV1*)hndlr)->GetType();
 	}
-	else {
+	else 
+	{
 		return	((AudioHandler*)hndlr)->GetType();
 	}
 	return -1;

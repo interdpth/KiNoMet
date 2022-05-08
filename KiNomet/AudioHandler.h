@@ -48,13 +48,21 @@ private:
 	int sample_rate;
 	bool swapped;
 	int swapsize;
+
+	//we need a callback to get data 
+	int (*GetSize)();
+
+
+	void Swap();
+
+public:
 	/// <summary>
-	/// Main INit
-	/// </summary>
-	/// <param name="type"></param>
-	/// <param name="fp"></param>
-	/// <param name="sam"></param>
-	/// 
+/// Main INit
+/// </summary>
+/// <param name="type"></param>
+/// <param name="fp"></param>
+/// <param name="sam"></param>
+/// 
 	void Init(int type, int fp, int sam);
 	/// <summary>
 	/// Calls maint init
@@ -64,20 +72,13 @@ private:
 	/// <param name="sam"></param>
 
 	void Init(AudioHeader* hdr, int len);
-	//we need a callback to get data 
-	int (*GetSize)();
-
-
-	void Swap();
-
-public:
 	int ringSize;
 	/// <summary>
 	/// Basic init.
 	/// </summary>
 	/// <param name="type">Type of audio handler</param>
 	/// <param name="fps">FPS we are </param>
-	AudioHandler(int type, int fp, int sam, int frames, int (*func)());
+	AudioHandler(int type, int fp, int sam, int frames, int rsize, int (*func)());
 	int Copy(AudioPacket* curPack, unsigned char* dstBuf, int size);
 	/// <summary>
 	/// Basic init, but also queues track.
@@ -87,7 +88,7 @@ public:
 	/// <param name="sam"></param>
 	/// <param name="src"></param>
 	/// <param name="len"></param>
-	AudioHandler(unsigned char* src, int len, int fps, int frames, int (*func)());
+	AudioHandler(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)());
 	int Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack);
 	void ProcessPackets();
 	/// <summary>
@@ -101,7 +102,7 @@ public:
 	/// </summary>
 	/// <returns></returns>
 	bool Exhausted();
-
+	void ClearAudio();
 	/// <summary>
 	/// Queues Audio into the ring buffer. 
 	/// </summary>

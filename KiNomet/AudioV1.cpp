@@ -1,9 +1,9 @@
 #include "AudioV1.h"
-AudioV1::AudioV1(unsigned char* src, int len, int fps, int frames, int (*func)()) :
-	AudioHandler(src, len, fps, frames, func)
+AudioV1::AudioV1(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)()) :
+	AudioHandler(src, len, fps, frames, rsize, func)
 {
-	int hdrSize = sizeof(AudioHeader);;
-	
+
+//	ClearAudio();
 #ifdef DEBUG
 	unsigned char* filePointer = src;//Skip past header. if debug do a check
 	if (*((unsigned long*)filePointer) != 0x41555631)
@@ -24,7 +24,7 @@ AudioV1::AudioV1(unsigned char* src, int len, int fps, int frames, int (*func)()
 
 	dataPointers = pointerTable;
 	offsetCount = count;
-	decompBuffer = (unsigned char*)malloc(0x1000);
+	decompBuffer = (unsigned char*)malloc(ringSize);
 	frame = 0;
 }
 //int AudioV1::Processs()
@@ -77,23 +77,23 @@ AudioV1::AudioV1(unsigned char* src, int len, int fps, int frames, int (*func)()
 //	return 0;
 //}
 
-int AudioV1::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
-{
-
-	int bytesLeft = len;
-	if (curPack->tracked + bytesLeft > curPack->len)
-	{
-		bytesLeft = curPack->len - (curPack->tracked);
-	}
-
-#ifdef  GBA
-	memcpy16_dma((unsigned short*)dstBuf, (unsigned short*)&curPack->start[curPack->tracked], bytesLeft >> 1);
-#else
-	memcpy(dstBuf, &curPack->start[curPack->tracked], bytesLeft);
-#endif
-	curPack->tracked += bytesLeft;
-	return bytesLeft;
-}
+//int AudioV1::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
+//{
+//
+//	int bytesLeft = len;
+//	if (curPack->tracked + bytesLeft > curPack->len)
+//	{
+//		bytesLeft = curPack->len - (curPack->tracked);
+//	}
+//
+//#ifdef  GBA
+//	memcpy16_dma((unsigned short*)dstBuf, (unsigned short*)&curPack->start[curPack->tracked], bytesLeft >> 1);
+//#else
+//	memcpy(dstBuf, &curPack->start[curPack->tracked], bytesLeft);
+//#endif
+//	curPack->tracked += bytesLeft;
+//	return bytesLeft;
+//}
 
 #ifdef GBA 
 IWRAM
@@ -103,7 +103,8 @@ int AudioV1::Processs()
 	ProcessPackets();
 	AudioPacket* curPack = GetCurrentPacket();
 	if (curPack == nullptr) return 0;
-
+	
+	
 		//Herroo
 	unsigned char* block = &dataOffsetTable[dataPointers[frame]];
 	unsigned char* data = block; 
@@ -139,18 +140,19 @@ int AudioV1::Processs()
 		break;
 	}
 	
-	curPack->len = decompSize;
-	curPack->tracked = 0;
-//#ifdef  GBA
-//	memcpy16_dma((unsigned short*)GetBuffer(), decompBuffer, decompSize >> 1);
-//#else
-//	memcpy(GetBuffer(), decompBuffer, decompSize);
-//#endif
+	//curPack->len = decompSize;
+	//if(curPack->tracked >= decompSize) curPack->tracked= 0;
+#ifdef  GBA
+	memcpy16_dma(GetBuffer(), decompBuffer, decompSize >> 1);
+#else
+	memcpy(GetBuffer(), decompBuffer, decompSize);
+#endif
 	frame++;
 
 	//modify pack
-
-	return Fillbuffers(ringSize, curPack);
+//	int ret = Fillbuffers(ringSize, curPack);
+	return 	((AudioHandler*)this)->Processs();
+	;
 
 }
 //int AudioV1::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
@@ -164,10 +166,10 @@ int AudioV1::Processs()
 //}
 
 
-#ifdef GBA 
-IWRAM
-#endif
-unsigned char* AudioV1::GetBuffer()
-{	
-	return decompBuffer;
-}
+//#ifdef GBA 
+//IWRAM
+//#endif
+//unsigned char* AudioV1::GetBuffer()
+//{	
+//	return decompBuffer;
+//}
