@@ -41,31 +41,29 @@ namespace KinometGui
             TimeSpan ts = TimeSpan.FromTicks(mInfo);
             double minutesFromTs = ts.TotalMinutes;
             uint fr = (vidInfo.FrameRate.Value == null ? 0 : vidInfo.FrameRate.Value.Value) / 1000;
-            int targetFps = (int)fr;
-
-
-
+            int targetFps = (int)23;
 
             ////  Do some intial conversions.
             ///
-            var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -filter:v fps=fps={targetFps} -q 32 -s 240x160 {Processing}\\{tmpVideo}" };
+            var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -filter:v fps=fps={targetFps} -crf 25 -s 240x160 {Processing}\\{tmpVideo}" };
             var P = Process.Start(PSI);
             P.WaitForExit();
 
             float fps = (float)((float)fr / (float)targetFps);
-            if (fps > 2.0 || fps < 0.5)
+            if (fps > 100.0 || fps < 0.5)
             {
                 Console.WriteLine("Range is bad, clamping value");
-                if (fps > 2.0f) fps = 2.0f;
+                if (fps > 100.0f) fps = 100.0f;
                 if (fps < 0.5f) fps = 0.5f;
             }
-            uint numframes = (uint)(mInfo / 1000) / (uint)targetFps;
+          
+            uint numframes = (uint)(mInfo / 1000) / (uint)fps ;
             string temp = "";
             if (fps != 1)
             {
                 temp = $"-filter:a \"atempo = {fps}\"";
             }
-            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} {temp} {Processing}\\audio_outputmain.wav" };
+            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} {temp} -ac 1 {Processing}\\audio_outputmain.wav" };
 
             if (audiov == 1)
             {
@@ -93,7 +91,7 @@ namespace KinometGui
             }
             //   
 
-            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -filter:v fps=fps={targetFps} -c:v cinepak -max_strips 10 -s 240x160 -q 30 -an {Processing}\\{fn}_final.avi" };
+            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -filter:v fps=fps={targetFps} -c:v cinepak -max_strips 5 -q 30 -s 240x160 -an {Processing}\\{fn}_final.avi" };
             P = Process.Start(PSI);
             P.WaitForExit();
             ROM.MakeSource("VideoFile", File.ReadAllBytes($"{Processing}\\{fn}_final.avi"), $"{OutputFolder}");
@@ -105,7 +103,7 @@ namespace KinometGui
         {
             int mffreq = 10512;
             int zmfreq = 13379;
-            int freq = zmfreq;
+            int freq = mffreq;
 
             freq = mffreq;
 
@@ -153,6 +151,7 @@ namespace KinometGui
                         }                    //Generate 
                                              //Write it
                         string fn = srcAudio.Name.Replace(srcAudio.Extension, "");
+                        if (File.Exists($"{OutputFolder}\\{fn}.raw")) File.Delete($"{OutputFolder}\\{fn}.raw");
                         using (FileStream fs = new FileStream($"{OutputFolder}\\{fn}.raw", FileMode.OpenOrCreate))
                         using (BinaryWriter bw = new BinaryWriter(fs))
                         {
@@ -171,7 +170,7 @@ namespace KinometGui
 
                             hdr = BitConverter.GetBytes(atype2);
                             bw.Write(hdr);
-                            for (len = 0; len < raw.Length; len++)
+                            for (len = 0; len < data.Count; len++)
                             {
                                 bw.Write(data[len]);
                             }
@@ -321,23 +320,23 @@ namespace KinometGui
                                         ChariotWheels compType = ChariotWheels.Raw;
                                         IOStream stream = dat.srcDat;
                                         int best = (int)dat.srcDat.Length;
-                                        //if (dat.lz.Length < best)
-                                        //{
-                                        //    compType = ChariotWheels.LZ;
-                                        //    stream = dat.lz;
-                                        //    best = (int)stream.Length;
-                                        //}
+                                        if (dat.lz.Length < best)
+                                        {
+                                            compType = ChariotWheels.LZ;
+                                            stream = dat.lz;
+                                            best = (int)stream.Length;
+                                        }
 
-                                        //if (dat.rle.Length < best)
-                                        //{
-                                        //    compType = ChariotWheels.RLE;
-                                        //    stream = dat.rle;
-                                        //    best = (int)stream.Length;
-                                        //}
+                                        if (dat.rle.Length < best)
+                                        {
+                                            compType = ChariotWheels.RLE;
+                                            stream = dat.rle;
+                                            best = (int)stream.Length;
+                                        }
 
                                         pointerTable.Write(BitConverter.GetBytes(dataTable.Position), 0, 4);
-                                        dataTable.Write(BitConverter.GetBytes(0xDEADBEEF), 0, 4);
-                                        dataTable.Write(BitConverter.GetBytes(ezCount), 0, 4);//wtf
+                                        //dataTable.Write(BitConverter.GetBytes(0xDEADBEEF), 0, 4);
+                                        //dataTable.Write(BitConverter.GetBytes(ezCount), 0, 4);//wtf
                                         dataTable.WriteByte((byte)compType);
                                         dataTable.Write(BitConverter.GetBytes((ushort)best), 0, 2);
                                         dataTable.Write(stream.Data, 0, best);

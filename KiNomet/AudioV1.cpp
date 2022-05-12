@@ -1,9 +1,10 @@
 #include "AudioV1.h"
+#include <cstdlib>
 AudioV1::AudioV1(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)()) :
 	AudioHandler(src, len, fps, frames, rsize, func)
 {
 
-//	ClearAudio();
+	//	ClearAudio();
 #ifdef DEBUG
 	unsigned char* filePointer = src;//Skip past header. if debug do a check
 	if (*((unsigned long*)filePointer) != 0x41555631)
@@ -24,7 +25,11 @@ AudioV1::AudioV1(unsigned char* src, int len, int fps, int frames, int rsize, in
 
 	dataPointers = pointerTable;
 	offsetCount = count;
-	decompBuffer = (unsigned char*)malloc(ringSize);
+#ifdef GBA
+	decompBuffer = ((unsigned char*)0x6000000 + (240 * 160 * 2) + 0x1000);
+#else 
+	decompBuffer = (unsigned char*)malloc(0x1000);
+#endif 
 	frame = 0;
 }
 //int AudioV1::Processs()
@@ -103,19 +108,19 @@ int AudioV1::Processs()
 	ProcessPackets();
 	AudioPacket* curPack = GetCurrentPacket();
 	if (curPack == nullptr) return 0;
-	
-	
-		//Herroo
+
+
+	//Herroo
 	unsigned char* block = &dataOffsetTable[dataPointers[frame]];
-	unsigned char* data = block; 
+	unsigned char* data = block;
 
 
-	unsigned long compDEADBEEF = *(unsigned long*)data; data += 4;
-	if (compDEADBEEF != 0xDEADBEEF)
-	{
-		while (1);{}
-	}
-	unsigned int id = *(unsigned long*)data; data += 4;
+	//unsigned long compDEADBEEF = *(unsigned long*)data; data += 4;
+	//if (compDEADBEEF != 0xDEADBEEF)
+	//{
+	//	while (1);{}
+	//}
+	//unsigned int id = *(unsigned long*)data; data += 4;
 	unsigned char cmp = *data; data += 1;
 	unsigned short size = *(unsigned short*)data; data += 2;
 	Compression* comp = new Compression();
@@ -128,27 +133,27 @@ int AudioV1::Processs()
 		break;
 
 	case RLE:
-		
+
 		decompSize = comp->RLEDecomp(data, decompBuffer, size);
 		break;
 	case LZ:
 		decompSize = comp->LZDecomp(data, decompBuffer, size);
 		break;
 
-	default: 
+	default:
 		while (1);
 		break;
 	}
-	
+
 	//curPack->len = decompSize;
-	//if(curPack->tracked >= decompSize) curPack->tracked= 0;
+	if (curPack->tracked >= decompSize) curPack->tracked = 0;
 #ifdef  GBA
-	memcpy16_dma(GetBuffer(), decompBuffer, decompSize >> 1);
+	memcpy16_dma((unsigned short*)GetBuffer(), (unsigned short*)decompBuffer, decompSize >> 1);
 #else
 	memcpy(GetBuffer(), decompBuffer, decompSize);
 #endif
 	frame++;
-
+	delete comp;
 	//modify pack
 //	int ret = Fillbuffers(ringSize, curPack);
 	return 	((AudioHandler*)this)->Processs();

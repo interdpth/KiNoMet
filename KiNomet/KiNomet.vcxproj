@@ -146,6 +146,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AudioHandler.cpp" />
+    <ClCompile Include="AudioManager.cpp" />
     <ClCompile Include="AudioV0.cpp" />
     <ClCompile Include="AudioV1.cpp" />
     <ClCompile Include="AviApi.cpp" />
@@ -162,6 +163,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AudioHandler.h" />
+    <ClInclude Include="AudioManager.h" />
     <ClInclude Include="AudioV0.h" />
     <ClInclude Include="AudioV1.h" />
     <ClInclude Include="AviApi.h" />

@@ -4,8 +4,7 @@
 #include "../KiNomet/Cinepak.h"
 #include "AviApi.h"
 #include <stdio.h>
-#include "AudioV0.h"
-#include "AudioV1.h"
+#include "AudioManager.h"
 #ifdef GBA
 #include <tgmath.h>
 #endif
@@ -54,7 +53,7 @@ void LoadAVI(unsigned char* file,
 	aviLoader* options)
 {
 	rectangle screen;
-	AudioHandler* audio = nullptr;
+	AudioManager * audio = nullptr;
 
 	SmallBuffer* buf = new SmallBuffer(file, size);
 	//memset(&hdr, 0, sizeof(MainAVIHeader));
@@ -88,17 +87,10 @@ void LoadAVI(unsigned char* file,
 	if (audiofile != nullptr)
 	{
 		 //determien
-		int hdr = *(unsigned long*)audiofile;
-		if (hdr == 0x41555631)
-		{
-			audio = new AudioV1(audiofile, audiofsize, fps, hdrz->dwTotalFrames, options->GetSize);
+		
+		audio = new AudioManager(audiofile, audiofsize, fps, hdrz->dwTotalFrames, options->GetSize);
 
-		}
-		else 
-		{
-			audio = new AudioV0(audiofile, audiofsize, fps, hdrz->dwTotalFrames, options->GetSize);
-
-		}
+		
 		int readSize = audio->Processs();
 		pack.isAudio = true;
 		pack.frame = audio->GetBuffer();

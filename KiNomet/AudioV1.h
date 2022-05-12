@@ -1,6 +1,7 @@
 #pragma once
 #include "AudioHandler.h"
 #include "Compression.h"
+#include "Gba.h"
 enum CompType
 {
 

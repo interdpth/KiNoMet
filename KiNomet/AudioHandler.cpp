@@ -13,7 +13,11 @@
 
 void AudioHandler::Init(int t, int fp, int sam)
 {
+#ifdef GBA
+	startBuf = ((unsigned char*)0x6000000 + (240 * 160 * 2));//(unsigned char*)malloc(ringSize);
+#else
 	startBuf = (unsigned char*)malloc(ringSize);
+#endif
 	/*tmpBuf = (unsigned char*)malloc(TMP_SIZE);*/
 	limitBuf = startBuf + ringSize;
 

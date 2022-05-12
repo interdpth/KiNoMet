@@ -1,4 +1,5 @@
 #include "AudioManager.h"
+#include <cstddef>
 AudioManager::AudioManager(unsigned char* src, int len, int fps, int frames, int (*func)())
 {
 	
