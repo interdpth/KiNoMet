@@ -25,17 +25,17 @@ LIB		:=	$(TOPDIR)/gba/lib
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-ARCH	:=	-mthumb -mthumb-interwork
+ARCH	:=	-mthumb -mthumb-interwork -static
 
 CFLAGS	:=	-g -Wall -O2\
 		-mcpu=arm7tdmi -mtune=arm7tdmi\
  		-fomit-frame-pointer\
 		$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DGBA -shared -fno-inline-small-functions -O0
-CXXFLAGS	:=	$(CFLAGS) -fno-inline-small-functions
+CFLAGS	+=	$(INCLUDE) -DGBA -fno-inline-small-functions -O0 -gdwarf-4 -static
+CXXFLAGS	:=	$(CFLAGS) -fno-inline-small-functions -gdwarf-4 -static
 
-ASFLAGS	:=	-g -shared $(ARCH)
+ASFLAGS	:=	-gdwarf-4 -static $(ARCH)
 
 
 export GBABIN	:=	$(LIB)/libKiNoMet.a
@@ -127,7 +127,7 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #---------------------------------------------------------------------------------
 $(GBABIN)	:	$(OFILES) $(LIB)
 	@rm -f "$(GBABIN)"
-	@$(AR) rcs "$(GBABIN)" $(OFILES)
+	@$(AR) rcs "$(GBABIN)" $(OFILES) 
 	@echo built ... $(notdir $@)
 #---------------------------------------------------------------------------------
 # you need a rule like this for each extension you use as binary data 

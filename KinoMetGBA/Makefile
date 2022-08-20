@@ -35,7 +35,7 @@ MUSIC		:=
 #---------------------------------------------------------------------------------
 ARCH	:=	-mthumb -mthumb-interwork
 
-CFLAGS	:=	-g -Wall\
+CFLAGS	:=	-static -g -Wall\
 		-mcpu=arm7tdmi -mtune=arm7tdmi\
  		-fomit-frame-pointer\
 		$(ARCH)
@@ -44,8 +44,8 @@ CFLAGS	+=	$(INCLUDE) -DGBA
 
 CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions -fno-inline-small-functions
 
-ASFLAGS	:=	-g $(ARCH)
-LDFLAGS	=	-g $(ARCH) -Wl,-Map,$(notdir $*.map)
+ASFLAGS	:=	-gdwarf-4 $(ARCH)
+LDFLAGS	=	-gdwarf-4 $(ARCH) -Wl,-Map,$(notdir $*.map)
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
@@ -137,7 +137,7 @@ else
 $(OUTPUT).gba	:	$(OUTPUT).elf
 
 $(OUTPUT).elf	:	$(OFILES)
-
+$(OUTPUT).lib	:	$(OFILES)
 $(OFILES_SOURCES) : $(HFILES)
 
 #---------------------------------------------------------------------------------

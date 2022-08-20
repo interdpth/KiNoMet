@@ -1,3 +1,5 @@
+extern "C"
+{
 #include "..\KiNomet\KiNoMet.h"
 #include "VideoFile.h"
 
@@ -5,12 +7,13 @@
 #include "..\KiNomet\Gba.h"
 #include <stdio.h>
 #include "../KiNomet/AudioHandler.h"
-int frameHandled;
 
+	void VideoLoader();
+}
 //indicates if framebufer can be used as a buffer or not.
 int canDmaImage;
 int vblankcounter = 0;
-
+int frameHandled;
 char frameReady;
 int lastDrawn;
 int numFrames = 0;
@@ -210,14 +213,10 @@ IWRAM bool handleFrame(KinometPacket* packet)
 	return true;
 }
 
-
-int main()
+void VideoLoader()
 {
-	int sample_rate = 10512;//For now
+		int sample_rate = 10512;//For now
 	lastFrame = 0;
-	audioBuf = (unsigned char*)malloc(0x4000);
-	for (int i = 0; i < 0x1000; i++) ((unsigned long*)audioBuf)[i] = 0;
-
 	ticks_per_sample = CLOCK / sample_rate;
 	channel_a_vblanks_remaining = (audio_outputmain_size * ticks_per_sample) / CYCLES_PER_BLANK;
 	aviLoader l;
@@ -229,7 +228,10 @@ int main()
 	SetupAudio();
 	StartPlaying((const signed char*)audio_outputmain, audio_outputmain_size);
 	LoadAVI((unsigned char*)VideoFile, VideoFile_size, nullptr, 0, &l);// (unsigned char*)audio_outputmain, audio_outputmain_size, & l);
-
+}
+int main()
+{
+	VideoLoader();
 	return 0;
 }
 
