@@ -71,7 +71,7 @@ public:
 	/// <param name="fp"></param>
 	/// <param name="sam"></param>
 
-	void Init(AudioHeader* hdr, int len);
+	void InitAudioHandler(AudioHeader* p, int len);
 	int ringSize;
 	/// <summary>
 	/// Basic init.

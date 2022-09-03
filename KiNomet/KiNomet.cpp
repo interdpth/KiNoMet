@@ -137,6 +137,7 @@ void LoadAVI(unsigned char* file,
 	int audioUpdate = 0;
 	while (curFrame < numFrames)
 	{
+		
 		_avioldindex_entry* cur = &idxList[curFrame];
 
 		//Make sure we are a frame.
@@ -191,17 +192,16 @@ void LoadAVI(unsigned char* file,
 			audioUpdate++;
 		}
 
-
-
 		//Capture timestamp after draw.
 		last = options->GetTicks();
 
 	}
 
-
+	delete audio;
 #ifndef  GBA
 	free(Kinomet_FrameBuffer);
 #endif
 	free_cvinfo(ci);
+	return;
 }
 

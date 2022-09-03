@@ -30,6 +30,7 @@ INCLUDES    += .
 DATA		:= data
 MUSIC		:=
 
+
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
@@ -38,15 +39,19 @@ ARCH	:=	-mthumb -mthumb-interwork
 CFLAGS	:=	-static -g -Wall\
 		-mcpu=arm7tdmi -mtune=arm7tdmi\
  		-fomit-frame-pointer\
+		-O0\
 		$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DGBA 
+CFLAGS	+=	$(INCLUDE) -DGBA -fno-inline-small-functions
 
-CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions -fno-inline-small-functions
+CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions 
 
 ASFLAGS	:=	-gdwarf-4 $(ARCH)
-LDFLAGS	=	-gdwarf-4 $(ARCH) -Wl,-Map,$(notdir $*.map)
-
+ifdef offset
+LDFLAGS	=	-gdwarf-4 $(ARCH) $(INSERT) -Wl,-Map,$(notdir $*.map) -T C:\Users\Endeavor3\Documents\GitHub\KiNoMet\KinoMetGBA\linker.lsc
+else
+LDFLAGS	=	-gdwarf-4 $(ARCH) $(INSERT) -Wl,-Map,$(notdir $*.map)
+endif
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
@@ -118,9 +123,15 @@ export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
  
 #---------------------------------------------------------------------------------
 $(BUILD):
+ifdef offset
+	sed 's/^        rom     : ORIGIN = 0x08XXXXXX, LENGTH = 32M$$/        rom     : ORIGIN = $(offset), LENGTH = 32M/' linker_base.lsc > linker.lsc
+endif
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
-
+ifdef offset
+	@dd if=KinoMetGBA.gba of="$(fname)" conv=notrunc seek=$(binoffset) bs=1
+endif
+	@echo "Build done"
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
@@ -137,7 +148,6 @@ else
 $(OUTPUT).gba	:	$(OUTPUT).elf
 
 $(OUTPUT).elf	:	$(OFILES)
-$(OUTPUT).lib	:	$(OFILES)
 $(OFILES_SOURCES) : $(HFILES)
 
 #---------------------------------------------------------------------------------
@@ -170,6 +180,7 @@ soundbank.bin soundbank.h : $(AUDIOFILES)
 
 
 -include $(DEPSDIR)/*.d
+
 
 #---------------------------------------------------------------------------------------
 endif

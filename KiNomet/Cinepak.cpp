@@ -415,7 +415,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 		if (strips >= MAX_STRIPS)
 		{
 			ERR("CVID: strip overflow (more than %d)\n", MAX_STRIPS);
-			exit(-1);
+			return;
 		}
 
 		for (i = cvinfo->strip_num; i < strips; i++)//Init our codebooks.

@@ -28,6 +28,9 @@
     <Filter Include="AviApi">
       <UniqueIdentifier>{3379f032-a838-4d24-8ff5-aa253f5e6d24}</UniqueIdentifier>
     </Filter>
+    <Filter Include="CppHeaders">
+      <UniqueIdentifier>{85fb5435-9341-448e-8992-36f0fd65863f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KiNomet.cpp">
@@ -72,6 +75,9 @@
     <ClCompile Include="UserInterface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AudioManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Compression.h">
@@ -80,9 +86,6 @@
     <ClInclude Include="Cinepak.h">
       <Filter>Cinepak</Filter>
     </ClInclude>
-    <ClInclude Include="AviApi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="KiNoMet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -90,9 +93,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="KinoAudio.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CodeBookManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Gba.h">
@@ -115,6 +115,15 @@
     </ClInclude>
     <ClInclude Include="UserInterface.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AviApi.h">
+      <Filter>CppHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="CodeBookManager.h">
+      <Filter>CppHeaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

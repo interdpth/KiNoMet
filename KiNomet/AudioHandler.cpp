@@ -72,24 +72,22 @@ int AudioHandler::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
 	return bytesLeft;
 }
 
-void AudioHandler::Init(AudioHeader* p, int len)
+void AudioHandler::InitAudioHandler(AudioHeader* p, int len)
 {
 	Init(p->type, p->fps, p->freq);
-
-
 }
 
 
-AudioHandler::AudioHandler(int type, int fp, int sam, int frames, int rsize, int (*func)())
-{
-	ringSize = rsize;// (len / frames)* fps;
-	while (1)
-	{
-		;
-	}
-	Init(type, fp, sam);
-	GetSize = func;
-}
+//AudioHandler::AudioHandler(int type, int fp, int sam, int frames, int rsize, int (*func)())
+//{
+//	ringSize = rsize;// (len / frames)* fps;
+//	while (1)
+//	{
+//		;
+//	}
+//	Init(type, fp, sam);
+//	GetSize = func;
+//}
 
 //Ring buffer is 0x4000 bytes.
 #ifdef GBA 

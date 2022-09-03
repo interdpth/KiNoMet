@@ -15,3 +15,5 @@ KinometWindows\frame*
 /Debug/
 /packages/
 KiNomet/Debug/KiNomet.Build.CppClean.log
+*.tlog
+*.recipe

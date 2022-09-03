@@ -158,7 +158,8 @@ extern unsigned int channel_b_vblanks_remaining;
 #define INT_BUTTON 	0x1000
 #define INT_CART 	0x2000
 
-#define IWRAM __attribute__((section(".iwram"), target("arm"), noinline))
+#define IWRAM __attribute__((section(".IWRAM"), target("arm"), noinline))
+#define ARM __attribute__((section(".ROM"), target("arm"), noinline))
 typedef enum irqMASKS {
 	IRQ_VBLANK = (1 << 0),		/*!< vertical blank interrupt mask */
 	IRQ_HBLANK = (1 << 1),		/*!< horizontal blank interrupt mask */
@@ -184,7 +185,7 @@ typedef void (*IntFn)(void);
 void VBlankIntrWait();
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
 #ifdef GBA
-void* memcpy(void* dest, const void* src, int olen);
+void* memcpy(void* dest, const void* src, unsigned int olen);
 #endif
 
 /*!	\defgroup grpNocash no$gba debugging

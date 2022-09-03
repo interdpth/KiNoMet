@@ -25,17 +25,17 @@ LIB		:=	$(TOPDIR)/gba/lib
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-ARCH	:=	-mthumb -mthumb-interwork -static
+ARCH	:=	-mthumb -mthumb-interwork
 
 CFLAGS	:=	-g -Wall -O2\
 		-mcpu=arm7tdmi -mtune=arm7tdmi\
  		-fomit-frame-pointer\
 		$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DGBA -fno-inline-small-functions -O0 -gdwarf-4 -static
+CFLAGS	+=	$(INCLUDE) -DGBA -fno-inline-small-functions -O2 -gdwarf-4 -static
 CXXFLAGS	:=	$(CFLAGS) -fno-inline-small-functions -gdwarf-4 -static
 
-ASFLAGS	:=	-gdwarf-4 -static $(ARCH)
+ASFLAGS	:=	-gdwarf-4 $(ARCH)
 
 
 export GBABIN	:=	$(LIB)/libKiNoMet.a
