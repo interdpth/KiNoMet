@@ -1,5 +1,4 @@
-extern "C"
-{
+
 #include "..\KiNomet\KiNoMet.h"
 #include "VideoFile.h"
 
@@ -7,7 +6,8 @@ extern "C"
 #include "..\KiNomet\Gba.h"
 #include <stdio.h>
 #include "../KiNomet/AudioHandler.h"
-
+extern "C"
+{
 	void VideoLoader();
 }
 //indicates if framebufer can be used as a buffer or not.
@@ -18,6 +18,7 @@ char frameReady;
 int lastDrawn;
 int numFrames = 0;
 int fps = 0;
+int returnAdddress;
 unsigned short ticks_per_sample = 0;
 unsigned char* audioBuf;// = (unsigned char*)(0x6000000 + 240 * 160 * 2);;
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
@@ -190,6 +191,7 @@ IWRAM bool handleAudio(KinometPacket* pack)
 
 IWRAM bool handleFrame(KinometPacket* packet)
 {
+	int a = 1;
 	//we are gba so frame is always 240*160*2;
 	if (packet->frame == nullptr)
 	{
@@ -199,7 +201,11 @@ IWRAM bool handleFrame(KinometPacket* packet)
 		return true;
 	}
 
-	while (requestCount < 1) {}
+	while (requestCount < 1) {
+		int b = 0xFFEEDDCC;
+		b++;
+		a = b;
+	}
 	requestCount--;
 
 	auto srcFrame = (unsigned short*)packet->frame;
@@ -215,7 +221,7 @@ IWRAM bool handleFrame(KinometPacket* packet)
 
 void VideoLoader()
 {
-		int sample_rate = 10512;//For now
+		int sample_rate = 10512;//For nows
 	lastFrame = 0;
 	ticks_per_sample = CLOCK / sample_rate;
 	channel_a_vblanks_remaining = (audio_outputmain_size * ticks_per_sample) / CYCLES_PER_BLANK;
@@ -228,10 +234,21 @@ void VideoLoader()
 	SetupAudio();
 	StartPlaying((const signed char*)audio_outputmain, audio_outputmain_size);
 	LoadAVI((unsigned char*)VideoFile, VideoFile_size, nullptr, 0, &l);// (unsigned char*)audio_outputmain, audio_outputmain_size, & l);
+	return;
 }
-int main()
+
+void makemymonstergrow()
 {
+
+	int value = 1;
+	int returnTrue = 0x8FFFFFFF;
+	goto* (void*)returnTrue;
+}
+int main(int arg, int argv)
+{
+	int v = arg;
+	//hackAddr = arg;
 	VideoLoader();
-	return 0;
+	makemymonstergrow();
 }
 
