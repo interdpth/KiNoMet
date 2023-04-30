@@ -34,12 +34,12 @@ static void Sound_Callback(void* userdata, Uint8* buffer, int len)
  
         int available = SDL_AudioStreamAvailable(stream);
 
-        if (available < len)
-        {
-            memset(buffer, 0, len);
-        }
-        else
-        {
+        //if (available < len)
+        //{
+        //    memset(buffer, 0, len);
+        //}
+        //else
+        //{
             int obtained = SDL_AudioStreamGet(stream, buffer, len);
             if (obtained == -1)
             {
@@ -56,7 +56,7 @@ static void Sound_Callback(void* userdata, Uint8* buffer, int len)
                 //    memset(&(buffer[obtained]), 0, len - obtained);
                 //}
             }
-        }
+        //}
 
         //Debug_LogMsgArg("Available: %d/%d",
         //                SDL_AudioStreamAvailable(stream),

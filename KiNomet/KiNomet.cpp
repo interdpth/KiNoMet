@@ -81,6 +81,7 @@ void LoadAVI(unsigned char* file,
 	pack.rect = (rectangle*)(sthread->dwRate);//packing hack
 	pack.screen = &screen;
 	int fps = sthread->dwRate;
+	int audiofps =fps-8;
 	options->videoCallBack(&pack);
 	int readSize = 0;
 	//init on our side
@@ -90,15 +91,15 @@ void LoadAVI(unsigned char* file,
 		
 		audio = new AudioManager(audiofile, audiofsize, fps, hdrz->dwTotalFrames, options->GetSize);
 
-		
-		int readSize = audio->Processs();
+		//
+		//int readSize = audio->Processs();
 		pack.isAudio = true;
-		pack.frame = audio->GetBuffer();
+		pack.frame = NULL;// audio->GetBuffer();
 		pack.screen = (rectangle*)audio->GetSampleFreq();
-		pack.type = audio->GetType();
+		pack.type = 0;//audio->GetType();
 
 
-		pack.rect = (rectangle*)readSize;
+		pack.rect = (rectangle*)NULL;
 
 		options->audiocallback(&pack);
 	}
@@ -169,27 +170,31 @@ void LoadAVI(unsigned char* file,
 		pack.frame = Kinomet_FrameBuffer;
 		pack.screen = &screen;
 		pack.rect = &screen;
-	  
+		KinometPacket audioPacket;
+		KinometPacket videoPacket; 
+		memcpy(&audioPacket, &pack, sizeof(pack));
+		memcpy(&videoPacket, &pack, sizeof(pack));
+		if (audio != nullptr && (audioUpdate == audiofps))
+		{
+			readSize = audio->Processs();
+			if (readSize)
+			{
+				audioPacket.type = 1;
+				audioPacket.frame = audio->GetBuffer();
+				audioPacket.screen = (rectangle*)audio->GetSampleFreq();
+				audioPacket.type = audio->GetType();
+				audioPacket.rect = (rectangle*)readSize;
+
+				options->audiocallback(&audioPacket);
+			}
+			audioUpdate = 0;
+		}
+		audioUpdate++;
 		//The caller should handle framerate.
-		if (options->videoCallBack(&pack))
+		if (options->videoCallBack(&videoPacket))
 		{
 			curFrame++;
-			if (audio != nullptr && (audioUpdate == fps))
-			{
-				readSize = audio->Processs();
-				if (readSize)
-				{
-					pack.type = 1;
-					pack.frame = audio->GetBuffer();
-					pack.screen = (rectangle*)audio->GetSampleFreq();
-					pack.type = audio->GetType();
-					pack.rect = (rectangle*)readSize;
-
-					options->audiocallback(&pack);
-				}
-				audioUpdate = 0;
-			}
-			audioUpdate++;
+		
 		}
 
 		//Capture timestamp after draw.
