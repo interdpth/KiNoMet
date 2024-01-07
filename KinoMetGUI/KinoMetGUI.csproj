@@ -99,12 +99,15 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="HashHelper.cs" />
     <Compile Include="IOStream.cs" />
     <Compile Include="Kinomet.cs" />
     <Compile Include="KiNoMetSettings.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RenderAudio.cs" />
     <Compile Include="ROM.cs" />
+    <Compile Include="SlacEncode.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>

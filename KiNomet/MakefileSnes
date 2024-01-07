@@ -1,0 +1,19 @@
+ifeq ($(strip $(PVSNESLIB_HOME)),)
+$(error "Please create an environment variable PVSNESLIB_HOME with path to its folder and restart application. (you can do it on windows with <setx PVSNESLIB_HOME "/c/snesdev">)")
+endif
+
+
+.PHONY:  all
+
+CFLAGS	+=	-DSNES
+#---------------------------------------------------------------------------------
+# options for code generation
+#---------------------------------------------------------------------------------
+include ${PVSNESLIB_HOME}/devkitsnes/snes_rules
+
+export ROMNAME	:=	libKiNoMet
+
+
+all: $(ROMNAME).sfc
+
+clean: cleanBuildRes cleanRom cleanGfx cleanAudio

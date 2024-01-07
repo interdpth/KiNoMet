@@ -2,8 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "SmallBuffer.h"
-#include "Gba.h"
-
+void printDebug(char* message, ...);
 /*
 A chunk containing video, audio or subtitle data uses a dwFourCC containing 2 hexadecimal
 digits specifying the stream number and 2 letters specifying the data type (dc = video, wb

@@ -23,3 +23,5 @@ KiNomet/Debug/KiNomet.vcxproj.FileListAbsolute.txt
 KinometWindows/audio_outputmain.cpp
 KinometWindows/audio_outputmain.h
 KinometWindows/Debug/KinometWindows.tlog/CL.114192.write.1.tlog
+KinoMetSnes/VideoFile.cpp
+KinoMetSnes/VideoFile.h

@@ -51,7 +51,6 @@ If used in commericial projects please add this file in plaintext into your comp
 
 #include <stdlib.h>
 
-#include "Gba.h"
 #include "Cinepak.h"
 #include "SmallBuffer.h"
 #define bpp 2

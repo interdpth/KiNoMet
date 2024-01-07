@@ -46,6 +46,11 @@ bool canRender = false;
 #ifdef GBA 
 IWRAM
 #endif
+
+void QuickCopy(unsigned char* src, unsigned char* dst, int l)
+{
+	for (int i = 0; i < l; i++) dst[i] = src[i];
+}
 void LoadAVI(unsigned char* file,
 	int size,
 	unsigned char* audiofile,
@@ -53,7 +58,7 @@ void LoadAVI(unsigned char* file,
 	aviLoader* options)
 {
 	rectangle screen;
-	AudioManager * audio = nullptr;
+	AudioManager* audio = nullptr;
 
 	SmallBuffer* buf = new SmallBuffer(file, size);
 	//memset(&hdr, 0, sizeof(MainAVIHeader));
@@ -81,14 +86,14 @@ void LoadAVI(unsigned char* file,
 	pack.rect = (rectangle*)(sthread->dwRate);//packing hack
 	pack.screen = &screen;
 	int fps = sthread->dwRate;
-	int audiofps =fps-8;
+	int audiofps = fps - 8;
 	options->videoCallBack(&pack);
 	int readSize = 0;
 	//init on our side
 	if (audiofile != nullptr)
 	{
-		 //determien
-		
+		//determien
+
 		audio = new AudioManager(audiofile, audiofsize, fps, hdrz->dwTotalFrames, options->GetSize);
 
 		//
@@ -96,7 +101,7 @@ void LoadAVI(unsigned char* file,
 		pack.isAudio = true;
 		pack.frame = NULL;// audio->GetBuffer();
 		pack.screen = (rectangle*)audio->GetSampleFreq();
-		pack.type = 0;//audio->GetType();
+		pack.type = audio->GetType();
 
 
 		pack.rect = (rectangle*)NULL;
@@ -120,10 +125,13 @@ void LoadAVI(unsigned char* file,
 
 
 
+	KinometPacket audioPacket;
 
+	QuickCopy((unsigned char*)&pack, (unsigned char*)&audioPacket, sizeof(pack));
 	cinepak_info* ci = decode_cinepak_init(width, height);
 	//It's frame time.
 	_avioldindex_entry* idxList = (_avioldindex_entry*)buf->GetCurrentBuffer();
+
 
 	canRender = true;
 	int numFrames = hdrz->dwTotalFrames;
@@ -138,7 +146,7 @@ void LoadAVI(unsigned char* file,
 	int audioUpdate = 0;
 	while (curFrame < numFrames)
 	{
-		
+
 		_avioldindex_entry* cur = &idxList[curFrame];
 
 		//Make sure we are a frame.
@@ -170,11 +178,11 @@ void LoadAVI(unsigned char* file,
 		pack.frame = Kinomet_FrameBuffer;
 		pack.screen = &screen;
 		pack.rect = &screen;
-		KinometPacket audioPacket;
-		KinometPacket videoPacket; 
-		memcpy(&audioPacket, &pack, sizeof(pack));
-		memcpy(&videoPacket, &pack, sizeof(pack));
-		if (audio != nullptr && (audioUpdate == audiofps))
+		KinometPacket videoPacket;
+
+		QuickCopy((unsigned char*)&pack, (unsigned char*)&audioPacket, sizeof(pack));
+		QuickCopy((unsigned char*)&pack, (unsigned char*)&videoPacket, sizeof(pack));
+		if (audio != nullptr)
 		{
 			readSize = audio->Processs();
 			if (readSize)
@@ -190,12 +198,16 @@ void LoadAVI(unsigned char* file,
 			audioUpdate = 0;
 		}
 		audioUpdate++;
-		//The caller should handle framerate.
 		if (options->videoCallBack(&videoPacket))
 		{
+
 			curFrame++;
-		
+
 		}
+
+
+
+		//The caller should handle framerate.
 
 		//Capture timestamp after draw.
 		last = options->GetTicks();

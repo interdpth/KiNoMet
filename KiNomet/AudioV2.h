@@ -3,7 +3,7 @@
 #include "Compression.h"
 #include "Gba.h"
 
-class AudioV1 :
+class AudioV2 :
     public AudioHandler
 {
 private:
@@ -11,12 +11,12 @@ private:
     unsigned long offsetBase;
     int offsetCount;
     unsigned char* decompBuffer;
-    int frame; 
+    int frame;
     unsigned char* dataSource;
     unsigned long* dataPointers;
     unsigned char* dataOffsetTable;
 public:
-    AudioV1(unsigned char* src, int len, int fps, int frames, int rsize,int (*func)());
+    AudioV2(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)());
 
     //int Copy(AudioPacket* curPack, unsigned char* dstBuf, int len);
 

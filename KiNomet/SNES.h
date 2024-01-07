@@ -1,4 +1,5 @@
 #pragma once
+#pragma once
 #ifndef GBA_H
 #define GBA_H
 #ifndef GBA
@@ -10,13 +11,13 @@ void printDebug(char* message, ...);
 int nocash_puts(const char* str);
 #endif
 
-	extern void timerSet(unsigned long num, unsigned short reload, unsigned short flags);
+extern void timerSet(unsigned long num, unsigned short reload, unsigned short flags);
 
-	extern void timerEnable(unsigned long num);
+extern void timerEnable(unsigned long num);
 
-	extern void timerDisable(unsigned long num);
+extern void timerDisable(unsigned long num);
 
-	extern unsigned short timerGetValue(unsigned long num);
+extern unsigned short timerGetValue(unsigned long num);
 
 extern volatile unsigned long* display_control;
 #define MODE0 0x00

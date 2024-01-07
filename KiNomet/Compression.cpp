@@ -1,6 +1,5 @@
 #include "Compression.h"
 #include "cinepak.h"
-#include "Gba.h"
 Compression::Compression()
 {
 

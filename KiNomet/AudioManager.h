@@ -2,11 +2,13 @@
 #include "AudioHandler.h"
 #include "AudioV0.h"
 #include "AudioV1.h"
+#include "AudioV2.h"
 enum version
 {
 	UNK,
 	V0,
-	V1
+	V1,
+	V2
 };
 
 

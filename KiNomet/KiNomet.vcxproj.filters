@@ -39,9 +39,6 @@
     <ClCompile Include="SmallBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Gba.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CodeBookManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -78,6 +75,18 @@
     <ClCompile Include="AudioManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SNES.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Gba.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Gba.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioV2.cpp">
+      <Filter>audiohandlers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Compression.h">
@@ -93,9 +102,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="KinoAudio.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Gba.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SmallBuffer.h">
@@ -124,6 +130,15 @@
     </ClInclude>
     <ClInclude Include="CodeBookManager.h">
       <Filter>CppHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="SNES.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Gba.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioV2.h">
+      <Filter>audiohandlers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

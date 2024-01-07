@@ -4,8 +4,6 @@
 
 #include <stdlib.h>
 
-#include "Gba.h"
-
 struct rectangle
 {
 	unsigned char x, y, w, h;

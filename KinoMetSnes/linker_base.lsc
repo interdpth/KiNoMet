@@ -1,0 +1,6 @@
+OUTPUT_ARCH(arm)
+ 
+MEMORY {
+ 
+        rom     : ORIGIN = 0x08XXXXXX, LENGTH = 32M
+}

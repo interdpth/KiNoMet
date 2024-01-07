@@ -4,7 +4,10 @@
 #ifndef GBA
 #include <corecrt_malloc.h>
 #endif
-#include "Gba.h"
+#ifdef GBA
+void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
+#define IWRAM __attribute__((section(".IWRAM"), target("arm"), noinline))
+#endif
 #include <cstdlib>
 //#define RING_SIZE 0x4000
 //#define TMP_SIZE 0x1000
@@ -64,6 +67,7 @@ int AudioHandler::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
 	}
 
 #ifdef  GBA
+
 	memcpy16_dma((unsigned short*)dstBuf, (unsigned short*)&curPack->start[curPack->tracked], bytesLeft >> 1);
 #else
 	memcpy(dstBuf, &curPack->start[curPack->tracked], bytesLeft);
