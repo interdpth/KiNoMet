@@ -14,19 +14,16 @@ void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
 #define GBA_RING_MEM 0x6000000 + 240 * 160 * 2
 //Ring buffer is 0x4000 bytes.
 
+#include "MemoryBuffers.h"
 void AudioHandler::Init(int t, int fp, int sam)
 {
-#ifdef GBA
-	startBuf = ((unsigned char*)0x6000000 + (240 * 160 * 2));//(unsigned char*)malloc(ringSize);
-#else
-	startBuf = (unsigned char*)malloc(ringSize);
-#endif
+
 	/*tmpBuf = (unsigned char*)malloc(TMP_SIZE);*/
-	limitBuf = startBuf + ringSize;
+	limitBuf = (unsigned char*)MemoryBuffers::startBuf + RING_SIZE;
 
 
-	endBuf = startBuf;
-	currentBuf = startBuf;
+	BeginBuffer = (unsigned char*)MemoryBuffers::startBuf;
+	currentBuf = (unsigned char*)MemoryBuffers::startBuf;
 	type = t;
 	fps = fp;
 	sample_rate = sam;
@@ -48,18 +45,16 @@ int AudioHandler::ProcessAudio()
 {
 	AudioPacket* curPack = StartProcessing();
 	if (curPack == nullptr) return 0;
-	return FillBuffers(ringSize, curPack);
-}
 
-int AudioHandler::FillBuffers(unsigned int bytesLeft, AudioPacket* curPack)
-{
-	int retVal = 0;
 
-	int newLen = Copy(curPack, GetBuffer(), bytesLeft);
+	int newLen = Copy(curPack, GetBuffer(), RING_SIZE);
 
 	//#endif
 	return newLen;
+
 }
+
+
 
 int AudioHandler::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
 {
@@ -100,10 +95,10 @@ void AudioHandler::InitAudioHandler(AudioHeader* p, int len)
 #ifdef GBA 
 IWRAM
 #endif
-AudioHandler::AudioHandler(unsigned char* src, int len, int fps, int frames , int rsize, int (*func)())
+AudioHandler::AudioHandler(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)())
 {
 	AudioHeader* hdr = (AudioHeader*)src;
-	ringSize = rsize;// (len / frames)* fps;
+	
 	Init(hdr->type, hdr->fps, hdr->freq);
 
 	GetSize = func;
@@ -207,25 +202,8 @@ void AudioHandler::ProcessPackets()
 		if (curPack == nullptr) return;
 		curPack->tracked = 0;
 	}
-
 }
 
-//Next time this is called, Swap is called again
-
-//#ifdef GBA 
-//IWRAM
-//#endif
-//int AudioHandler::ProcessAudio()
-//{
-//	ProcessPackets();
-//	AudioPacket* curPack = GetCurrentPacket();
-//	if (curPack == nullptr) return 0;
-//
-//
-//	return FillBuffers(ringSize, curPack);
-//
-//	return 0;
-//}
 void AudioHandler::ClearAudio()
 {
 	while (packets.size())
@@ -243,7 +221,13 @@ IWRAM
 #endif
 AudioPacket* AudioHandler::GetCurrentPacket()
 {
-	if (packets.size() == 0) return nullptr;
+
+	if (packets.size() == 0) {
+//		while (1);
+		return nullptr;
+
+	
+	}
 	return packets[0];
 
 }
@@ -259,12 +243,12 @@ bool AudioHandler::Exhausted()
 
 int AudioHandler::GetRemainingBytes()
 {
-	return (int)(&limitBuf - &endBuf);;
+	return (int)(&limitBuf - &BeginBuffer);;
 }
 
 int AudioHandler::GetBytesUsed()
 {
-	return (int)(&endBuf - &startBuf);;
+	return (int)(BeginBuffer - MemoryBuffers::startBuf);
 }
 
 int AudioHandler::GetSampleFreq()
@@ -285,6 +269,6 @@ unsigned char* AudioHandler::GetBuffer()
 	if (swapped)
 	{
 		return tmpBuf;
-}
-	return startBuf;
+	}
+	return MemoryBuffers::startBuf;
 }

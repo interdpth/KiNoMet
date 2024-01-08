@@ -10,7 +10,6 @@ private:
     unsigned long* offsets;
     unsigned long offsetBase;
     int offsetCount;
-    unsigned char* decompBuffer;
     int frame;
     unsigned char* dataSource;
     unsigned long* dataPointers;

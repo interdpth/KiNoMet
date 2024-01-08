@@ -1,4 +1,5 @@
 #include "AudioV1.h"
+#include "MemoryBuffers.h"
 #include <cstdlib>
 AudioV1::AudioV1(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)()) :
 	AudioHandler(src, len, fps, frames, rsize, func)
@@ -25,11 +26,7 @@ AudioV1::AudioV1(unsigned char* src, int len, int fps, int frames, int rsize, in
 
 	dataPointers = pointerTable;
 	offsetCount = count;
-#ifdef GBA
-	decompBuffer = ((unsigned char*)0x6000000 + (240 * 160 * 2) + 0x1000);
-#else 
-	decompBuffer = (unsigned char*)malloc(0x1000);
-#endif 
+
 	frame = 0;
 }
 
@@ -39,8 +36,8 @@ IWRAM
 #endif
 int AudioV1::ProcessAudio()
 {
-	ProcessPackets();
-	AudioPacket* curPack = GetCurrentPacket();
+
+	AudioPacket * curPack = StartProcessing();
 	if (curPack == nullptr) return 0;
 
 
@@ -57,19 +54,19 @@ int AudioV1::ProcessAudio()
 	//unsigned int id = *(unsigned long*)data; data += 4;
 	unsigned char cmp = *data; data += 1;
 	unsigned short size = *(unsigned short*)data; data += 2;
-	Compression* comp = new Compression();
+
 	//Pointer is now at data
 	int decompSize = 0;
 	switch (cmp)
 	{
 	case Raw:
-		decompSize = comp->RawCopy(data, decompBuffer, size);
+		decompSize = Compression::RawCopy(data, MemoryBuffers::DecompBuffer, 128);
 		break;
 	case RLE:
-		decompSize = comp->RLEDecomp(data, decompBuffer, size);
+		decompSize = Compression::RLEDecomp(data, MemoryBuffers::DecompBuffer, 128);
 		break;
 	case LZ:
-		decompSize = comp->LZDecomp(data, decompBuffer, size);
+		decompSize = Compression::LZDecomp(data, MemoryBuffers::DecompBuffer, 128);
 		break;
 
 	default:
@@ -77,18 +74,22 @@ int AudioV1::ProcessAudio()
 		break;
 	}
 
-	//curPack->len = decompSize;
-	if (curPack->tracked >= decompSize) curPack->tracked = 0;
-#ifdef  GBA
-	memcpy16_dma((unsigned short*)GetBuffer(), (unsigned short*)decompBuffer, decompSize >> 1);
-#else
-	memcpy(GetBuffer(), decompBuffer, decompSize);
-#endif
+
+	if (decompSize == 0)
+	{
+
+		while (1);
+	}
+	curPack->len = decompSize;
+	curPack->tracked = 0;
+
+	curPack->start = MemoryBuffers::DecompBuffer;
+
+	int newLen = Copy(curPack, GetBuffer(), decompSize);
 	frame++;
-	delete comp;
-	//modify pack
-	int ret = FillBuffers(ringSize, curPack);
-	return 	ret;
+	//#endif
+	return newLen;
+
 
 }
 

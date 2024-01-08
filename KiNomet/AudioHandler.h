@@ -2,6 +2,9 @@
 #include <vector>
 using namespace std;
 //save on memory lol
+#define GBA_RING_MEM 0x6000000 + 240 * 160 * 2
+
+#define RING_SIZE (240 * 160 * 2) + 0x1000
 
 struct AudioHeader
 {
@@ -12,7 +15,6 @@ struct AudioHeader
 	
 	unsigned char* datPtr;//whever your buffer is after reading freq 
 };
-
 enum flags
 {
 	START,
@@ -21,10 +23,10 @@ enum flags
 };
 struct AudioPacket
 {
-	unsigned char eventFlag;
-	unsigned char* start;
-	int len;
-	int tracked;
+	unsigned char eventFlag;//0
+	unsigned char* start;//1
+	int len;//5
+	int tracked;//6
 };
 //we need a callback to get data 
 extern int (*getSize)();
@@ -36,9 +38,8 @@ private:
 		//Source info.
 	unsigned char* srcBuffer; 
 
-	//Playing pointers
-	unsigned char* startBuf;
-	unsigned char* endBuf;
+
+	unsigned char* BeginBuffer;
 	unsigned char* tmpBuf;
 	unsigned char* currentBuf;
 	unsigned char* limitBuf;
@@ -52,8 +53,6 @@ private:
 	//we need a callback to get data 
 	int (*GetSize)();
 
-
-	AudioPacket* StartProcessing();
 	void Swap();
 
 public:
@@ -71,9 +70,8 @@ public:
 	/// <param name="type"></param>
 	/// <param name="fp"></param>
 	/// <param name="sam"></param>
-
 	virtual void InitAudioHandler(AudioHeader* p, int len);
-	int ringSize;
+	
 	/// <summary>
 	/// Basic init.
 	/// </summary>
@@ -90,7 +88,7 @@ public:
 	/// <param name="src"></param>
 	/// <param name="len"></param>
 	AudioHandler(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)());
-	virtual int FillBuffers(unsigned int bytesLeft, AudioPacket* curPack);
+
 	virtual void ProcessPackets();
 	/// <summary>
 	/// Returns current packet beging processed.
@@ -138,6 +136,8 @@ public:
 
 	virtual int GetSampleFreq();
 
+
+	AudioPacket* StartProcessing();
 	virtual int GetType();
 	virtual unsigned char* GetBuffer();
 };

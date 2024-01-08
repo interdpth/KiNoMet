@@ -27,10 +27,6 @@ int AudioManager::Copy(AudioPacket* curPack, unsigned char* dstBuf, int size)
 	return	(hndlr)->Copy(curPack, dstBuf, size);
 }
 
-int AudioManager::FillBuffers(unsigned int bytesLeft, AudioPacket* curPack)
-{
-	return	(hndlr)->FillBuffers(bytesLeft, curPack);
-}
 
 int AudioManager::ProcessAudio()
 {	

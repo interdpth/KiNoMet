@@ -1,5 +1,5 @@
 #include "AudioV2.h"
-#include "AudioV2.h"
+#include "MemoryBuffers.h"
 #include <cstdlib>
 AudioV2::AudioV2(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)()) :
 	AudioHandler(src, len, fps, frames, rsize, func)
@@ -26,11 +26,7 @@ AudioV2::AudioV2(unsigned char* src, int len, int fps, int frames, int rsize, in
 
 	dataPointers = pointerTable;
 	offsetCount = count;
-#ifdef GBA
-	decompBuffer = ((unsigned char*)0x6000000 + (240 * 160 * 2) + 0x1000);
-#else 
-	decompBuffer = (unsigned char*)malloc(0x1000);
-#endif 
+
 	frame = 0;
 }
 //int AudioV2::ProcessAudio()
@@ -124,20 +120,19 @@ int AudioV2::ProcessAudio()
 	//unsigned int id = *(unsigned long*)data; data += 4;
 	unsigned char cmp = *data; data += 1;
 	unsigned short size = *(unsigned short*)data; data += 2;
-	Compression* comp = new Compression();
 	//Pointer is now at data
 	int decompSize = 0;
 	switch (cmp)
 	{
 	case Raw:
-		decompSize = comp->RawCopy(data, decompBuffer, size);
+		decompSize = Compression::RawCopy(data, MemoryBuffers::DecompBuffer, size);
 		break;
 
 	case RLE:
-		decompSize = comp->RLEDecomp(data, decompBuffer, size);
+		decompSize = Compression::RLEDecomp(data, MemoryBuffers::DecompBuffer, size);
 		break;
 	case LZ:
-		decompSize = comp->LZDecomp(data, decompBuffer, size);
+		decompSize = Compression::LZDecomp(data, MemoryBuffers::DecompBuffer, size);
 		break;
 
 	default:
@@ -150,10 +145,9 @@ int AudioV2::ProcessAudio()
 #ifdef  GBA
 	memcpy16_dma((unsigned short*)GetBuffer(), (unsigned short*)decompBuffer, decompSize >> 1);
 #else
-	memcpy(GetBuffer(), decompBuffer, decompSize);
+	memcpy(GetBuffer(), MemoryBuffers::DecompBuffer, decompSize);
 #endif
 	frame++;
-	delete comp;
 	//modify pack
 //	int ret = FillBuffers(ringSize, curPack);
 	return 	((AudioHandler*)this)->ProcessAudio();
