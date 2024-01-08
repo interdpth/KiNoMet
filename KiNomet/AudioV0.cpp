@@ -29,7 +29,7 @@ int AudioV0::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
 #ifdef GBA 
 IWRAM
 #endif
-int AudioV0::Processs()
+int AudioV0::ProcessAudio()
 {
 	ProcessPackets();
 	AudioPacket* curPack = GetCurrentPacket();

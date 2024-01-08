@@ -33,21 +33,25 @@ void AudioHandler::Init(int t, int fp, int sam)
 	swapped = false;
 }
 
-#ifdef GBA 
-IWRAM
-#endif
-int AudioHandler::Processs()
+AudioPacket* AudioHandler::StartProcessing()
 {
 	ProcessPackets();
 	AudioPacket* curPack = GetCurrentPacket();
-	if (curPack == nullptr) return 0;
-
-
-	return Fillbuffers(ringSize, curPack);
-
-	return 0;
+	if (curPack == nullptr) return NULL;
+	return curPack;
 }
-int AudioHandler::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
+
+#ifdef GBA 
+IWRAM
+#endif
+int AudioHandler::ProcessAudio()
+{
+	AudioPacket* curPack = StartProcessing();
+	if (curPack == nullptr) return 0;
+	return FillBuffers(ringSize, curPack);
+}
+
+int AudioHandler::FillBuffers(unsigned int bytesLeft, AudioPacket* curPack)
 {
 	int retVal = 0;
 
@@ -67,7 +71,6 @@ int AudioHandler::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
 	}
 
 #ifdef  GBA
-
 	memcpy16_dma((unsigned short*)dstBuf, (unsigned short*)&curPack->start[curPack->tracked], bytesLeft >> 1);
 #else
 	memcpy(dstBuf, &curPack->start[curPack->tracked], bytesLeft);
@@ -148,7 +151,7 @@ void AudioHandler::Swap()
 //}
 //
 
-//int AudioHandler::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
+//int AudioHandler::FillBuffers(unsigned int bytesLeft, AudioPacket* curPack)
 //{
 //	int retVal = 0;
 //	bool plsSwap = false;
@@ -212,14 +215,14 @@ void AudioHandler::ProcessPackets()
 //#ifdef GBA 
 //IWRAM
 //#endif
-//int AudioHandler::Processs()
+//int AudioHandler::ProcessAudio()
 //{
 //	ProcessPackets();
 //	AudioPacket* curPack = GetCurrentPacket();
 //	if (curPack == nullptr) return 0;
 //
 //
-//	return Fillbuffers(ringSize, curPack);
+//	return FillBuffers(ringSize, curPack);
 //
 //	return 0;
 //}

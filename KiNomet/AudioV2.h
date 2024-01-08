@@ -21,12 +21,12 @@ public:
     //int Copy(AudioPacket* curPack, unsigned char* dstBuf, int len);
 
   //unsigned char* GetBuffer();
-  // // int Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack);
+  // // int FillBuffers(unsigned int bytesLeft, AudioPacket* curPack);
 
     /// <summary>
 /// Dump audio to buffer.
 /// </summary>
-    int Processs();
+    int ProcessAudio();
 
 };
 

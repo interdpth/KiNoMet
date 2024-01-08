@@ -97,7 +97,7 @@ void LoadAVI(unsigned char* file,
 		audio = new AudioManager(audiofile, audiofsize, fps, hdrz->dwTotalFrames, options->GetSize);
 
 		//
-		//int readSize = audio->Processs();
+		//int readSize = audio->ProcessAudio();
 		pack.isAudio = true;
 		pack.frame = NULL;// audio->GetBuffer();
 		pack.screen = (rectangle*)audio->GetSampleFreq();
@@ -184,7 +184,7 @@ void LoadAVI(unsigned char* file,
 		QuickCopy((unsigned char*)&pack, (unsigned char*)&videoPacket, sizeof(pack));
 		if (audio != nullptr)
 		{
-			readSize = audio->Processs();
+			readSize = audio->ProcessAudio();
 			if (readSize)
 			{
 				audioPacket.type = 1;
@@ -195,9 +195,8 @@ void LoadAVI(unsigned char* file,
 
 				options->audiocallback(&audioPacket);
 			}
-			audioUpdate = 0;
 		}
-		audioUpdate++;
+		
 		if (options->videoCallBack(&videoPacket))
 		{
 

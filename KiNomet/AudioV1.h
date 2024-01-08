@@ -18,15 +18,12 @@ private:
 public:
     AudioV1(unsigned char* src, int len, int fps, int frames, int rsize,int (*func)());
 
-    //int Copy(AudioPacket* curPack, unsigned char* dstBuf, int len);
-
-  //unsigned char* GetBuffer();
-  // // int Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack);
+    virtual int Copy(AudioPacket* curPack, unsigned char* dstBuf, int size);
 
     /// <summary>
 /// Dump audio to buffer.
 /// </summary>
-    int Processs();
+    int ProcessAudio();
 
 };
 

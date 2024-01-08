@@ -187,9 +187,9 @@ namespace KinometGui.Properties
                         bw.Write(0xFFFFFFFF);//Index Pointers
                         bw.Write(0xFFFFFFFF);//Data 
                         int streamLength = srcStream.Count;
-                        int bufsize = (int)streamLength / numframes;
+                        int bufsize = 128;
                         int fnsize = ((int)streamLength / bufsize);
-                        int sz = fps * bufsize;
+                        int sz = bufsize;
                         int ezCount = 0;
                         Array astream = srcStream.ToArray();
                         for (int i = 0; i < streamLength / sz; i++)
@@ -218,16 +218,13 @@ namespace KinometGui.Properties
                             }
 
                             pointerTable.Write(BitConverter.GetBytes(dataTable.Position), 0, 4);
-                            //dataTable.Write(BitConverter.GetBytes(0xDEADBEEF), 0, 4);
+                            dataTable.Write(BitConverter.GetBytes(0xDEADBEEF), 0, 4);
                             //dataTable.Write(BitConverter.GetBytes(ezCount), 0, 4);//wtf
                             dataTable.WriteByte((byte)compType);
                             dataTable.Write(BitConverter.GetBytes((ushort)best), 0, 2);
                             dataTable.Write(stream.Data, 0, best);
                             ezCount++;
                         }
-
-
-
 
                         int pointerTableIndex = (int)bw.BaseStream.Position;
                         bw.Write(pointerTable.ToArray(), 0, (int)pointerTable.Length);

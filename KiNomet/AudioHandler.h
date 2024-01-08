@@ -53,6 +53,7 @@ private:
 	int (*GetSize)();
 
 
+	AudioPacket* StartProcessing();
 	void Swap();
 
 public:
@@ -63,7 +64,7 @@ public:
 /// <param name="fp"></param>
 /// <param name="sam"></param>
 /// 
-	void Init(int type, int fp, int sam);
+	virtual void Init(int type, int fp, int sam);
 	/// <summary>
 	/// Calls maint init
 	/// </summary>
@@ -71,7 +72,7 @@ public:
 	/// <param name="fp"></param>
 	/// <param name="sam"></param>
 
-	void InitAudioHandler(AudioHeader* p, int len);
+	virtual void InitAudioHandler(AudioHeader* p, int len);
 	int ringSize;
 	/// <summary>
 	/// Basic init.
@@ -79,7 +80,7 @@ public:
 	/// <param name="type">Type of audio handler</param>
 	/// <param name="fps">FPS we are </param>
 	AudioHandler(int type, int fp, int sam, int frames, int rsize, int (*func)());
-	int Copy(AudioPacket* curPack, unsigned char* dstBuf, int size);
+	virtual int Copy(AudioPacket* curPack, unsigned char* dstBuf, int size);
 	/// <summary>
 	/// Basic init, but also queues track.
 	/// </summary>
@@ -89,31 +90,31 @@ public:
 	/// <param name="src"></param>
 	/// <param name="len"></param>
 	AudioHandler(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)());
-	int Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack);
-	void ProcessPackets();
+	virtual int FillBuffers(unsigned int bytesLeft, AudioPacket* curPack);
+	virtual void ProcessPackets();
 	/// <summary>
 	/// Returns current packet beging processed.
 	/// </summary>
 	/// <returns></returns>
-	AudioPacket* GetCurrentPacket();
+	virtual AudioPacket* GetCurrentPacket();
 
 	/// <summary>
 	/// True when main buffer is exhausted
 	/// </summary>
 	/// <returns></returns>
-	bool Exhausted();
-	void ClearAudio();
+	virtual bool Exhausted();
+	virtual void ClearAudio();
 	/// <summary>
 	/// Queues Audio into the ring buffer. 
 	/// </summary>
 	/// <param name="src">Audio being added</param>
 	/// <param name="len">Length of audio</param>
-	void QueueAudio(AudioPacket* packet);
+	virtual void QueueAudio(AudioPacket* packet);
 
 	/// <summary>
 	/// Dump audio to buffer.
 	/// </summary>
-	int Processs();
+	virtual int ProcessAudio();
 
 	/// <summary>
 	/// Attempts to sync audio to frame. Handly differently per type.
@@ -122,23 +123,22 @@ public:
 	/// </summary>
 	/// <param name="frame">Frame to seek to</param>
 	/// <returns>True if frame isn't out of bounds. </returns>
-	bool SeekAudio(int frame);
+	virtual bool SeekAudio(int frame);
 
 	/// <summary>
 	/// Returns ring bytes left
 	/// </summary>
 	/// <returns></returns>
-	int GetRemainingBytes();
+	virtual int GetRemainingBytes();
 
 	/// <summary>
 	/// Returns ring byte position
 	/// </summary>
-	int GetBytesUsed();
+	virtual int GetBytesUsed();
 
-	int GetSampleFreq();
+	virtual int GetSampleFreq();
 
-	int GetType();
-	unsigned char* GetBuffer();
-
+	virtual int GetType();
+	virtual unsigned char* GetBuffer();
 };
 

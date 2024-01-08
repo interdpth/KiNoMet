@@ -33,7 +33,7 @@ AudioV2::AudioV2(unsigned char* src, int len, int fps, int frames, int rsize, in
 #endif 
 	frame = 0;
 }
-//int AudioV2::Processs()
+//int AudioV2::ProcessAudio()
 //{
 //	ProcessPackets();
 //	AudioPacket* curPack = GetCurrentPacket();
@@ -78,7 +78,7 @@ AudioV2::AudioV2(unsigned char* src, int len, int fps, int frames, int rsize, in
 //
 //	//modify pack
 //
-//	return Fillbuffers(ringSize, curPack);
+//	return FillBuffers(ringSize, curPack);
 //
 //	return 0;
 //}
@@ -104,7 +104,7 @@ AudioV2::AudioV2(unsigned char* src, int len, int fps, int frames, int rsize, in
 #ifdef GBA 
 IWRAM
 #endif
-int AudioV2::Processs()
+int AudioV2::ProcessAudio()
 {
 	ProcessPackets();
 	AudioPacket* curPack = GetCurrentPacket();
@@ -155,12 +155,12 @@ int AudioV2::Processs()
 	frame++;
 	delete comp;
 	//modify pack
-//	int ret = Fillbuffers(ringSize, curPack);
-	return 	((AudioHandler*)this)->Processs();
+//	int ret = FillBuffers(ringSize, curPack);
+	return 	((AudioHandler*)this)->ProcessAudio();
 	;
 
 }
-//int AudioV2::Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack)
+//int AudioV2::FillBuffers(unsigned int bytesLeft, AudioPacket* curPack)
 //{
 //	int retVal = 0;
 //

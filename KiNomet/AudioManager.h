@@ -23,8 +23,8 @@ public:
 	AudioManager(unsigned char* src, int len, int fps, int frames, int (*func)());
 
 	int Copy(AudioPacket* curPack, unsigned char* dstBuf, int size);
-	int Fillbuffers(unsigned int bytesLeft, AudioPacket* curPack);
-	int Processs();
+	int FillBuffers(unsigned int bytesLeft, AudioPacket* curPack);
+	int ProcessAudio();
 
 	unsigned char* GetBuffer();
 
