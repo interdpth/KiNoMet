@@ -49,39 +49,39 @@ int GBA_LZDECOMP(void* src, void* dst) {
 	}
 	return bytesWritten;
 }
-int GBA_RLEDECOMP(void* src, void* dst, int dstS)
+int GBA_RLEDECOMP(void* src, void* dst, int maxDstSize)
 {
 	if (!dst || !src)return 0;
 
 	unsigned int ii, size = 0;
 	unsigned short* srcL = (unsigned short*)src, * dstD = (unsigned short*)dst;
 
-	for (ii = 0; ii < dstS; ii += size)
+	for (ii = 0; ii < maxDstSize; ii += size)
 	{
 		// Get header byte
 		unsigned int header = *srcL++;
 
 		if (header & 0x80)		// compressed stint
 		{
-			size = min((header & ~0x80) + 3, dstS - ii);
+			size = min((header & ~0x80) + 3, maxDstSize - ii);
 
 			int j; for (j = 0; j < size; j++)dstD[ii + j] = *srcL; //can't used memset for 16bit
 			srcL++;
 		}
 		else				// noncompressed stint
 		{
-			size = min(header + 1, dstS - ii);
+			size = min(header + 1, maxDstSize - ii);
 			memcpy(&dstD[ii], srcL, size * 2);
 
 			srcL += size;
 		}
 	}
 
-	return dstS;
+	return maxDstSize;
 }
 #endif
 
-
+//WHY ARE THESE NOT USING SWIS
 int Compression::LZDecomp(unsigned char* src, unsigned char* dst, int size)
 {
 	unsigned char* realDst = dst;
@@ -98,11 +98,11 @@ int Compression::RLEDecomp(unsigned char* src, unsigned char* dst, int size)
 	unsigned char* realDst = dst;
 
 
-#ifdef GBA
+//#ifdef GBA
 
-	realDst += GBA_RLEDECOMP(src, dst);
-#else
-#endif
+	realDst += GBA_RLEDECOMP(src, dst, size);
+//#else
+//#endif
 	return realDst - dst;
 }
 int Compression::RawCopy(unsigned char* src, unsigned char* dst, int size)

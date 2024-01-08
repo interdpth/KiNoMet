@@ -14,8 +14,8 @@ class Compression
 {
 public:
 	Compression();
-	int LZDecomp(unsigned char* src, unsigned char* dst, int size);
-	int RLEDecomp(unsigned char* src, unsigned char* dst, int size);
-	int RawCopy(unsigned char* src, unsigned char* dst, int size);
+    static int LZDecomp(unsigned char* src, unsigned char* dst, int size);
+    static int RLEDecomp(unsigned char* src, unsigned char* dst, int size);
+    static int RawCopy(unsigned char* src, unsigned char* dst, int size);
 };
 

@@ -25,3 +25,4 @@ KinometWindows/audio_outputmain.h
 KinometWindows/Debug/KinometWindows.tlog/CL.114192.write.1.tlog
 KinoMetSnes/VideoFile.cpp
 KinoMetSnes/VideoFile.h
+KinoMetGBA/audio_outputmain.cpp
