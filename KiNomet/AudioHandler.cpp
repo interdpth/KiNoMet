@@ -46,7 +46,7 @@ int AudioHandler::ProcessAudio()
 	AudioPacket* curPack = StartProcessing();
 	if (curPack == nullptr) return 0;
 
-
+	
 	int newLen = Copy(curPack, GetBuffer(), RING_SIZE);
 
 	//#endif
@@ -102,15 +102,7 @@ AudioHandler::AudioHandler(unsigned char* src, int len, int fps, int frames, int
 	Init(hdr->type, hdr->fps, hdr->freq);
 
 	GetSize = func;
-	AudioPacket* p = (AudioPacket*)malloc(sizeof(AudioPacket));
-	if (p != nullptr)
-	{
-		memset(p, 0, sizeof(AudioPacket));
-		p->start = (unsigned char*)&hdr->datPtr;
-		p->len = len;
-		p->tracked = 0;
-		QueueAudio(p);
-	}
+	
 }
 
 
@@ -184,14 +176,15 @@ void AudioHandler::Swap()
 //}
 
 /// <summary>
-/// Check if we need to be on a new packet.
+/// Returns current working packet once ended. 
+/// Or returns nullptr
 /// </summary>
-void AudioHandler::ProcessPackets()
+AudioPacket* AudioHandler::ProcessPackets()
 {
 	AudioPacket* curPack = GetCurrentPacket();
 	if (curPack != nullptr && curPack->tracked >= curPack->len)
 	{
-		free(&packets[0]);
+		free(packets[0]);
 		for (int i = 1; i < packets.size(); i++)
 		{
 			memcpy(&packets[i - 1], &packets[i], sizeof(AudioPacket));
@@ -199,7 +192,7 @@ void AudioHandler::ProcessPackets()
 
 		if (packets.size())packets.pop_back();//bringing all entries forward.
 		curPack = GetCurrentPacket();
-		if (curPack == nullptr) return;
+		if (curPack == nullptr) return nullptr;
 		curPack->tracked = 0;
 	}
 }
@@ -272,3 +265,9 @@ unsigned char* AudioHandler::GetBuffer()
 	}
 	return MemoryBuffers::startBuf;
 }
+AudioPacket* AudioHandler::GetNextFrame()
+{
+	return nullptr;
+
+}
+

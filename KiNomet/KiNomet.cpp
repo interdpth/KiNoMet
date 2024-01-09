@@ -96,13 +96,10 @@ void LoadAVI(unsigned char* file,
 
 		audio = new AudioManager(audiofile, audiofsize, fps, hdrz->dwTotalFrames, options->GetSize);
 
-		//
-		//int readSize = audio->ProcessAudio();
 		pack.isAudio = true;
-		pack.frame = NULL;// audio->GetBuffer();
+		pack.frame = NULL;
 		pack.screen = (rectangle*)audio->GetSampleFreq();
 		pack.type = audio->GetType();
-
 
 		pack.rect = (rectangle*)NULL;
 
@@ -179,24 +176,50 @@ void LoadAVI(unsigned char* file,
 		pack.screen = &screen;
 		pack.rect = &screen;
 		KinometPacket videoPacket;
-
+		//HOW DOES QUEUING WORK
+		//V0 ABUSES WHOLE FILE I BELIEVE
+		//THANKS MATT
 		QuickCopy((unsigned char*)&pack, (unsigned char*)&audioPacket, sizeof(pack));
 		QuickCopy((unsigned char*)&pack, (unsigned char*)&videoPacket, sizeof(pack));
 		if (audio != nullptr)
 		{
-			readSize = audio->ProcessAudio();
-			if (readSize)
-			{
-				audioPacket.type = 1;
-				audioPacket.frame = audio->GetBuffer();
-				audioPacket.screen = (rectangle*)audio->GetSampleFreq();
-				audioPacket.type = audio->GetType();
-				audioPacket.rect = (rectangle*)readSize;
 
-				options->audiocallback(&audioPacket);
+			//if (audio->GetType() == V0) 
+			//{
+			//	//0 doesn't do anything but we're here.
+			//}
+			//else if (audio->GetType() == V1 || audio->GetType() == V2)
+			//{
+				//we need to form the packet. 
+
+			//Ask for current frame
+
+
+			AudioPacket* tmp = audio->GetCurrPacket();
+			if (tmp != nullptr && audio->GetBytesLeft(tmp) ==0 || tmp == nullptr) 
+			{
+			
+				AudioPacket* pkt = audio->GetNextFrame();
+				if (pkt != nullptr)
+				{
+					audio->Queue(pkt);
+				}
+				//}
+
+				readSize = audio->ProcessAudio();
+				if (readSize)
+				{
+					audioPacket.type = 1;
+					audioPacket.frame = audio->GetBuffer();
+					audioPacket.screen = (rectangle*)audio->GetSampleFreq();
+					audioPacket.type = audio->GetType();
+					audioPacket.rect = (rectangle*)readSize;
+
+					options->audiocallback(&audioPacket);
+				}
 			}
 		}
-		
+
 		if (options->videoCallBack(&videoPacket))
 		{
 

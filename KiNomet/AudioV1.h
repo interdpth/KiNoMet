@@ -16,13 +16,6 @@ private:
     unsigned char* dataOffsetTable;
 public:
     AudioV1(unsigned char* src, int len, int fps, int frames, int rsize,int (*func)());
-
-   
-
-    /// <summary>
-/// Dump audio to buffer.
-/// </summary>
-    int ProcessAudio();
-
+    virtual AudioPacket* GetNextFrame();
 };
 

@@ -31,15 +31,12 @@ AudioV1::AudioV1(unsigned char* src, int len, int fps, int frames, int rsize, in
 }
 
 
+
+
 #ifdef GBA 
 IWRAM
 #endif
-int AudioV1::ProcessAudio()
-{
-
-	AudioPacket * curPack = StartProcessing();
-	if (curPack == nullptr) return 0;
-
+AudioPacket* AudioV1::GetNextFrame() {
 
 	//Herroo
 	unsigned char* block = &dataOffsetTable[dataPointers[frame]];
@@ -49,8 +46,12 @@ int AudioV1::ProcessAudio()
 	unsigned long compDEADBEEF = *(unsigned long*)data; data += 4;
 	if (compDEADBEEF != 0xDEADBEEF)
 	{
-		while (1);{}
+		while (1); {}
 	}
+
+
+	unsigned long frameNo = *(unsigned long*)data; data += 4;
+
 	//unsigned int id = *(unsigned long*)data; data += 4;
 	unsigned char cmp = *data; data += 1;
 	unsigned short size = *(unsigned short*)data; data += 2;
@@ -60,13 +61,13 @@ int AudioV1::ProcessAudio()
 	switch (cmp)
 	{
 	case Raw:
-		decompSize = Compression::RawCopy(data, MemoryBuffers::DecompBuffer, 128);
+		decompSize = Compression::RawCopy(data, MemoryBuffers::DecompBuffer, 0x500);
 		break;
 	case RLE:
-		decompSize = Compression::RLEDecomp(data, MemoryBuffers::DecompBuffer, 128);
+		decompSize = Compression::RLEDecomp(data, MemoryBuffers::DecompBuffer, 0x500);
 		break;
 	case LZ:
-		decompSize = Compression::LZDecomp(data, MemoryBuffers::DecompBuffer, 128);
+		decompSize = Compression::LZDecomp(data, MemoryBuffers::DecompBuffer, 0x500);
 		break;
 
 	default:
@@ -74,24 +75,21 @@ int AudioV1::ProcessAudio()
 		break;
 	}
 
-
+	//Malloc the packet
 	if (decompSize == 0)
 	{
 
 		while (1);
 	}
+
+	AudioPacket* curPack = (AudioPacket*)malloc(sizeof(AudioPacket));
+	memset(curPack, 0, sizeof(AudioPacket));
+	curPack->eventFlag = AUDIO_PACKET_FLAGS::START;
 	curPack->len = decompSize;
 	curPack->tracked = 0;
-
 	curPack->start = MemoryBuffers::DecompBuffer;
-
-	int newLen = Copy(curPack, GetBuffer(), decompSize);
+	curPack->frame = frameNo;
 	frame++;
-	//#endif
-	return newLen;
 
-
+	return curPack;
 }
-
-
-

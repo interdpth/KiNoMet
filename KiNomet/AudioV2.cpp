@@ -102,57 +102,57 @@ IWRAM
 #endif
 int AudioV2::ProcessAudio()
 {
-	ProcessPackets();
-	AudioPacket* curPack = GetCurrentPacket();
-	if (curPack == nullptr) return 0;
-
-
-	//Herroo
-	unsigned char* block = &dataOffsetTable[dataPointers[frame]];
-	unsigned char* data = block;
-
-
-	//unsigned long compDEADBEEF = *(unsigned long*)data; data += 4;
-	//if (compDEADBEEF != 0xDEADBEEF)
-	//{
-	//	while (1);{}
-	//}
-	//unsigned int id = *(unsigned long*)data; data += 4;
-	unsigned char cmp = *data; data += 1;
-	unsigned short size = *(unsigned short*)data; data += 2;
-	//Pointer is now at data
-	int decompSize = 0;
-	switch (cmp)
-	{
-	case Raw:
-		decompSize = Compression::RawCopy(data, MemoryBuffers::DecompBuffer, size);
-		break;
-
-	case RLE:
-		decompSize = Compression::RLEDecomp(data, MemoryBuffers::DecompBuffer, size);
-		break;
-	case LZ:
-		decompSize = Compression::LZDecomp(data, MemoryBuffers::DecompBuffer, size);
-		break;
-
-	default:
-		while (1);
-		break;
-	}
-
-	//curPack->len = decompSize;
-	if (curPack->tracked >= decompSize) curPack->tracked = 0;
-#ifdef  GBA
-	memcpy16_dma((unsigned short*)GetBuffer(), (unsigned short*)decompBuffer, decompSize >> 1);
-#else
-	memcpy(GetBuffer(), MemoryBuffers::DecompBuffer, decompSize);
-#endif
-	frame++;
-	//modify pack
-//	int ret = FillBuffers(ringSize, curPack);
-	return 	((AudioHandler*)this)->ProcessAudio();
-	;
-
+//	ProcessPackets();
+//	AudioPacket* curPack = GetCurrentPacket();
+//	if (curPack == nullptr) return 0;
+//
+//
+//	//Herroo
+//	unsigned char* block = &dataOffsetTable[dataPointers[frame]];
+//	unsigned char* data = block;
+//
+//
+//	//unsigned long compDEADBEEF = *(unsigned long*)data; data += 4;
+//	//if (compDEADBEEF != 0xDEADBEEF)
+//	//{
+//	//	while (1);{}
+//	//}
+//	//unsigned int id = *(unsigned long*)data; data += 4;
+//	unsigned char cmp = *data; data += 1;
+//	unsigned short size = *(unsigned short*)data; data += 2;
+//	//Pointer is now at data
+//	int decompSize = 0;
+//	switch (cmp)
+//	{
+//	case Raw:
+//		decompSize = Compression::RawCopy(data, MemoryBuffers::DecompBuffer, size);
+//		break;
+//
+//	case RLE:
+//		decompSize = Compression::RLEDecomp(data, MemoryBuffers::DecompBuffer, size);
+//		break;
+//	case LZ:
+//		decompSize = Compression::LZDecomp(data, MemoryBuffers::DecompBuffer, size);
+//		break;
+//
+//	default:
+//		while (1);
+//		break;
+//	}
+//
+//	//curPack->len = decompSize;
+//	if (curPack->tracked >= decompSize) curPack->tracked = 0;
+//#ifdef  GBA
+//	memcpy16_dma((unsigned short*)GetBuffer(), (unsigned short*)decompBuffer, decompSize >> 1);
+//#else
+//	memcpy(GetBuffer(), MemoryBuffers::DecompBuffer, decompSize);
+//#endif
+//	frame++;
+//	//modify pack
+////	int ret = FillBuffers(ringSize, curPack);
+//	return 	((AudioHandler*)this)->ProcessAudio();
+//	;
+	return 0;
 }
 //int AudioV2::FillBuffers(unsigned int bytesLeft, AudioPacket* curPack)
 //{

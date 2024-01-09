@@ -48,3 +48,28 @@ int AudioManager::GetType()
 {
 	return	hndlr->GetType();
 }
+
+AudioPacket* AudioManager::GetNextFrame()
+{
+	return	hndlr->GetNextFrame();
+}
+
+
+void AudioManager::Queue(AudioPacket* packet)
+{
+	return hndlr->QueueAudio(packet);
+}
+
+AudioPacket* AudioManager::GetCurrPacket()
+{
+	return hndlr->GetCurrentPacket();
+}
+
+int AudioManager::GetBytesLeft(AudioPacket* curPack)
+{
+
+	int bytesLeft = curPack->len - (curPack->tracked);
+
+
+	return bytesLeft;
+}

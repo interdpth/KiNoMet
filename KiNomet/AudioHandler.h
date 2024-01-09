@@ -15,7 +15,7 @@ struct AudioHeader
 	
 	unsigned char* datPtr;//whever your buffer is after reading freq 
 };
-enum flags
+enum AUDIO_PACKET_FLAGS:unsigned char
 {
 	START,
 	DATA,
@@ -23,10 +23,11 @@ enum flags
 };
 struct AudioPacket
 {
-	unsigned char eventFlag;//0
+	AUDIO_PACKET_FLAGS eventFlag;//0
 	unsigned char* start;//1
 	int len;//5
 	int tracked;//6
+	int frame;//7
 };
 //we need a callback to get data 
 extern int (*getSize)();
@@ -89,7 +90,7 @@ public:
 	/// <param name="len"></param>
 	AudioHandler(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)());
 
-	virtual void ProcessPackets();
+	virtual AudioPacket* ProcessPackets();
 	/// <summary>
 	/// Returns current packet beging processed.
 	/// </summary>
@@ -136,9 +137,9 @@ public:
 
 	virtual int GetSampleFreq();
 
-
 	AudioPacket* StartProcessing();
 	virtual int GetType();
 	virtual unsigned char* GetBuffer();
+	virtual AudioPacket* GetNextFrame();
 };
 

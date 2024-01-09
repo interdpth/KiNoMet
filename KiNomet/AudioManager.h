@@ -26,10 +26,13 @@ public:
 	int FillBuffers(unsigned int bytesLeft, AudioPacket* curPack);
 	int ProcessAudio();
 
+	AudioPacket* GetNextFrame();
 	unsigned char* GetBuffer();
 
 	int GetSampleFreq();
-
+	AudioPacket* GetCurrPacket();
 	int GetType();
+	int GetBytesLeft(AudioPacket* curPack);
+	void Queue(AudioPacket* packet);
 };
 
