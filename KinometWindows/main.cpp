@@ -109,8 +109,8 @@ bool handleFrame(KinometPacket* pack)
 	int height = pack->rect->h;
 	int width = pack->rect->w;
 	//we are gba so frame is always 240*160*2;
-	char strbuf[512] = { 0 };
-	sprintf(strbuf, "F:\\processing\\frame%d.bin", frameHandled++);
+	//char strbuf[512] = { 0 };
+	//sprintf(strbuf, "F:\\processing\\frame%d.bin", frameHandled++);
 	unsigned char* lockedPixels = nullptr;
 	int pitch = 0;
 	SDL_LockTexture
@@ -146,40 +146,17 @@ extern "C" {
 #endif
 	int SDL_main(int argc, char* argv[])
 	{
-#ifdef  DEBUG
-
-
-		printf("sizeof(int) %d\n", (int)sizeof(int));
-		printf("sizeof(char) %d\n", (int)sizeof(char));
-		printf("sizeof(short) %d\n", (int)sizeof(short));
-		printf("sizeof(long) %d\n", (int)sizeof(long));
-		printf("sizeof(unsigned int) %d\n", (int)sizeof(unsigned int));
-		printf("sizeof(unsigned char) %d\n", (int)sizeof(unsigned char));
-		printf("sizeof(unsigned short) %d\n", (int)sizeof(unsigned short));
-		printf("sizeof(unsigned long) %d\n", (int)sizeof(unsigned long));
-		printf("sizeof(unsigned char*) %d\n", (int)sizeof(unsigned char*));
-		printf("sizeof(unsigned short*) %d\n", (int)sizeof(unsigned short*));
-		printf("sizeof(cvid_codebook) %d\n", (int)sizeof(cvid_codebook));
-		printf("sizeof(cinepak_info) %d\n", (int)sizeof(cinepak_info));
-		printf("sizeof(BITMAPINFOHEADER) %d\n", (int)sizeof(BITMAPINFOHEADER));
-		printf("sizeof(MainAVIHeader) %d\n", (int)sizeof(MainAVIHeader));
-		printf("sizeof(_avioldindex_entry) %d\n", (int)sizeof(_avioldindex_entry));
-		printf("sizeof(AVIStreamHeader) %d\n", (int)sizeof(AVIStreamHeader));
-		int b = sizeof(arachicoldcvid_codebook);
-		int intz = sizeof(int);
-		int uintz = sizeof(unsigned long);
-#endif // DEBUG
-
+		aviLoader l{};
 		//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
 		frameHandled = 0;
 
-		aviLoader l;
+		
 		l.audiocallback = &handleAudio;
 		l.videoCallBack = &handleFrame;
 		l.GetSize = &GetQueuedBytes;
 		l.GetTicks = &GetTicks;
-		//InitAudioPlayer(10512);
-		//StartPlaying((unsigned char*)audio_outputmain, audio_outputmain_size);
+		//l.init = &
+		
 		LoadAVI((unsigned char*)VideoFile, VideoFile_size,(unsigned char*)audio_outputmain, audio_outputmain_size, &l);//  NULL, NULL, &l);
 		int overallSize = codeBookSize();
 		printf("%d", maxNum);

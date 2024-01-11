@@ -15,7 +15,7 @@ private:
     unsigned long* dataPointers;
     unsigned char* dataOffsetTable;
 public:
-    AudioV1(unsigned char* src, int len, int fps, int frames, int rsize,int (*func)());
+    AudioV1(AudioHeader* src,  int frames, int (*func)());
     virtual AudioPacket* GetNextFrame();
 };
 

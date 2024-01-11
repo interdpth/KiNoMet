@@ -20,7 +20,7 @@ private:
 	AudioHandler* hndlr;
 
 public:
-	AudioManager(unsigned char* src, int len, int fps, int frames, int (*func)());
+	void Init(AudioHeader* src, int len, int fps, int frames, int (*func)());
 
 	int Copy(AudioPacket* curPack, unsigned char* dstBuf, int size);
 	int FillBuffers(unsigned int bytesLeft, AudioPacket* curPack);

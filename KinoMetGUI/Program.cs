@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace KinometGui
@@ -22,7 +19,7 @@ namespace KinometGui
             }
             else
             {
-                (new Kinomet(args[0], "E:\\processing\\", "E:\\Output", 1)).Kinometize();
+                (new Kinomet(args[0], "E:\\processing\\", "E:\\Output", 0)).Kinometize();
             }
         }
     }

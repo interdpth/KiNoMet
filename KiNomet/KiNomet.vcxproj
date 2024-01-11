@@ -159,6 +159,7 @@
     <ClCompile Include="GDL_Audio.cpp" />
     <ClCompile Include="KinoAudio.cpp" />
     <ClCompile Include="KiNomet.cpp" />
+    <ClCompile Include="MemoryBuffers.cpp" />
     <ClCompile Include="SmallBuffer.cpp" />
     <ClCompile Include="SNES.cpp" />
     <ClCompile Include="Test.cpp" />
@@ -178,6 +179,7 @@
     <ClInclude Include="GDL_Audio.h" />
     <ClInclude Include="KinoAudio.h" />
     <ClInclude Include="KiNoMet.h" />
+    <ClInclude Include="MemoryBuffers.h" />
     <ClInclude Include="SmallBuffer.h" />
     <ClInclude Include="SNES.h" />
     <ClInclude Include="tonc_asminc.h" />

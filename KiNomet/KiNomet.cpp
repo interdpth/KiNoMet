@@ -58,8 +58,8 @@ void LoadAVI(unsigned char* file,
 	aviLoader* options)
 {
 	rectangle screen;
+	AudioManager audiomgr;
 	AudioManager* audio = nullptr;
-
 	SmallBuffer* buf = new SmallBuffer(file, size);
 	//memset(&hdr, 0, sizeof(MainAVIHeader));
 	bool bValid = false;
@@ -85,8 +85,10 @@ void LoadAVI(unsigned char* file,
 	pack.frameid = -1;
 	pack.rect = (rectangle*)(sthread->dwRate);//packing hack
 	pack.screen = &screen;
+
+
 	int fps = sthread->dwRate;
-	int audiofps = fps - 8;
+
 	options->videoCallBack(&pack);
 	int readSize = 0;
 	//init on our side
@@ -94,15 +96,16 @@ void LoadAVI(unsigned char* file,
 	{
 		//determien
 
-		audio = new AudioManager(audiofile, audiofsize, fps, hdrz->dwTotalFrames, options->GetSize);
-
+		audiomgr.Init((AudioHeader*)audiofile, audiofsize, fps, hdrz->dwTotalFrames, options->GetSize);
+		audio = &audiomgr;
 		pack.isAudio = true;
 		pack.frame = NULL;
-		pack.screen = (rectangle*)audio->GetSampleFreq();
+		int freq = audio->GetSampleFreq();
+		pack.screen = (rectangle*)freq;
 		pack.type = audio->GetType();
 
 		pack.rect = (rectangle*)NULL;
-
+		
 		options->audiocallback(&pack);
 	}
 
@@ -184,59 +187,78 @@ void LoadAVI(unsigned char* file,
 		if (audio != nullptr)
 		{
 
-			//if (audio->GetType() == V0) 
-			//{
-			//	//0 doesn't do anything but we're here.
-			//}
-			//else if (audio->GetType() == V1 || audio->GetType() == V2)
-			//{
-				//we need to form the packet. 
-
-			//Ask for current frame
+			//Check if there is a packet playing.
+			//Playing is defined as still being copied
+			//If there is a track playing(tmp not equal null)
+			// is it really playing(tmp is null or 0 bytes left or )
+		
 
 
 			AudioPacket* tmp = audio->GetCurrPacket();
-			if (tmp != nullptr && audio->GetBytesLeft(tmp) ==0 || tmp == nullptr) 
+			if (tmp == nullptr || audio->GetBytesLeft(tmp) == 0)
 			{
-			
-				AudioPacket* pkt = audio->GetNextFrame();
-				if (pkt != nullptr)
+			   tmp = audio->GetNextFrame();
+				if (tmp != nullptr)
 				{
-					audio->Queue(pkt);
-				}
-				//}
-
-				readSize = audio->ProcessAudio();
-				if (readSize)
-				{
-					audioPacket.type = 1;
-					audioPacket.frame = audio->GetBuffer();
-					audioPacket.screen = (rectangle*)audio->GetSampleFreq();
-					audioPacket.type = audio->GetType();
-					audioPacket.rect = (rectangle*)readSize;
-
-					options->audiocallback(&audioPacket);
+					tmp->eventFlag = START;
+					audio->Queue(tmp);
 				}
 			}
+
+			if (tmp != nullptr)
+			{
+
+
+				
+				//////Is this packet palying yet? 
+				////// 
+				////switch (tmp->eventFlag)
+				////{
+				////case START:
+				////	//Set to playing 
+				////	tmp->eventFlag = PLAYING;
+				////case PLAYING:
+				//	//Finish out current packet
+					readSize = audio->ProcessAudio();
+					if (readSize)
+					{
+						audioPacket.type = 1;
+						audioPacket.frame = audio->GetBuffer();
+						audioPacket.screen = (rectangle*)audio->GetSampleFreq();
+						audioPacket.type = audio->GetType();
+						audioPacket.rect = (rectangle*)readSize;
+
+						options->audiocallback(&audioPacket);
+					}
+
+				////	break;
+				////case DATA:
+				////	tmp->eventFlag = START;//don't play right away but queue to start for when we run out.
+				////	//If this comes here we add to the buffer? 
+				////	break;
+				////case END://Normal packets will never encode this.
+				////	///Destroy audio.
+				////	audio = nullptr;//regular manager will die later.
+				////	break;
+				////}
+
+			}
+			
 		}
+		//
+
 
 		if (options->videoCallBack(&videoPacket))
 		{
-
 			curFrame++;
-
 		}
-
-
-
-		//The caller should handle framerate.
 
 		//Capture timestamp after draw.
 		last = options->GetTicks();
-
 	}
 
-	delete audio;
+
+
 #ifndef  GBA
 	free(Kinomet_FrameBuffer);
 #endif

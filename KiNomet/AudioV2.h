@@ -4,28 +4,28 @@
 #include "Gba.h"
 
 class AudioV2 :
-    public AudioHandler
+	public AudioHandler
 {
 private:
-    unsigned long* offsets;
-    unsigned long offsetBase;
-    int offsetCount;
-    int frame;
-    unsigned char* dataSource;
-    unsigned long* dataPointers;
-    unsigned char* dataOffsetTable;
+	unsigned long* offsets;
+	unsigned long offsetBase;
+	int offsetCount;
+	int frame;
+	//unsigned char* dataSource;
+	unsigned long* dataPointers;
+	unsigned char* dataOffsetTable;
 public:
-    AudioV2(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)());
+	AudioV2(AudioHeader* src,  int frames,  int (*func)());
 
-    //int Copy(AudioPacket* curPack, unsigned char* dstBuf, int len);
+	//int Copy(AudioPacket* curPack, unsigned char* dstBuf, int len);
 
   //unsigned char* GetBuffer();
   // // int FillBuffers(unsigned int bytesLeft, AudioPacket* curPack);
 
-    /// <summary>
+	/// <summary>
 /// Dump audio to buffer.
 /// </summary>
-    int ProcessAudio();
+	int ProcessAudio();
 
 };
 

@@ -26,12 +26,13 @@ struct KinometPacket
 #define 	AVIIF_KEYFRAME   0x00000010
 #define 	AVIIF_NO_TIME   0x00000100
 //https://cdn.hackaday.io/files/274271173436768/avi.pdf
-struct aviLoader
+typedef struct aviLoader
 {
 	bool (*videoCallBack)(KinometPacket*);
 	bool (*audiocallback)(KinometPacket*);
-		int(*GetSize)();
-		unsigned int(*GetTicks)();
+	int(*GetSize)();
+	unsigned int(*GetTicks)();
+	void (*init)();
 };
 void LoadAVI(unsigned char* file,
 		int size,

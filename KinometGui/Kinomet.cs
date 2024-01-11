@@ -1,14 +1,9 @@
 ﻿using KinometGui.Properties;
 using Microsoft.WindowsAPICodePack.Shell;
-using NAudio.Wave;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace KinometGui
 {
@@ -29,7 +24,7 @@ namespace KinometGui
 
         public int GetFrames(string videoFile)
         {
-            var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = false, RedirectStandardError = true, RedirectStandardOutput =true, CreateNoWindow = true, Arguments = $"-i {videoFile} -map 0:v:0 -c copy -f null -" };
+            var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = false, RedirectStandardError = true, RedirectStandardOutput = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -map 0:v:0 -c copy -f null -" };
             var P = Process.Start(PSI);
             P.WaitForExit();
 
@@ -40,7 +35,7 @@ namespace KinometGui
             string val = news.Split(' ')[0];
             int ret = Convert.ToInt32(val);
             return ret;
-            
+
         }
         AllSight sight;
         /// <summary>
@@ -59,7 +54,7 @@ namespace KinometGui
             TimeSpan ts = TimeSpan.FromTicks(mInfo);
             double minutesFromTs = ts.TotalMinutes;
             uint fr = (vidInfo.FrameRate.Value == null ? 0 : vidInfo.FrameRate.Value.Value) / 1000;
-            int targetFps = (int)25;
+            int targetFps = KinoSettings.FPS;
             float fps = (float)((float)fr / (float)targetFps);
             int numframes = GetFrames(videoFile);
             ////  Do some intial conversions.
@@ -68,32 +63,32 @@ namespace KinometGui
             var P = Process.Start(PSI);
             P.WaitForExit();
 
-           
+
             if (fps > 100.0 || fps < 0.5)
             {
                 Console.WriteLine("Range is bad, clamping value");
                 if (fps > 100.0f) fps = 100.0f;
                 if (fps < 0.5f) fps = 0.5f;
             }
-          
-        
+
+
             string temp = "";
             if (fps != 1)
             {
                 temp = $"-filter:a \"atempo = {fps}\"";
             }
-            if(File.Exists($"{Processing}\\audio_outputmain.wav")) File.Delete($"{Processing}\\audio_outputmain.wav");
-            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} {temp} -ac 1 -ar {RenderAudio.mffreq} {Processing}\\audio_outputmain.wav"};
+            if (File.Exists($"{Processing}\\audio_outputmain.wav")) File.Delete($"{Processing}\\audio_outputmain.wav");
+            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} {temp} -ac 1 -ar {KinoSettings.SampleRate} {Processing}\\audio_outputmain.wav" };
             P = Process.Start(PSI);
             P.WaitForExit();
-            if(!File.Exists($"{Processing}\\audio_outputmain.wav"))
+            if (!File.Exists($"{Processing}\\audio_outputmain.wav"))
             {
                 Thread.Sleep(2000);
             }
 
             (new RenderAudio(audiov, $"{OutputFolder}", $"{Processing}\\audio_outputmain.wav", targetFps, (int)numframes)).Render();
 
-            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} -vf mpdecimate -c:v cinepak -max_strips 5 -q 30 -s 240x160 -an {Processing}\\{fn}_final.avi" };
+            PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-fflags discardcorrupt -i {Processing}\\{tmpVideo} -vf mpdecimate -c:v cinepak -max_strips 5 -q 30 -s 240x160 -an {Processing}\\{fn}_final.avi" };
             P = Process.Start(PSI);
             P.WaitForExit();
             ROM.MakeSource("VideoFile", File.ReadAllBytes($"{Processing}\\{fn}_final.avi"), $"{OutputFolder}");

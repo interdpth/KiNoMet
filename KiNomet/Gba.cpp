@@ -68,6 +68,7 @@ volatile unsigned char* fifo_buffer_a = (volatile unsigned char*)0x40000A0;
 volatile unsigned char* fifo_buffer_b = (volatile unsigned char*)0x40000A4;
 
 /* global variables to keep track of how much longer the sounds are to play */
+unsigned int channel_a_vblanks_remaining_base = 0;
 unsigned int channel_a_vblanks_remaining = 0;
 unsigned int channel_a_total_vblanks = 0;
 unsigned int channel_b_vblanks_remaining = 0;
@@ -104,7 +105,15 @@ void VBlankIntrWait()
 
 
 #ifdef GBA
+void memset(void* src, int val, int len) {
+	char* s = (char*)src;
 
+	while (len-- != 0)
+	{
+		*s++ = (char)val;
+	}
+
+}
 void* memcpy(void* dest, const void* src, int olen)
 {
 

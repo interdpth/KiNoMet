@@ -351,7 +351,9 @@ void InitCodeBook(cinepak_info* cvinfo, int i)
 		{
 			(char*)"shits' fucked mate1";
 		}
+
 		ERR("CVID: codebook v1 alloc err\n");
+
 		return;
 	}
 }
@@ -393,11 +395,14 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 		if (len & 0x01) len++; /* AVIs tend to have a size mismatch */
 		if (len != size)
 		{
+
 			ERR("CVID: corruption %d (QT/AVI) != %ld (CV)\n", size, len);
 			/* return; */
+
 		}
+
 	}
-	;
+	
 
 	free_codebooks(cvinfo);
 	i = 0;
@@ -413,9 +418,12 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	{
 		if (strips >= MAX_STRIPS)
 		{
+
 			ERR("CVID: strip overflow (more than %d)\n", MAX_STRIPS);
 			return;
+		
 		}
+
 
 		for (i = cvinfo->strip_num; i < strips; i++)//Init our codebooks.
 		{
@@ -428,9 +436,10 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 		}
 	}
 	cvinfo->strip_num = strips;
-
+ 
 	TRACE("CVID: <%ld,%ld> strips %ld\n", cv_width, cv_height, strips);
-	
+
+
 	for (cur_strip = 0; cur_strip < strips; cur_strip++)
 	{
 		v4_codebook = cvinfo->v4_codebook[cur_strip];
@@ -463,12 +472,14 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 
 		y_bottom += y1;
 		top_size -= 12;
-		x = 0;
+		x = 0; 
+
 		if (x1 != screenwidth)
 			WARN("CVID: Warning x1 (%ld) != width (%d)\n", x1, screenwidth);
 
 		TRACE("   %d) %04lx %04ld <%ld,%ld> <%ld,%ld> yt %ld\n",
 			cur_strip, strip_id, top_size, x0, y0, x1, y1, y_bottom);
+
 
 		while (top_size > 0)
 		{
@@ -645,7 +656,10 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 					break;
 
 			default:
+
 				ERR("CVID: unknown chunk_id %08lx\n", chunk_id);
+
+
 				KillChunk
 					break;
 			}
@@ -662,8 +676,10 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 			xlen = get_byte() << 16;
 			xlen |= get_byte() << 8;
 			xlen |= get_byte(); /* Read Len */
+
 			WARN("CVID: END INFO chunk size %d cvid size1 %ld cvid size2 %ld\n",
 				size, len, xlen);
+
 		}
 	}
 

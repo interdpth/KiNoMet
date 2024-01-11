@@ -11,6 +11,6 @@ class AudioV0 :
     public AudioHandler
 {
 public:
-    AudioV0(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)());
+    AudioV0(AudioHeader* src,  int frames, int (*func)());
 };
 

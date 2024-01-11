@@ -1,14 +1,11 @@
 ﻿using NAudio.Wave;
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Net.Security;
+using System.Net;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-using static Microsoft.WindowsAPICodePack.Shell.PropertySystem.SystemProperties.System;
 
 namespace KinometGui.Properties
 {
@@ -17,10 +14,12 @@ namespace KinometGui.Properties
     {
         public int count;
         public int len;
-        public Tmp(int c, int l)
+        public int offset;
+        public Tmp(int c, int l,int o)
         {
-               count = c; 
-              len = l;
+            count = c;
+            len = l;
+            offset = o;
         }
     }
     public class RenderAudio
@@ -33,6 +32,7 @@ namespace KinometGui.Properties
         private int fps { get; set; }
         private int numframes { get; set; }
         private int audiov { get; set; }
+        public static short DecompSize = 0x500;
         public RenderAudio(int type, string outFolder, string sf, int framps, int noframes)
         {
             audiov = type;
@@ -107,31 +107,26 @@ namespace KinometGui.Properties
                 return;
             }
             //Convert to signed 8bit.
-
+            AudioHeader aHdr = new AudioHeader(0x41555630, int.MaxValue, (uint)srcAudio.Length, (ushort)audiov, (ushort)fps, (uint)freq);
             string fn = srcAudio.Name.Replace(srcAudio.Extension, "");
             if (File.Exists($"{OutputFolder}\\{fn}.raw")) File.Delete($"{OutputFolder}\\{fn}.raw");
             using (FileStream fs = new FileStream($"{OutputFolder}\\{fn}.raw", FileMode.OpenOrCreate))
             using (BinaryWriter bw = new BinaryWriter(fs))
             {
-                bw.Write(0x41555630);//AUV0
-                UInt16 atype = (UInt16)audiov;
+                //tmp
+                byte[] fbuffer = new byte[AudioHeader.GetHdrSize()];
+                Util.Memset(fbuffer, 0, fbuffer.Length);
+                bw.Write(fbuffer);
 
-                byte[] hdr = BitConverter.GetBytes(atype);
-                bw.Write(hdr);
-
-                atype = (UInt16)fps;
-
-                hdr = BitConverter.GetBytes(atype);
-                bw.Write(hdr);
-
-                var atype2 = freq;
-
-                hdr = BitConverter.GetBytes(atype2);
-                bw.Write(hdr);
+                
                 for (int len = 0; len < srcStream.Count; len++)
                 {
                     bw.Write(srcStream[len]);
                 }
+                aHdr.compressedlength = (uint)((int)bw.BaseStream.Length - AudioHeader.GetHdrSize());
+                aHdr.Write(bw);
+
+
                 bw.Close();
             }
 
@@ -143,6 +138,7 @@ namespace KinometGui.Properties
         private void RenderAudioV1()
         {
 
+            Dictionary<string, Tmp> found = new Dictionary<string, Tmp>();
             FileInfo srcAudio = new FileInfo(srcFile);
 
             //Find out level of decode 
@@ -155,6 +151,7 @@ namespace KinometGui.Properties
                 return;
             }
 
+            AudioHeader aHdr = new AudioHeader(0x41555631, int.MaxValue, (uint) srcAudio.Length, (ushort)audiov, (ushort)fps, (uint)freq);
 
             string fn = srcAudio.Name.Replace(srcAudio.Extension, "");
             using (FileStream fs = new FileStream($"{OutputFolder}\\{fn}.raw", FileMode.OpenOrCreate))
@@ -164,30 +161,22 @@ namespace KinometGui.Properties
                 {
                     using (MemoryStream dataTable = new MemoryStream())
                     {
+                        //tmp
+                        byte[] fbuffer = new byte[AudioHeader.GetHdrSize()];
+                        Util.Memset(fbuffer, 0, fbuffer.Length);
+                        bw.Write(fbuffer);
 
-                        bw.Write(0x41555631);//AUV1
+                        //done writing temp data
+                        int encodedFileInfo = (int)bw.BaseStream.Position;
 
-                        UInt16 atype = (UInt16)audiov;
 
-                        byte[] hdr = BitConverter.GetBytes(atype);
-                        bw.Write(hdr);
 
-                        atype = (UInt16)fps;
 
-                        hdr = BitConverter.GetBytes(atype);
-                        bw.Write(hdr);
-
-                        var atype2 = freq;
-
-                        hdr = BitConverter.GetBytes(atype2);
-                        bw.Write(hdr);
-
-                        int hdrOffset = (int)bw.BaseStream.Position;
                         bw.Write(0xFFFFFFFF);//Count
                         bw.Write(0xFFFFFFFF);//Index Pointers
                         bw.Write(0xFFFFFFFF);//Data 
                         int streamLength = srcStream.Count;
-                        int bufsize = 128;
+                        int bufsize = 16;// KinoSettings.SampleRate;
                         int fnsize = ((int)streamLength / bufsize);
                         int sz = bufsize;
                         int ezCount = 0;
@@ -197,32 +186,59 @@ namespace KinometGui.Properties
                             //buffer is fps*size;
                             byte[] buf = new byte[sz];
                             Buffer.BlockCopy(astream, i * sz, buf, 0, sz);
+                            byte[] hashBytes;
 
+                            using (SHA256 sha256Hash = SHA256.Create())
+                            {
+                                hashBytes = sha256Hash.ComputeHash(buf);
+                            }
+
+                            string hashString = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                            bool wasFound = false;
+                            Tmp curCount = null;
+                            if (found.ContainsKey(hashString))
+                            {
+                                wasFound = true;
+                            }
+                            else
+                            {
+                                found.Add(hashString, new Tmp(0, buf.Length, (int)dataTable.Position));
+                            }
+                            curCount = found[hashString];
+                            curCount.count++;
                             MimirData dat = new MimirData(new IOStream(buf));
 
                             ChariotWheels compType = ChariotWheels.Raw;
                             IOStream stream = dat.srcDat;
-                            int best = (int)dat.srcDat.Length;
+                            UInt16 best = (UInt16)dat.srcDat.Length;
                             if (dat.lz.Length < best)
                             {
                                 compType = ChariotWheels.LZ;
                                 stream = dat.lz;
-                                best = (int)stream.Length;
+                                best = (UInt16)stream.Length;
                             }
 
                             if (dat.rle.Length < best)
                             {
                                 compType = ChariotWheels.RLE;
                                 stream = dat.rle;
-                                best = (int)stream.Length;
+                                best = (UInt16)stream.Length;
                             }
 
-                            pointerTable.Write(BitConverter.GetBytes(dataTable.Position), 0, 4);
-                            dataTable.Write(BitConverter.GetBytes(0xDEADBEEF), 0, 4);
-                            //dataTable.Write(BitConverter.GetBytes(ezCount), 0, 4);//wtf
-                            dataTable.WriteByte((byte)compType);
-                            dataTable.Write(BitConverter.GetBytes((ushort)best), 0, 2);
-                            dataTable.Write(stream.Data, 0, best);
+                            if(!wasFound)
+                            {
+                                pointerTable.Write(BitConverter.GetBytes(dataTable.Position), 0, 4);
+                                // dataTable.Write(BitConverter.GetBytes(0xDEADBEEF), 0, 4);
+                                //dataTable.Write(BitConverter.GetBytes(ezCount), 0, 4);//wtf
+                                dataTable.WriteByte((byte)compType);
+                                dataTable.Write(BitConverter.GetBytes(best), 0, 2);
+                                dataTable.Write(stream.Data, 0, best);
+                            }
+                            else 
+                            { 
+                                pointerTable.Write(BitConverter.GetBytes(curCount.offset), 0, 4); 
+                            }
+
                             ezCount++;
                         }
 
@@ -232,16 +248,33 @@ namespace KinometGui.Properties
                         int dataTableOffset = (int)bw.BaseStream.Position;
 
                         bw.Write(dataTable.ToArray(), 0, (int)dataTable.Length);
-                        bw.BaseStream.Position = hdrOffset;
+
+                       
+
+                        bw.BaseStream.Position = encodedFileInfo;
                         bw.Write(ezCount);
                         bw.Write(pointerTableIndex);
                         bw.Write(dataTableOffset);
+                        aHdr.compressedlength =(uint)( (int)bw.BaseStream.Length - AudioHeader.GetHdrSize());
+                        aHdr.Write(bw);                      
+
                         bw.Close();
 
                     }
                 }
+                int saved = 0;
+                found.Keys.ToList().ForEach(key =>
+                {
+                    if (found[key].count > 1)
+                    {
+                        Console.WriteLine($"{key} found {found[key].count} times with a size of {found[key].len}");
 
+                
+                        saved += found[key].count * found[key].len;
+                    }
+                });
 
+                Console.WriteLine($"Saved {saved} bytes thanks to pointers");
                 ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
                 ROM.Write(OutputFolder, fn);
 
@@ -277,7 +310,10 @@ namespace KinometGui.Properties
 
                         byte[] hdr = BitConverter.GetBytes(atype);
                         bw.Write(hdr);
-
+                        int compressedsizeoff = (int)bw.BaseStream.Position;
+                        bw.Write(0xFFFFFFFF);
+                      
+                        bw.Write(srcAudio.Length);
                         atype = (UInt16)fps;
 
                         hdr = BitConverter.GetBytes(atype);
@@ -292,7 +328,9 @@ namespace KinometGui.Properties
                         bw.Write(0xFFFFFFFF);//Count
                         bw.Write(0xFFFFFFFF);//Index Pointers
                         bw.Write(0xFFFFFFFF);//Data 
-                        int bufsize = 64;
+
+                        int hdrsize = (int)bw.BaseStream.Position;
+                        int bufsize = 32;
 
 
 
@@ -318,14 +356,12 @@ namespace KinometGui.Properties
                             string hashString = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
 
                             Tmp curCount = null;
-                            bool existed = false;
                             if (found.ContainsKey(hashString))
-                            {                                
-                                existed = true;
+                            {
                             }
                             else
                             {
-                                found.Add(hashString, new Tmp(0, buf.Length));
+                                found.Add(hashString, new Tmp(0, buf.Length, (int) dataTable.Position));
                             }
                             curCount = found[hashString];
                             curCount.count++;
@@ -351,11 +387,6 @@ namespace KinometGui.Properties
 
                             //HELLO DOES THE DATA EXIST?
 
-
-              
-
-
-
                             pointerTable.Write(BitConverter.GetBytes(dataTable.Position), 0, 4);
                             dataTable.WriteByte((byte)compType);
                             dataTable.Write(BitConverter.GetBytes((ushort)best), 0, 2);
@@ -372,10 +403,18 @@ namespace KinometGui.Properties
                         int dataTableOffset = (int)bw.BaseStream.Position;
 
                         bw.Write(dataTable.ToArray(), 0, (int)dataTable.Length);
+                    
+                      
                         bw.BaseStream.Position = hdrOffset;
                         bw.Write(ezCount);
                         bw.Write(pointerTableIndex);
                         bw.Write(dataTableOffset);
+                        bw.Seek(0, SeekOrigin.End);
+                        int lol = (int)bw.BaseStream.Position;
+                        
+
+                            bw.BaseStream.Position = compressedsizeoff;
+                        bw.Write(lol-compressedsizeoff);
                         bw.Close();
 
                     }
@@ -385,9 +424,9 @@ namespace KinometGui.Properties
 
                 //lets see all the data we could have saved!
 
-                found.Keys.ToList().ForEach(key => 
+                found.Keys.ToList().ForEach(key =>
                 {
-                    Console.WriteLine($"{key} found {found[key].count} times with a size of {found[key].len}");                    
+                    Console.WriteLine($"{key} found {found[key].count} times with a size of {found[key].len}");
                 });
                 ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
                 ROM.Write(OutputFolder, fn);

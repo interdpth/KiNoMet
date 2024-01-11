@@ -15,17 +15,17 @@ void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
 //Ring buffer is 0x4000 bytes.
 
 #include "MemoryBuffers.h"
-void AudioHandler::Init(int t, int fp, int sam)
+void AudioHandler::Init(int t, int l, int fp, int sam)
 {
 
 	/*tmpBuf = (unsigned char*)malloc(TMP_SIZE);*/
 	limitBuf = (unsigned char*)MemoryBuffers::startBuf + RING_SIZE;
 
-
 	BeginBuffer = (unsigned char*)MemoryBuffers::startBuf;
 	currentBuf = (unsigned char*)MemoryBuffers::startBuf;
 	type = t;
 	fps = fp;
+	filesize = l;
 	sample_rate = sam;
 	swapped = false;
 }
@@ -66,43 +66,28 @@ int AudioHandler::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
 	}
 
 #ifdef  GBA
-	memcpy16_dma((unsigned short*)dstBuf, (unsigned short*)&curPack->start[curPack->tracked], bytesLeft >> 1);
+	memcpy16_dma((unsigned short*)dstBuf, (unsigned short*)&curPack->data[curPack->tracked], bytesLeft >> 1);
 #else
-	memcpy(dstBuf, &curPack->start[curPack->tracked], bytesLeft);
+	memcpy(dstBuf, &curPack->data[curPack->tracked], bytesLeft);
 #endif
 	curPack->tracked += bytesLeft;
 	return bytesLeft;
 }
 
-void AudioHandler::InitAudioHandler(AudioHeader* p, int len)
+void AudioHandler::InitAudioHandler(AudioHeader* p)
 {
-	Init(p->type, p->fps, p->freq);
+	Init(p->type, p->fileLength, p->fps, p->freq);
 }
-
-
-//AudioHandler::AudioHandler(int type, int fp, int sam, int frames, int rsize, int (*func)())
-//{
-//	ringSize = rsize;// (len / frames)* fps;
-//	while (1)
-//	{
-//		;
-//	}
-//	Init(type, fp, sam);
-//	GetSize = func;
-//}
 
 //Ring buffer is 0x4000 bytes.
 #ifdef GBA 
 IWRAM
 #endif
-AudioHandler::AudioHandler(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)())
-{
-	AudioHeader* hdr = (AudioHeader*)src;
-	
-	Init(hdr->type, hdr->fps, hdr->freq);
+AudioHandler::AudioHandler(AudioHeader* src,  int frames, int (*func)())
+{	
+	InitAudioHandler(src);
 
-	GetSize = func;
-	
+	GetSize = func;	
 }
 
 
@@ -118,62 +103,6 @@ void AudioHandler::Swap()
 {
 	swapped = !swapped;
 }
-
-//int AudioHandler::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
-//{
-//
-//	int bytesLeft = len;
-//	if (curPack->tracked + bytesLeft > curPack->len)
-//	{
-//		bytesLeft = curPack->len - (curPack->tracked);
-//	}
-//
-//#ifdef  GBA
-//	memcpy16_dma((unsigned short*)dstBuf, (unsigned short*)&curPack->start[curPack->tracked], bytesLeft >> 1);
-//#else
-//	memcpy(dstBuf, &curPack->start[curPack->tracked], bytesLeft);
-//#endif
-//	curPack->tracked += bytesLeft;
-//	return bytesLeft;
-//}
-//
-
-//int AudioHandler::FillBuffers(unsigned int bytesLeft, AudioPacket* curPack)
-//{
-//	int retVal = 0;
-//	bool plsSwap = false;
-//
-//	//PC can ring buffer, gba will play full sample
-////#ifndef GBA
-////	if (bytesLeft <= TMP_SIZE)
-////	{	//Handle transfer buffer write.
-////
-////		//Buffer check
-////
-////		bytesLeft = Copy(curPack, tmpBuf, TMP_SIZE);
-////
-////		
-////		retVal = bytesLeft;
-////		plsSwap = true;
-////	}
-////#endif
-//	//Write to main buffer for swap.
-//
-//	int newLen = Copy(curPack, startBuf, bytesLeft);
-//	//#ifndef GBA
-//	if (plsSwap)
-//	{
-//		Swap();
-//		swapsize = bytesLeft;
-//	}
-//	else
-//	{
-//		swapsize = 0;
-//		retVal = newLen;
-//	}
-//	//#endif
-//	return retVal;
-//}
 
 /// <summary>
 /// Returns current working packet once ended. 
@@ -195,6 +124,8 @@ AudioPacket* AudioHandler::ProcessPackets()
 		if (curPack == nullptr) return nullptr;
 		curPack->tracked = 0;
 	}
+
+	return curPack;
 }
 
 void AudioHandler::ClearAudio()

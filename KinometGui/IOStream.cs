@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace KinometGui
 {
@@ -201,7 +200,7 @@ namespace KinometGui
             //data[pos] = (byte)val;
             //data[pos + 1] = (byte)(val >> 8);
             BitConverter.GetBytes(val).ToList().ForEach(x => Write8(x));
-          
+
         }
 
         public void Write32(int val)
@@ -224,7 +223,7 @@ namespace KinometGui
             //data[pos + 1] = (byte)(val >> 8);
             //data[pos + 2] = (byte)(val >> 16);
             //data[pos + 3] = (byte)(val >> 24);
-          
+
         }
 
         public void Write32(uint val)
@@ -246,7 +245,7 @@ namespace KinometGui
             //data[pos + 2] = (byte)(val >> 16);
             //data[pos + 3] = (byte)(val >> 24);
             BitConverter.GetBytes(val).ToList().ForEach(x => Write8(x));
-           
+
         }
 
         public void WriteU32(UInt32 val)
@@ -265,7 +264,7 @@ namespace KinometGui
             }
 
             BitConverter.GetBytes(val).ToList().ForEach(x => Write8(x));
-           
+
 
             //data[pos] = (byte)val;
             //data[pos + 1] = (byte)(val >> 8);

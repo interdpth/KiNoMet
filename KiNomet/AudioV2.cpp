@@ -1,8 +1,8 @@
 #include "AudioV2.h"
 #include "MemoryBuffers.h"
 #include <cstdlib>
-AudioV2::AudioV2(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)()) :
-	AudioHandler(src, len, fps, frames, rsize, func)
+AudioV2::AudioV2(AudioHeader* src,  int frames,  int (*func)()) :
+	AudioHandler(src,  frames,  func)
 {
 
 	//	ClearAudio();

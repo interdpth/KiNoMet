@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <stdlib.h>
 using namespace std;
 //save on memory lol
 #define GBA_RING_MEM 0x6000000 + 240 * 160 * 2
@@ -9,6 +10,8 @@ using namespace std;
 struct AudioHeader
 {
 	unsigned long hdr;
+	unsigned long compressedlength;
+	unsigned long fileLength;
 	unsigned short type;
 	unsigned short fps;
 	unsigned long freq;
@@ -17,14 +20,15 @@ struct AudioHeader
 };
 enum AUDIO_PACKET_FLAGS:unsigned char
 {
-	START,
-	DATA,
-	END,
+	START=1,
+	PLAYING=1<<1,
+	DATA=1<<2,
+	END=0xFF,
 };
 struct AudioPacket
 {
 	AUDIO_PACKET_FLAGS eventFlag;//0
-	unsigned char* start;//1
+	unsigned char* data;//1
 	int len;//5
 	int tracked;//6
 	int frame;//7
@@ -44,7 +48,7 @@ private:
 	unsigned char* tmpBuf;
 	unsigned char* currentBuf;
 	unsigned char* limitBuf;
-	
+	unsigned long filesize;
 	int type;
 	int fps;
 	int sample_rate;
@@ -64,14 +68,14 @@ public:
 /// <param name="fp"></param>
 /// <param name="sam"></param>
 /// 
-	virtual void Init(int type, int fp, int sam);
+	virtual void Init(int type, int l, int fp, int sam);
 	/// <summary>
 	/// Calls maint init
 	/// </summary>
 	/// <param name="type"></param>
 	/// <param name="fp"></param>
 	/// <param name="sam"></param>
-	virtual void InitAudioHandler(AudioHeader* p, int len);
+	virtual void InitAudioHandler(AudioHeader* p);
 	
 	/// <summary>
 	/// Basic init.
@@ -88,7 +92,7 @@ public:
 	/// <param name="sam"></param>
 	/// <param name="src"></param>
 	/// <param name="len"></param>
-	AudioHandler(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)());
+	AudioHandler(AudioHeader* src,   int frames, int (*func)());
 
 	virtual AudioPacket* ProcessPackets();
 	/// <summary>

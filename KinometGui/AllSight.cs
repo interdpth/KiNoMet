@@ -4,8 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace KinometGui
 {
@@ -13,7 +11,7 @@ namespace KinometGui
     //Reading
     //Read byte for ChariotWheels
     //if(Pointer)
-   
+
     public enum ChariotWheels
     {
         Raw,
@@ -26,7 +24,7 @@ namespace KinometGui
 
     public class MimirData
     {
-      public  IOStream srcDat;
+        public IOStream srcDat;
 
         public IOStream rle = new IOStream(0);
         public IOStream lz = new IOStream(0);
@@ -42,7 +40,7 @@ namespace KinometGui
     public class OdinsEyes
     {
 
-        public  int Length { get { return nextStrip - lastStrip; } }
+        public int Length { get { return nextStrip - lastStrip; } }
         private int lastStrip;
         private int nextStrip; //THis wil get set when the next eye comes into play. 
 
@@ -62,7 +60,7 @@ namespace KinometGui
     }
 
 
- 
+
     public class AllSight
     {
         IOStream file;
@@ -94,9 +92,9 @@ namespace KinometGui
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-               
+
             }
             return ""; ;
         }
@@ -118,10 +116,10 @@ namespace KinometGui
         //}
         public void WriteToFile(string directory, int fps)
         {
-            IOStream outFile = new IOStream(frames.Count*0x1c0);
+            IOStream outFile = new IOStream(frames.Count * 0x1c0);
             bool dumpData = true;
             Dictionary<string, int> intHashLookup = new Dictionary<string, int>();
-            foreach (OdinsEyes eyeball in frames.OrderBy(x=>x.id))
+            foreach (OdinsEyes eyeball in frames.OrderBy(x => x.id))
             {
                 //Do we exist? 
                 if (intHashLookup.ContainsKey(eyeball.HashCode))  //Does full frame exist
@@ -136,65 +134,65 @@ namespace KinometGui
                 //We will break the frame up into 512byte chunks.
 
                 var dat = eyeball.data.srcDat.Data;
-                    
+
 
                 //go through 
                 //foreach (var ourBytes in frameBytes)
                 //{
-                    //Check if this data exists as a full frame.
-                 
-                    string chkSUm = GetCheckSum(dat);
+                //Check if this data exists as a full frame.
 
-                    //Do we exist? 
-                    if (intHashLookup.ContainsKey(eyeball.HashCode))
-                    {
-                        outFile.Write8((byte)ChariotWheels.Pointer);
-                        outFile.WriteU32((uint)intHashLookup[eyeball.HashCode]);
-                        continue;
-                    }
+                string chkSUm = GetCheckSum(dat);
 
-                    ChariotWheels compType = ChariotWheels.Raw;
-                    IOStream stream = new IOStream(dat);
-                    int best = (int)dat.Length;
-                    if (eyeball.data.lz.Length < best)
-                    {
-                        compType = ChariotWheels.LZ;
-                        stream = eyeball.data.lz;
-                        best = (int)stream.Length;
-                    }
-
-                    if (eyeball.data.rle.Length < best)
-                    {
-                        compType = ChariotWheels.RLE;
-                        stream = eyeball.data.rle;
-                        best = (int)stream.Length;
-                    }
-
-                    intHashLookup[eyeball.HashCode] = (int)outFile.Position;
-                    outFile.Write8((byte)compType);
-                    outFile.Write32(best);
-                    outFile.Write(stream.Data, best);
-
-                    if(dumpData)
-                    {
-                        Debug.WriteLine($"First file: {outFile.Position.ToString("X")} {compType.ToString()} {best.ToString("X")}");
-                        dumpData = false;
-                    }
+                //Do we exist? 
+                if (intHashLookup.ContainsKey(eyeball.HashCode))
+                {
+                    outFile.Write8((byte)ChariotWheels.Pointer);
+                    outFile.WriteU32((uint)intHashLookup[eyeball.HashCode]);
+                    continue;
                 }
-            
+
+                ChariotWheels compType = ChariotWheels.Raw;
+                IOStream stream = new IOStream(dat);
+                int best = (int)dat.Length;
+                if (eyeball.data.lz.Length < best)
+                {
+                    compType = ChariotWheels.LZ;
+                    stream = eyeball.data.lz;
+                    best = (int)stream.Length;
+                }
+
+                if (eyeball.data.rle.Length < best)
+                {
+                    compType = ChariotWheels.RLE;
+                    stream = eyeball.data.rle;
+                    best = (int)stream.Length;
+                }
+
+                intHashLookup[eyeball.HashCode] = (int)outFile.Position;
+                outFile.Write8((byte)compType);
+                outFile.Write32(best);
+                outFile.Write(stream.Data, best);
+
+                if (dumpData)
+                {
+                    Debug.WriteLine($"First file: {outFile.Position.ToString("X")} {compType.ToString()} {best.ToString("X")}");
+                    dumpData = false;
+                }
+            }
+
             outFile.Write8((byte)ChariotWheels.END);
 
 
 
             //Real 
-            IOStream outputFIle = new IOStream((int)(intHashLookup.Count*8 +  outFile.Length));//"Audi, two pointers, pointer table, data;
+            IOStream outputFIle = new IOStream((int)(intHashLookup.Count * 8 + outFile.Length));//"Audi, two pointers, pointer table, data;
             outputFIle.WriteASCII("BRAG");
             outputFIle.Write8((byte)fps);
             int pointerOffset = (int)outputFIle.Position;
             outputFIle.Write32((int)0x8123456);
             outputFIle.Write32((int)0x8123456);
 
-            int lookupTable = (int)outputFIle.Position;  
+            int lookupTable = (int)outputFIle.Position;
             outputFIle.Write32(intHashLookup.Count);
             outputFIle.Write32(0xDEADBEE5);
             foreach (var luts in intHashLookup)

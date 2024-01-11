@@ -17,7 +17,9 @@ int nocash_puts(const char* str);
 	extern void timerDisable(unsigned long num);
 
 	extern unsigned short timerGetValue(unsigned long num);
-
+#ifdef GBA
+	void memset(void* src, int val, int len);
+#endif
 extern volatile unsigned long* display_control;
 #define MODE0 0x00
 #define BG0_ENABLE 0x100
@@ -140,6 +142,7 @@ extern volatile unsigned char* fifo_buffer_a;
 extern volatile unsigned char* fifo_buffer_b;
 
 /* global variables to keep track of how much longer the sounds are to play */
+extern unsigned int channel_a_vblanks_remaining_base;
 extern unsigned int channel_a_vblanks_remaining;
 extern unsigned int channel_a_total_vblanks;
 extern unsigned int channel_b_vblanks_remaining;

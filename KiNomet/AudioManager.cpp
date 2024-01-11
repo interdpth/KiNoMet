@@ -1,22 +1,27 @@
 #include "AudioManager.h"
 #include <cstddef>
-AudioManager::AudioManager(unsigned char* src, int len, int fps, int frames, int (*func)())
-{
 
-	int hdr = *(unsigned long*)src;
+//WE NEED TO STORE RAW FILE AND COMPRESSED FILE SIZE
+//AUDOIOFSIZE IS COMPRESSED
+//LEN IS UNCOMPRESSED
+//COMPRESSED FOR PACKETS
+//DECOMPRESSED FOR LENGTH.
+void AudioManager::Init(AudioHeader* src, int len, int fps, int frames, int (*func)())
+{
+	int hdr = src->hdr;
 	if (hdr == 0x41555632)//AUV2
 	{
-		hndlr = new AudioV2(src, len, fps, frames, fps * ((len - sizeof(AudioHeader)) / frames), func);
+		hndlr = new AudioV2(src, frames, func);
 		ver = V2;
 	}
 	if (hdr == 0x41555631)//AUV1
 	{
-		hndlr = new AudioV1(src, len, fps, frames, fps * ((len - sizeof(AudioHeader)) / frames), func);
+		hndlr = new AudioV1(src, frames, func);
 		ver = V1;
 	}
 	else if (hdr == 0x41555630)//AUV0
 	{
-		hndlr = new AudioV0(src, len, fps, frames, (len / frames) * fps, func);
+		hndlr = new AudioV0(src, frames, func);
 		ver = V0;
 	}
 }
@@ -29,7 +34,7 @@ int AudioManager::Copy(AudioPacket* curPack, unsigned char* dstBuf, int size)
 
 
 int AudioManager::ProcessAudio()
-{	
+{
 	return	hndlr->ProcessAudio();
 }
 

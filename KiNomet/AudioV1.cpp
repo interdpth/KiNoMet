@@ -1,8 +1,8 @@
 #include "AudioV1.h"
 #include "MemoryBuffers.h"
 #include <cstdlib>
-AudioV1::AudioV1(unsigned char* src, int len, int fps, int frames, int rsize, int (*func)()) :
-	AudioHandler(src, len, fps, frames, rsize, func)
+AudioV1::AudioV1(AudioHeader* src,   int frames, int (*func)()) :
+	AudioHandler(src,  frames, func)
 {
 
 	//	ClearAudio();
@@ -61,13 +61,13 @@ AudioPacket* AudioV1::GetNextFrame() {
 	switch (cmp)
 	{
 	case Raw:
-		decompSize = Compression::RawCopy(data, MemoryBuffers::DecompBuffer, 0x500);
+		decompSize = Compression::RawCopy(data, MemoryBuffers::DecompBuffer, 0x1000);
 		break;
 	case RLE:
-		decompSize = Compression::RLEDecomp(data, MemoryBuffers::DecompBuffer, 0x500);
+		decompSize = Compression::RLEDecomp(data, MemoryBuffers::DecompBuffer, 0x1000);
 		break;
 	case LZ:
-		decompSize = Compression::LZDecomp(data, MemoryBuffers::DecompBuffer, 0x500);
+		decompSize = Compression::LZDecomp(data, MemoryBuffers::DecompBuffer, 0x1000);
 		break;
 
 	default:
@@ -81,13 +81,13 @@ AudioPacket* AudioV1::GetNextFrame() {
 
 		while (1);
 	}
-
+	
 	AudioPacket* curPack = (AudioPacket*)malloc(sizeof(AudioPacket));
 	memset(curPack, 0, sizeof(AudioPacket));
 	curPack->eventFlag = AUDIO_PACKET_FLAGS::START;
 	curPack->len = decompSize;
 	curPack->tracked = 0;
-	curPack->start = MemoryBuffers::DecompBuffer;
+	curPack->data = MemoryBuffers::DecompBuffer;
 	curPack->frame = frameNo;
 	frame++;
 
