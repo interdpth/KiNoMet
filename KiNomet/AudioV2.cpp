@@ -14,7 +14,7 @@ AudioV2::AudioV2(AudioHeader* src,  int frames,  int (*func)()) :
 	}
 	filePointer += 4;
 #else
-	unsigned char* filePointer = (unsigned char*)&((AudioHeader*)src)->datPtr;
+	unsigned char* filePointer = (unsigned char*)(src + sizeof(AudioHeader));
 #endif
 	int frameCount = (int)(*(unsigned long*)filePointer); filePointer += 4;
 	int offsetStart1 = (int)(*(unsigned long*)filePointer); filePointer += 4;

@@ -66,9 +66,9 @@ int AudioHandler::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
 	}
 
 #ifdef  GBA
-	memcpy16_dma((unsigned short*)dstBuf, (unsigned short*)&curPack->data[curPack->tracked], bytesLeft >> 1);
+	memcpy16_dma((unsigned short*)dstBuf, &((unsigned short*)curPack->data)[curPack->tracked], bytesLeft >> 1);
 #else
-	memcpy(dstBuf, &curPack->data[curPack->tracked], bytesLeft);
+	memcpy(dstBuf,   & ((unsigned char*)curPack->data)[curPack->tracked], bytesLeft);
 #endif
 	curPack->tracked += bytesLeft;
 	return bytesLeft;
@@ -114,7 +114,7 @@ AudioPacket* AudioHandler::ProcessPackets()
 	if (curPack != nullptr && curPack->tracked >= curPack->len)
 	{
 		free(packets[0]);
-		for (int i = 1; i < packets.size(); i++)
+		for (size_t i = 1; i < packets.size(); i++)
 		{
 			memcpy(&packets[i - 1], &packets[i], sizeof(AudioPacket));
 		}

@@ -139,7 +139,7 @@ bool handleFrame(KinometPacket* pack)
 	last = current;
 	return true;
 }
-extern int maxNum;
+extern unsigned long maxNum;
 extern int codeBooks;
 #ifdef __cplusplus
 extern "C" {

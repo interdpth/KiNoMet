@@ -21,7 +21,12 @@ namespace KinometGui
         public UInt32 freq;
         public static int GetHdrSize()
         {
-            return sizeof(UInt32) * 4 + sizeof(UInt16) * 2;
+            return 4 +//hdr
+                   4 +//commpressedlength;
+                   4 +//filelEngth;
+                   2 + //type
+                   2 + //fp
+                   4;//freq
         }
         public AudioHeader(uint hdr, uint compressedlength, uint fileLength, ushort type, ushort fps, uint freq)
         {
@@ -52,7 +57,7 @@ namespace KinometGui
             hdr = BitConverter.GetBytes(atype);
             binaryWriter.Write(hdr);
 
-            var freqenc = freq;
+            uint freqenc = freq;
 
             hdr = BitConverter.GetBytes(freqenc);
             binaryWriter.Write(hdr);

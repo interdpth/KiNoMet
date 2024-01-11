@@ -1,6 +1,8 @@
 ﻿using NAudio.Wave;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -132,7 +134,7 @@ namespace KinometGui.Properties
 
             ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
             ROM.Write(OutputFolder, fn);
-
+            Debug.Write(JsonConvert.SerializeObject(aHdr));
         }
 
         private void RenderAudioV1()

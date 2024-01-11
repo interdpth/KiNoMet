@@ -7,8 +7,6 @@ class AudioV2 :
 	public AudioHandler
 {
 private:
-	unsigned long* offsets;
-	unsigned long offsetBase;
 	int offsetCount;
 	int frame;
 	//unsigned char* dataSource;

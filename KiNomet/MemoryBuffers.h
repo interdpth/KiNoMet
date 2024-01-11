@@ -6,7 +6,7 @@ public:
 #ifdef GBA
 	static unsigned char* DecompBuffer;
 #else
-	static unsigned char DecompBuffer[0x10000];
+	static unsigned char DecompBuffer[0x1000];
 #endif
 #ifdef GBA
 	static unsigned char* Kinomet_FrameBuffer;

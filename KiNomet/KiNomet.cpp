@@ -5,6 +5,7 @@
 #include "AviApi.h"
 #include <stdio.h>
 #include "AudioManager.h"
+#include "MemoryBuffers.h"
 #ifdef GBA
 #include <tgmath.h>
 #endif
@@ -24,14 +25,11 @@ void CreateFrameBuffer(int w, int h)
 	//Let's do setup
 	int sizescr = w * h * 2;//Rgb //hdrz->dwWidth * hdrz->dwHeight * 3;
 
-#ifdef GBA
-	Kinomet_FrameBuffer = (unsigned char*)0x6000000;
-#else
-	Kinomet_FrameBuffer = (unsigned char*)malloc(sizescr);
-#endif
-	for (int i = 0; i < sizescr / 4; i++)//future iterations should size check but black out the screen
+	Kinomet_FrameBuffer = MemoryBuffers::Kinomet_FrameBuffer;
+
+	for (int i = 0; i < w * h; i++)//future iterations should size check but black out the screen
 	{
-		((unsigned long*)Kinomet_FrameBuffer)[i] = 0;
+		((unsigned short*)Kinomet_FrameBuffer)[i] = 0;
 	}
 }
 //Every FPS we will update audio buffers. 
@@ -105,7 +103,7 @@ void LoadAVI(unsigned char* file,
 		pack.type = audio->GetType();
 
 		pack.rect = (rectangle*)NULL;
-		
+
 		options->audiocallback(&pack);
 	}
 
@@ -191,17 +189,29 @@ void LoadAVI(unsigned char* file,
 			//Playing is defined as still being copied
 			//If there is a track playing(tmp not equal null)
 			// is it really playing(tmp is null or 0 bytes left or )
-		
+
 
 
 			AudioPacket* tmp = audio->GetCurrPacket();
-			if (tmp == nullptr || audio->GetBytesLeft(tmp) == 0)
+
+			if (audio->GetType() == V0)
 			{
-			   tmp = audio->GetNextFrame();
-				if (tmp != nullptr)
+				if (audio->GetBytesLeft(tmp))
 				{
-					tmp->eventFlag = START;
-					audio->Queue(tmp);
+
+					audio = nullptr;
+				}
+			}
+			else
+			{
+				if (tmp == nullptr || audio->GetBytesLeft(tmp) == 0)
+				{
+					tmp = audio->GetNextFrame();
+					if (tmp != nullptr)
+					{
+						//tmp->eventFlag = START;
+						audio->Queue(tmp);
+					}
 				}
 			}
 
@@ -209,7 +219,7 @@ void LoadAVI(unsigned char* file,
 			{
 
 
-				
+
 				//////Is this packet palying yet? 
 				////// 
 				////switch (tmp->eventFlag)
@@ -220,7 +230,7 @@ void LoadAVI(unsigned char* file,
 				////case PLAYING:
 				//	//Finish out current packet
 					readSize = audio->ProcessAudio();
-					if (readSize)
+				/*	if (readSize)
 					{
 						audioPacket.type = 1;
 						audioPacket.frame = audio->GetBuffer();
@@ -229,40 +239,30 @@ void LoadAVI(unsigned char* file,
 						audioPacket.rect = (rectangle*)readSize;
 
 						options->audiocallback(&audioPacket);
-					}
-
-				////	break;
-				////case DATA:
-				////	tmp->eventFlag = START;//don't play right away but queue to start for when we run out.
-				////	//If this comes here we add to the buffer? 
-				////	break;
-				////case END://Normal packets will never encode this.
-				////	///Destroy audio.
-				////	audio = nullptr;//regular manager will die later.
-				////	break;
-				////}
+					}*/
 
 			}
-			
-		}
-		//
-
-
-		if (options->videoCallBack(&videoPacket))
-		{
-			curFrame++;
 		}
 
-		//Capture timestamp after draw.
-		last = options->GetTicks();
+	
+	//
+
+
+	if (options->videoCallBack(&videoPacket))
+	{
+		curFrame++;
 	}
+
+	//Capture timestamp after draw.
+	last = options->GetTicks();
+}
 
 
 
 #ifndef  GBA
-	free(Kinomet_FrameBuffer);
+free(Kinomet_FrameBuffer);
 #endif
-	free_cvinfo(ci);
-	return;
+free_cvinfo(ci);
+return;
 }
 

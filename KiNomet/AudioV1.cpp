@@ -14,7 +14,7 @@ AudioV1::AudioV1(AudioHeader* src,   int frames, int (*func)()) :
 	}
 	filePointer += 4;
 #else
-	unsigned char* filePointer = (unsigned char*)&((AudioHeader*)src)->datPtr;
+	unsigned char* filePointer = (unsigned char*)(src + sizeof(AudioHeader));
 #endif
 	int frameCount = (int)(*(unsigned long*)filePointer); filePointer += 4;
 	int offsetStart1 = (int)(*(unsigned long*)filePointer); filePointer += 4;
@@ -83,13 +83,15 @@ AudioPacket* AudioV1::GetNextFrame() {
 	}
 	
 	AudioPacket* curPack = (AudioPacket*)malloc(sizeof(AudioPacket));
-	memset(curPack, 0, sizeof(AudioPacket));
-	curPack->eventFlag = AUDIO_PACKET_FLAGS::START;
-	curPack->len = decompSize;
-	curPack->tracked = 0;
-	curPack->data = MemoryBuffers::DecompBuffer;
-	curPack->frame = frameNo;
-	frame++;
-
+	if (curPack != NULL) {
+		memset(curPack, 0, sizeof(AudioPacket));
+		///curPack->eventFlag = AUDIO_PACKET_FLAGS::START;
+		curPack->len = decompSize;
+		curPack->tracked = 0;
+		curPack->data = (unsigned char*)(MemoryBuffers::DecompBuffer);
+		curPack->frame = frameNo;
+	}
+		frame++;
+	
 	return curPack;
 }

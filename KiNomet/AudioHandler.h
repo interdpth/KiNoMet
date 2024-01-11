@@ -7,17 +7,16 @@ using namespace std;
 
 #define RING_SIZE (240 * 160 * 2) + 0x1000
 
-struct AudioHeader
+typedef struct AudioHeader
 {
 	unsigned long hdr;
 	unsigned long compressedlength;
 	unsigned long fileLength;
 	unsigned short type;
 	unsigned short fps;
-	unsigned long freq;
-	
-	unsigned char* datPtr;//whever your buffer is after reading freq 
-};
+	unsigned long freq;	
+	unsigned char data[];//get address wherever your buffer is after reading freq 
+}AudioHeader;
 enum AUDIO_PACKET_FLAGS:unsigned char
 {
 	START=1,
@@ -25,14 +24,13 @@ enum AUDIO_PACKET_FLAGS:unsigned char
 	DATA=1<<2,
 	END=0xFF,
 };
-struct AudioPacket
+typedef struct AudioPacket
 {
-	AUDIO_PACKET_FLAGS eventFlag;//0
-	unsigned char* data;//1
-	int len;//5
-	int tracked;//6
+	void* data;//1
+	unsigned long  len;//5
+	unsigned long  tracked;//6
 	int frame;//7
-};
+}AudioPacket;
 //we need a callback to get data 
 extern int (*getSize)();
 

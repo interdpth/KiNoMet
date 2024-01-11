@@ -357,7 +357,7 @@ void InitCodeBook(cinepak_info* cvinfo, int i)
 		return;
 	}
 }
-int maxNum = 0;
+unsigned long maxNum = 0;
 #define KillChunk in_buffer+=chunk_size;//while (chunk_size > 0) { skip_byte(); chunk_size--; }
 #ifdef GBA
 IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,

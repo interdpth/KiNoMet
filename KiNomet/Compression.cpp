@@ -21,30 +21,33 @@ int GBA_LZDECOMP(void* src, void* dst) {
 
 	uint8_t* destBuffer = new uint8_t[decompressedLength];
 	size_t bytesWritten = 0;
-	while (bytesWritten < decompressedLength)
-	{
-		uint8_t flags = *(uint8_t*)srcp; srcp += 1;
-		for (int i = 0; i < 8 && bytesWritten < decompressedLength; ++i)
+	if (decompressedLength > 0 && destBuffer) {
+		while (bytesWritten < decompressedLength)
 		{
-			bool type = (flags & (0x80 >> i));
-			if (!type)
+			uint8_t flags = *(uint8_t*)srcp; srcp += 1;
+			for (int i = 0; i < 8 && bytesWritten < decompressedLength; ++i)
 			{
-				uint8_t value = *(uint8_t*)srcp; srcp += 1;
-				destBuffer[bytesWritten] = value;
-				bytesWritten++;
-			}
-			else
-			{
-				uint16_t value = *(uint16_t*)srcp; srcp += 2;
-				uint16_t disp = ((value & 0xf) << 8) | (value >> 8);
-				uint8_t n = ((value >> 4) & 0xf);
-				//	printf("pos %x, src %x, length %d\n", bytesWritten, bytesWritten-disp-1, n+3);
-				for (int j = 0; j < n + 3; ++j)
+				bool type = (flags & (0x80 >> i));
+				if (!type)
 				{
-					destBuffer[bytesWritten] = destBuffer[bytesWritten - disp - 1];
+					uint8_t value = *(uint8_t*)srcp; srcp += 1;
+					destBuffer[bytesWritten] = value;
 					bytesWritten++;
 				}
+				else
+				{
+					uint16_t value = *(uint16_t*)srcp; srcp += 2;
+					uint16_t disp = ((value & 0xf) << 8) | (value >> 8);
+					uint8_t n = ((value >> 4) & 0xf);
+					//	printf("pos %x, src %x, length %d\n", bytesWritten, bytesWritten-disp-1, n+3);
+					for (int j = 0; j < n + 3; ++j)
+					{
+						destBuffer[bytesWritten] = destBuffer[bytesWritten - disp - 1];
+						bytesWritten++;
+					}
+				}
 			}
+
 		}
 	}
 	return bytesWritten;
