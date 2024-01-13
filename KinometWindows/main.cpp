@@ -28,10 +28,10 @@ unsigned int GetTicks(void)
 {
 	return SDL_GetTicks();
 }
-void initFrame(KinometPacket* pack)
+void initFrame(VideoKinometPacket* pack)
 {
-	height = pack->screen->h;
-	width = pack->screen->w;
+	height = pack->DisplaySize.h;
+	width = pack->DisplaySize.w;
 	SDL_Init(SDL_INIT_EVERYTHING);              // Initialize SDL2
 	mainWindow = SDL_CreateWindow("Kinometo-Scope",
 		SDL_WINDOWPOS_UNDEFINED,           // initial x position
@@ -56,7 +56,7 @@ void initFrame(KinometPacket* pack)
 		SDL_TEXTUREACCESS_STREAMING,
 		width, height
 	);
-	movieFps = (int)pack->rect;
+	movieFps = (int)pack->FramesPerSecond;
 
 	SoundInited = 1;
 }
@@ -66,24 +66,24 @@ Uint32 totalFrames = 0;
 //frame is raw decoded data
 //screen rect describes length
 int audioType;
-bool handleAudio(KinometPacket* pack)
+bool handleAudio(AudioKinometPacket* pack)
 {
-	if (pack->frameid == -1)
+	if (pack->FrameId == -1)
 	{
-		InitAudioPlayer((int)pack->screen);
-		audioType = (int)pack->type;
+		InitAudioPlayer((int)pack->SampleSize);
+		audioType = (int)pack->Version;
 		return true;;
 	}
-	StartPlaying(pack->frame, (int)pack->rect);
+	StartPlaying((unsigned char*)pack->data, (int)pack->len);
 	return true;;
 }
 float last = 0;
 extern bool canRender;
-bool handleFrame(KinometPacket* pack)
+bool handleFrame(VideoKinometPacket* pack)
 {
 	auto start = SDL_GetPerformanceCounter();
 	//IF this is called nad packet is null, we are just setting up. 
-	if (pack->frame == nullptr && !height && !width)
+	if (pack->data == nullptr && !height && !width)
 	{
 		initFrame(pack);
 		return false;
@@ -100,14 +100,14 @@ bool handleFrame(KinometPacket* pack)
 	}
 	Uint32 current = SDL_GetTicks();
 
-	if (pack->frame == nullptr)
+	if (pack->data == nullptr)
 	{
 		return false;
 	}
 	
 	totalFrames++;
-	int height = pack->rect->h;
-	int width = pack->rect->w;
+	int height = pack->DisplaySize.h;
+	int width = pack->DisplaySize.w;
 	//we are gba so frame is always 240*160*2;
 	//char strbuf[512] = { 0 };
 	//sprintf(strbuf, "F:\\processing\\frame%d.bin", frameHandled++);
@@ -121,7 +121,7 @@ bool handleFrame(KinometPacket* pack)
 		&pitch
 	);
 
-	std::memcpy(lockedPixels, pack->frame, width * height * 2);
+	std::memcpy(lockedPixels, pack->data, width * height * 2);
 	SDL_UnlockTexture(texture);
 
 	SDL_Rect destination = { 0, 0, width, height };

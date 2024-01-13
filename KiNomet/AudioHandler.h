@@ -8,7 +8,7 @@ using namespace std;
 #define GBA_RING_MEM 0x6000000 + 240 * 160 * 2
 
 #define RING_SIZE (240 * 160 * 2) + 0x1000
-enum AudioVersion
+enum AudioVersion:unsigned char
 {
 	V0,
 	V1,
