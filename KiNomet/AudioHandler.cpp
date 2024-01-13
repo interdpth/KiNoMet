@@ -30,10 +30,10 @@ void AudioHandler::Init(int t, int l, int fp, int sam)
 	swapped = false;
 }
 
-AudioPacket* AudioHandler::StartProcessing()
+AudioDataPacket* AudioHandler::StartProcessing()
 {
 	ProcessPackets();
-	AudioPacket* curPack = GetCurrentPacket();
+	AudioDataPacket* curPack = GetCurrentPacket();
 	if (curPack == nullptr) return NULL;
 	return curPack;
 }
@@ -43,7 +43,7 @@ IWRAM
 #endif
 int AudioHandler::ProcessAudio()
 {
-	AudioPacket* curPack = StartProcessing();
+	AudioDataPacket* curPack = StartProcessing();
 	if (curPack == nullptr) return 0;
 
 	
@@ -56,7 +56,7 @@ int AudioHandler::ProcessAudio()
 
 
 
-int AudioHandler::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
+int AudioHandler::Copy(AudioDataPacket* curPack, unsigned char* dstBuf, int len)
 {
 
 	int bytesLeft = len;
@@ -108,15 +108,15 @@ void AudioHandler::Swap()
 /// Returns current working packet once ended. 
 /// Or returns nullptr
 /// </summary>
-AudioPacket* AudioHandler::ProcessPackets()
+AudioDataPacket* AudioHandler::ProcessPackets()
 {
-	AudioPacket* curPack = GetCurrentPacket();
+	AudioDataPacket* curPack = GetCurrentPacket();
 	if (curPack != nullptr && curPack->tracked >= curPack->len)
 	{
 		free(packets[0]);
 		for (size_t i = 1; i < packets.size(); i++)
 		{
-			memcpy(&packets[i - 1], &packets[i], sizeof(AudioPacket));
+			memcpy(&packets[i - 1], &packets[i], sizeof(AudioKinometPacket));
 		}
 
 		if (packets.size())packets.pop_back();//bringing all entries forward.
@@ -136,14 +136,14 @@ void AudioHandler::ClearAudio()
 		packets.pop_back();
 	}
 }
-void AudioHandler::QueueAudio(AudioPacket* packet)
+void AudioHandler::QueueAudio(AudioDataPacket* packet)
 {
 	packets.push_back(packet);
 }
 #ifdef GBA 
 IWRAM
 #endif
-AudioPacket* AudioHandler::GetCurrentPacket()
+AudioDataPacket* AudioHandler::GetCurrentPacket()
 {
 
 	if (packets.size() == 0) {
@@ -196,7 +196,7 @@ unsigned char* AudioHandler::GetBuffer()
 	}
 	return MemoryBuffers::startBuf;
 }
-AudioPacket* AudioHandler::GetNextFrame()
+AudioDataPacket* AudioHandler::GetNextFrame()
 {
 	return nullptr;
 

@@ -10,7 +10,11 @@
 class AudioV0 :
     public AudioHandler
 {
+    int curFrame;
+    int len;
+    unsigned char* srcData;
 public:
     AudioV0(AudioHeader* src,  int frames, int (*func)());
+    virtual AudioDataPacket* GetNextFrame();
 };
 

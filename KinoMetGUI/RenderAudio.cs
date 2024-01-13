@@ -178,7 +178,7 @@ namespace KinometGui.Properties
                         bw.Write(0xFFFFFFFF);//Index Pointers
                         bw.Write(0xFFFFFFFF);//Data 
                         int streamLength = srcStream.Count;
-                        int bufsize = 16;// KinoSettings.SampleRate;
+                        int bufsize = 800;// KinoSettings.SampleRate;
                         int fnsize = ((int)streamLength / bufsize);
                         int sz = bufsize;
                         int ezCount = 0;

@@ -32,7 +32,7 @@ AudioV2::AudioV2(AudioHeader* src,  int frames,  int (*func)()) :
 //int AudioV2::ProcessAudio()
 //{
 //	ProcessPackets();
-//	AudioPacket* curPack = GetCurrentPacket();
+//	AudioKinometPacket* curPack = GetCurrentPacket();
 //	if (curPack == nullptr) return 0;
 //
 //	//Herroo
@@ -79,7 +79,7 @@ AudioV2::AudioV2(AudioHeader* src,  int frames,  int (*func)()) :
 //	return 0;
 //}
 
-//int AudioV2::Copy(AudioPacket* curPack, unsigned char* dstBuf, int len)
+//int AudioV2::Copy(AudioKinometPacket* curPack, unsigned char* dstBuf, int len)
 //{
 //
 //	int bytesLeft = len;
@@ -103,7 +103,7 @@ IWRAM
 int AudioV2::ProcessAudio()
 {
 //	ProcessPackets();
-//	AudioPacket* curPack = GetCurrentPacket();
+//	AudioKinometPacket* curPack = GetCurrentPacket();
 //	if (curPack == nullptr) return 0;
 //
 //
@@ -154,7 +154,7 @@ int AudioV2::ProcessAudio()
 //	;
 	return 0;
 }
-//int AudioV2::FillBuffers(unsigned int bytesLeft, AudioPacket* curPack)
+//int AudioV2::FillBuffers(unsigned int bytesLeft, AudioKinometPacket* curPack)
 //{
 //	int retVal = 0;
 //

@@ -36,7 +36,7 @@ AudioV1::AudioV1(AudioHeader* src,   int frames, int (*func)()) :
 #ifdef GBA 
 IWRAM
 #endif
-AudioPacket* AudioV1::GetNextFrame() {
+AudioDataPacket* AudioV1::GetNextFrame() {
 
 	//Herroo
 	unsigned char* block = &dataOffsetTable[dataPointers[frame]];
@@ -82,16 +82,9 @@ AudioPacket* AudioV1::GetNextFrame() {
 		while (1);
 	}
 	
-	AudioPacket* curPack = (AudioPacket*)malloc(sizeof(AudioPacket));
-	if (curPack != NULL) {
-		memset(curPack, 0, sizeof(AudioPacket));
-		///curPack->eventFlag = AUDIO_PACKET_FLAGS::START;
-		curPack->len = decompSize;
-		curPack->tracked = 0;
-		curPack->data = (unsigned char*)(MemoryBuffers::DecompBuffer);
-		curPack->frame = frameNo;
-	}
-		frame++;
+	AudioDataPacket* curPack = new AudioDataPacket(frameNo, decompSize, (unsigned char*)(MemoryBuffers::DecompBuffer));
+
+	frame++;
 	
 	return curPack;
 }

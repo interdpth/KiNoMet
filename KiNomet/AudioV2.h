@@ -15,10 +15,10 @@ private:
 public:
 	AudioV2(AudioHeader* src,  int frames,  int (*func)());
 
-	//int Copy(AudioPacket* curPack, unsigned char* dstBuf, int len);
+	//int Copy(AudioKinometPacket* curPack, unsigned char* dstBuf, int len);
 
   //unsigned char* GetBuffer();
-  // // int FillBuffers(unsigned int bytesLeft, AudioPacket* curPack);
+  // // int FillBuffers(unsigned int bytesLeft, AudioKinometPacket* curPack);
 
 	/// <summary>
 /// Dump audio to buffer.

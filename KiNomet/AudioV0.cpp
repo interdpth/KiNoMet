@@ -1,15 +1,31 @@
 #include "AudioV0.h"
+//V0 will set tracked to current track
 AudioV0::AudioV0(AudioHeader* src, int frames,  int (*func)()):
     AudioHandler(src,  frames,  func)
 {
- 
-	AudioPacket* p = (AudioPacket*)malloc(sizeof(AudioPacket));
-	if (p != nullptr)
-	{
-		p->len = src->fileLength;
-		p->tracked = 0;
-		p->frame = 0;
-		p->data = src->data;
-		QueueAudio(p);
-	}
+	len = src->fileLength;
+	curFrame = 0;
+	srcData = src->data;
+	
+}
+
+AudioDataPacket* AudioV0::GetNextFrame()
+{
+	if (curFrame * 128 > len) return nullptr;
+	AudioDataPacket* p = new AudioDataPacket(curFrame, 0x500, &srcData[curFrame * 0x500]);
+//	if (p != nullptr)
+//	{
+//////#ifdef GBA
+//////		p->len = 128;
+//////#else
+////		p->len = 0x500;
+//////#endif
+////		p->tracked = 0;
+////		p->frame = curFrame;
+////		p->data = &srcData[curFrame*p->len];
+////		;
+//	}
+
+	curFrame++;
+		return p;
 }

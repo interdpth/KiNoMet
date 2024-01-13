@@ -14,6 +14,6 @@ private:
     unsigned char* dataOffsetTable;
 public:
     AudioV1(AudioHeader* src,  int frames, int (*func)());
-    virtual AudioPacket* GetNextFrame();
+    virtual AudioDataPacket* GetNextFrame();
 };
 

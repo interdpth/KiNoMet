@@ -31,6 +31,9 @@
     <Filter Include="CppHeaders">
       <UniqueIdentifier>{85fb5435-9341-448e-8992-36f0fd65863f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Packets">
+      <UniqueIdentifier>{8b1c505a-ed1c-4044-88f2-766932e95a9c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KiNomet.cpp">
@@ -90,6 +93,24 @@
     <ClCompile Include="MemoryBuffers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Packets.cpp">
+      <Filter>Packets</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioDataPacket.cpp">
+      <Filter>Packets</Filter>
+    </ClCompile>
+    <ClCompile Include="DataPacket.cpp">
+      <Filter>Packets</Filter>
+    </ClCompile>
+    <ClCompile Include="VideoKinometPacket.cpp">
+      <Filter>Packets</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioKinometPacket.cpp">
+      <Filter>Packets</Filter>
+    </ClCompile>
+    <ClCompile Include="KinometPacket.cpp">
+      <Filter>Packets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Compression.h">
@@ -144,6 +165,27 @@
       <Filter>audiohandlers</Filter>
     </ClInclude>
     <ClInclude Include="MemoryBuffers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Packets.h">
+      <Filter>Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="DataPacket.h">
+      <Filter>Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioDataPacket.h">
+      <Filter>Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="VideoKinometPacket.h">
+      <Filter>Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioKinometPacket.h">
+      <Filter>Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="KinometPacket.h">
+      <Filter>Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="BaseTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

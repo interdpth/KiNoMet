@@ -146,7 +146,7 @@ extern "C" {
 #endif
 	int SDL_main(int argc, char* argv[])
 	{
-		aviLoader l{};
+		KinometAviControl l{};
 		//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
 		frameHandled = 0;
 
