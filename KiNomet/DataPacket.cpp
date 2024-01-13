@@ -12,7 +12,9 @@ DataPacket::DataPacket(int fram, int length, void* dat) {
 	data = dat;
 }
 DataPacket::DataPacket(DataPacket* p) {
-	this->FrameId = p->FrameId;
+
+	if (p == nullptr) return;//nothing to set
+ 	this->FrameId = p->FrameId;
 	this->data = p->data;
 	this->len = p->len;
 }
