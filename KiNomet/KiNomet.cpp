@@ -199,7 +199,7 @@ void LoadAVI(unsigned char* file,
 
 
 
-		//ProcessAudio(audio, readSize,  options);
+		ProcessAudio(audio, readSize, curFrame, options);
 
 
 		//
