@@ -36,7 +36,7 @@ AudioV1::AudioV1(AudioHeader* src,   int frames, int (*func)()) :
 #ifdef GBA 
 IWRAM
 #endif
-AudioDataPacket* AudioV1::GetNextFrame() {
+AudioKinometPacket* AudioV1::GetNextFrame() {
 
 	//Herroo
 	unsigned char* block = &dataOffsetTable[dataPointers[frame]];
@@ -55,19 +55,19 @@ AudioDataPacket* AudioV1::GetNextFrame() {
 	//unsigned int id = *(unsigned long*)data; data += 4;
 	unsigned char cmp = *data; data += 1;
 	unsigned short size = *(unsigned short*)data; data += 2;
-
+	inmemorybuffer buff(  data, MemoryBuffers::AudioDecompBuffer, 0x1000 );
 	//Pointer is now at data
 	int decompSize = 0;
 	switch (cmp)
 	{
 	case Raw:
-		decompSize = Compression::RawCopy(data, MemoryBuffers::DecompBuffer, 0x1000);
+		decompSize = Compression::RawCopy(&buff);
 		break;
 	case RLE:
-		decompSize = Compression::RLEDecomp(data, MemoryBuffers::DecompBuffer, 0x1000);
+		decompSize = Compression::RLEDecomp(&buff);
 		break;
 	case LZ:
-		decompSize = Compression::LZDecomp(data, MemoryBuffers::DecompBuffer, 0x1000);
+		decompSize = Compression::LZDecomp(&buff);
 		break;
 
 	default:
@@ -82,7 +82,7 @@ AudioDataPacket* AudioV1::GetNextFrame() {
 		while (1);
 	}
 	
-	AudioDataPacket* curPack = new AudioDataPacket(frameNo, decompSize, (unsigned char*)(MemoryBuffers::DecompBuffer));
+	AudioKinometPacket* curPack = new AudioKinometPacket(V1, NULL, frameNo, decompSize, (unsigned char*)(MemoryBuffers::AudioDecompBuffer));
 
 	frame++;
 	

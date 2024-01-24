@@ -1,11 +1,9 @@
 #include "AviApi.h"
 
 
-#ifdef GBA
-#define error(s) {printDebug(s); exit(-1);}
-#else
+
 #define error(s) {printf(s); exit(-1);}
-#endif 
+
 void LoadAviInfo(SmallBuffer* buf, MainAVIHeader** hdrz, AVIStreamHeader** sthread, BITMAPINFOHEADER** bmpinf, unsigned char** moviPointer)
 {
 	unsigned int tag = 0;

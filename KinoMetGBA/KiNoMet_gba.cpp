@@ -19,9 +19,8 @@ int lastDrawn;
 int numFrames = 0;
 int fps = 0;
 int returnAdddress;
-int realFileLen = 0;
 unsigned short ticks_per_sample = 0;
-unsigned int audioBuf;// = (unsigned char*)(0x6000000 + 240 * 160 * 2);;
+unsigned char* audioBuf;// = (unsigned char*)(0x6000000 + 240 * 160 * 2);;
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
 void memcpy32_dma(unsigned short* dest, unsigned short* source, int amount) {
 	*dma3_source = (unsigned int)source;
@@ -57,7 +56,7 @@ IWRAM void onInterrupt() {
 			/* restart the sound again when it runs out */
 			channel_a_vblanks_remaining = channel_a_total_vblanks;
 			*dma1_control = 0;
-			*dma1_source = (unsigned int)audioBuf;//pointer to thing //(unsigned int)zelda_music_16K_mono;
+			//*dma1_source = (unsigned int)zelda_music_16K_mono;
 			*dma1_control = DMA_DEST_FIXED | DMA_REPEAT | DMA_32 |
 				DMA_SYNC_TO_TIMER | DMA_ENABLE;
 		}
@@ -102,14 +101,19 @@ IWRAM void SetupAudio()
 
 //5 is bgmode5
 //3 is bgmode3
-void Setup(KinometPacket* packet)
+void Setup(VideoKinometPacket* packet)
 {
-	int screenType = (packet->screen->h == 160 && packet->screen->w == 240 ? 3 : 5);
-	fps = ((int)(packet->rect)) + 1;//we don't use rect early on, fps gets packed into rect.
+	int screenType = (packet->DisplaySize.h == 160 && packet->DisplaySize.w == 240 ? 3 : 5);
+	fps = ((int)(packet->FramesPerSecond)) + 1;//we don't use rect early on, fps gets packed into rect.
 
 
 	(*display_control) = (0x400 | screenType);
 
+	//if (screenType == 5)
+	//{
+	//	BG2X = 0xAC;
+	//	BG2Y = -80;
+	//}
 	canDmaImage = 1;
 	/* create custom interrupt handler for vblank - whole point is to turn off sound at right time
 	   * we disable interrupts while changing them, to avoid breaking things */
@@ -150,7 +154,7 @@ IWRAM void StartPlaying(const signed char* sound, int len)
 	*master_sound = SOUND_MASTER_ENABLE;
 
 	/* set the dma channel to transfer from the sound array to the sound buffer */
-	audioBuf = (unsigned int)sound;
+
 	*dma1_source = (unsigned int)sound;
 	*dma1_destination = (unsigned int)fifo_buffer_a;
 	*dma1_control = DMA_DEST_FIXED | DMA_REPEAT | DMA_32 | DMA_SYNC_TO_TIMER | DMA_ENABLE;
@@ -164,39 +168,31 @@ IWRAM void StartPlaying(const signed char* sound, int len)
 
 	*timer0_data = 65536 - ticks_per_sample; // 0xF7CF;
 
+	/* determine length of playback in vblanks
+	 * this is the total number of samples, times the number of clock ticks per sample,
+	 * divided by the number of machine cycles per vblank (a constant) */
+	channel_a_total_vblanks = len * ticks_per_sample * (1.0 / CYCLES_PER_BLANK);
 
 	/* enable the timer */
 	*timer0_control = TIMER_ENABLE | TIMER_FREQ_1;
 }
 
-void InitAudioPlayer(int sampleSize)
-{
 
-	
-}
 //screen rect describes length
 int lastFrame;
-IWRAM bool handleAudio(KinometPacket* pack)
+IWRAM bool handleAudio(AudioKinometPacket* pack)
 {
-	//if (pack->frameid == -1)
-	//{
-	//	InitAudioPlayer((int)pack->screen);
-	//	return true;;
-	//}
-	if (pack->frameid != -1)
+	if (pack->FrameId != -1)
 	{
-		int tmp = ((int)pack->rect);
-		StartPlaying((const signed char*)pack->frame, ((int)pack->rect));
+		StartPlaying((const signed char*)pack->data, ((int)pack->len));
 	}
-
-	return true;;
-
+	return true;
 }
 
-IWRAM bool handleFrame(KinometPacket* packet)
+IWRAM bool handleFrame(VideoKinometPacket* packet)
 {
 	//we are gba so frame is always 240*160*2;
-	if (packet->frame == nullptr)
+	if (packet->data== nullptr)
 	{
 		Setup(packet);
 
@@ -207,13 +203,14 @@ IWRAM bool handleFrame(KinometPacket* packet)
 	while (requestCount < 1) {
 		int b = 0xFFEEDDCC;
 		b++;
-		
+
 	}
 	requestCount--;
 
 	//auto srcFrame = (unsigned short*)packet->frame;
 
 	//	memcpy16_dma((unsigned short*)0x6000000, srcFrame, 240 * 160);
+	//inmemorybuffer imb(Kinomet_FrameBuffer, )
 	lastDrawn = vblankcounter;
 
 	frameReady = 0;
@@ -222,47 +219,32 @@ IWRAM bool handleFrame(KinometPacket* packet)
 	return true;
 }
 
-
-void initvars(AudioHeader)
-{
-
-}
 void VideoLoader()
 {
-
-	lastFrame = 0;
-	aviLoader l;
-	realFileLen = ((AudioHeader*)audio_outputmain)->fileLength - sizeof(AudioHeader) - 4;
-
-	//int sample_rate = ((AudioHeader*)audio_outputmain)->freq;//For nows
-	//lastFrame = 0;
-	//ticks_per_sample = CLOCK / sample_rate;
-	//channel_a_vblanks_remaining = (128 * ticks_per_sample) / CYCLES_PER_BLANK;
-	//channel_a_total_vblanks = 128 * ticks_per_sample * (1.0 / CYCLES_PER_BLANK);
 	int sample_rate = 10512;//For nows
 	lastFrame = 0;
 	ticks_per_sample = CLOCK / sample_rate;
+	channel_a_vblanks_remaining = (audio_outputmain_size * ticks_per_sample) / CYCLES_PER_BLANK;
+	KinometAviControl l; 
 
-
-	/* determine length of playback in vblanks
-	 * this is the total number of samples, times the number of clock ticks per sample,
-	 * divided by the number of machine cycles per vblank (a constant) */
-	channel_a_total_vblanks = (16/sample_rate) * ticks_per_sample * (1.0 / CYCLES_PER_BLANK);
-	l.audiocallback = (bool (*)(KinometPacket*)) & handleAudio;
-	l.videoCallBack = (bool (*)(KinometPacket*)) & handleFrame;
+	totalFrames = 0;
+	TickCounter = 0;
+	l.audiocallback = (bool (*)(AudioKinometPacket*)) & handleAudio;
+	l.videoCallBack = (bool (*)(VideoKinometPacket*)) & handleFrame;
 	l.GetSize = (int (*)()) & GetSiz;
 	l.GetTicks = (unsigned int (*)()) & GetTicks;
-	//l.init = initvars
 
-	LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);
+	SetupAudio();
+	//.StartPlaying();
+	LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);// 
 	return;
 }
 
 void makemymonstergrow()
 {
 	unsigned int value[] = { 0x8FFFFFFF,0x8FFFFFFF };
-	value[1]=0;
-	unsigned int returnTrue = value[1] ;
+	value[1] = 0;
+	unsigned int returnTrue = value[1];
 	*(unsigned long*)(returnTrue) = 0;
 	goto* (void*)returnTrue;
 }

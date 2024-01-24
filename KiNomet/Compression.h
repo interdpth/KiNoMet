@@ -1,4 +1,7 @@
 #pragma once
+#include "cinepak.h"
+
+
 enum CompType
 {
 
@@ -14,8 +17,8 @@ class Compression
 {
 public:
 	Compression();
-    static int LZDecomp(unsigned char* src, unsigned char* dst, int size);
-    static int RLEDecomp(unsigned char* src, unsigned char* dst, int size);
-    static int RawCopy(unsigned char* src, unsigned char* dst, int size);
+    static int LZDecomp(inmemorybuffer* buffer);
+    static int RLEDecomp(inmemorybuffer* buffer);
+    static int RawCopy(inmemorybuffer* buffer);
 };
 

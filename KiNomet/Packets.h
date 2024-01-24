@@ -8,7 +8,7 @@
 //
 //
 //#include "DataPacket.h"
-//#include "AudioDataPacket.h"
+//#include "AudioKinometPacket.h"
 //#include "KinometPacket.h"
 //#include "AudioKinometPacket.h"
 //#include "VideoKinometPacket.h"
@@ -16,7 +16,7 @@
 //
 //class DataPacket;
 //class KinometPacket;
-//class AudioDataPacket;
+//class AudioKinometPacket;
 //class AudioKinometPacket;
 //class VideoKinometPacket;
 //

@@ -13,7 +13,6 @@ enum PacketType: unsigned char
 };
 class KinometPacket :public DataPacket
 {
-
 protected:
 	void Init();
 	KinometPacket* BasePacket;

@@ -1,27 +1,19 @@
 #pragma once
+#include "AudioKinometPacket.h"
 #include <vector>
 #include <stdlib.h>
-#include "AudioDataPacket.h"
-#include "AudioKinometPacket.h"
 using namespace std;
 //save on memory lol
 #define GBA_RING_MEM 0x6000000 + 240 * 160 * 2
 
 #define RING_SIZE (240 * 160 * 2) + 0x1000
-enum AudioVersion:unsigned char
-{
-	V0,
-	V1,
-	V2,
-	UNK
-};
 
 typedef struct AudioHeader
 {
 	unsigned long hdr;
 	unsigned long compressedlength;
 	unsigned long fileLength;
-	unsigned short type;
+	AudioVersion type;
 	unsigned short fps;
 	unsigned long freq;	
 	unsigned char data[];//get address wherever your buffer is after reading freq 
@@ -33,7 +25,7 @@ extern int (*getSize)();
 class AudioHandler
 {
 private:
-	vector<AudioDataPacket*> packets;
+	vector<AudioKinometPacket*> packets;
 		//Source info.
 	unsigned char* srcBuffer; 
 
@@ -43,7 +35,7 @@ private:
 	unsigned char* currentBuf;
 	unsigned char* limitBuf;
 	unsigned long filesize;
-	int type;
+	AudioVersion type;
 	int fps;
 	int sample_rate;
 	bool swapped;
@@ -62,7 +54,7 @@ public:
 /// <param name="fp"></param>
 /// <param name="sam"></param>
 /// 
-	virtual void Init(int type, int l, int fp, int sam);
+	virtual void Init(AudioVersion type, int l, int fp, int sam);
 	/// <summary>
 	/// Calls maint init
 	/// </summary>
@@ -77,7 +69,7 @@ public:
 	/// <param name="type">Type of audio handler</param>
 	/// <param name="fps">FPS we are </param>
 	AudioHandler(int type, int fp, int sam, int frames, int rsize, int (*func)());
-	virtual int Copy(AudioDataPacket* curPack, unsigned char* dstBuf, int size);
+	virtual int Copy(AudioKinometPacket* curPack, unsigned char* dstBuf, int size);
 	/// <summary>
 	/// Basic init, but also queues track.
 	/// </summary>
@@ -88,12 +80,12 @@ public:
 	/// <param name="len"></param>
 	AudioHandler(AudioHeader* src,   int frames, int (*func)());
 
-	virtual AudioDataPacket* ProcessPackets();
+	virtual AudioKinometPacket* ProcessPackets();
 	/// <summary>
 	/// Returns current packet beging processed.
 	/// </summary>
 	/// <returns></returns>
-	virtual AudioDataPacket* GetCurrentPacket();
+	virtual AudioKinometPacket* GetCurrentPacket();
 
 	/// <summary>
 	/// True when main buffer is exhausted
@@ -106,7 +98,7 @@ public:
 	/// </summary>
 	/// <param name="src">Audio being added</param>
 	/// <param name="len">Length of audio</param>
-	virtual void QueueAudio(AudioDataPacket* packet);
+	virtual void QueueAudio(AudioKinometPacket* packet);
 
 	/// <summary>
 	/// Dump audio to buffer.
@@ -135,9 +127,9 @@ public:
 
 	virtual int GetSampleFreq();
 
-	AudioDataPacket* StartProcessing();
-	virtual int GetType();
+	AudioKinometPacket* StartProcessing();
+	virtual AudioVersion GetType();
 	virtual unsigned char* GetBuffer();
-	virtual AudioDataPacket* GetNextFrame();
+	virtual AudioKinometPacket* GetNextFrame();
 };
 

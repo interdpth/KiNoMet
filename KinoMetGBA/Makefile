@@ -39,7 +39,8 @@ ARCH	:=	-mthumb -mthumb-interwork
 CFLAGS	:=	-static -g -Wall\
 		-mcpu=arm7tdmi -mtune=arm7tdmi\
  		-fomit-frame-pointer\
-		-O0\
+		-O3\
+		-fno-inline-small-functions\
 		$(ARCH)
 
 CFLAGS	+=	$(INCLUDE) -DGBA -fno-inline-small-functions
@@ -131,6 +132,7 @@ endif
 ifdef offset
 	@dd if=KinoMetGBA.gba of="$(fname)" conv=notrunc seek=$(binoffset) bs=1
 endif
+	#arm-none-eabi-objdump -t $(OUTPUT).elf > KinometGBA.sym
 	@echo "Build done"
 #---------------------------------------------------------------------------------
 clean:

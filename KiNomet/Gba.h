@@ -8,6 +8,7 @@
 #else 
 void printDebug(char* message, ...);
 int nocash_puts(const char* str);
+void printf(char* string, ...);
 #endif
 
 	extern void timerSet(unsigned long num, unsigned short reload, unsigned short flags);
@@ -188,7 +189,7 @@ typedef void (*IntFn)(void);
 void VBlankIntrWait();
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
 #ifdef GBA
-void* memcpy(void* dest, const void* src, unsigned int olen);
+//void memcpy(void* dest, const void* src, unsigned int len);
 #endif
 
 /*!	\defgroup grpNocash no$gba debugging

@@ -6,7 +6,10 @@
 #else
 #include "Gba.h"
 #endif // ! GBA
-
+#define  EMPTY  0
+#define  ERRORDECODING  0xFFFFFFFF
+#define  BADSTRIP ERRORDECODING-1
+#include "MemoryBuffers.h"
 #include <vector>
 using namespace std;
 #define ICCVID_MAGIC mmioFOURCC('c', 'v', 'i', 'd')
@@ -84,14 +87,14 @@ void free_codebooks(cinepak_info* cvinfo);
 unsigned short MAKECOLOUR16(unsigned char r, unsigned char g, unsigned char b);
 #else 
 extern "C" unsigned short MAKECOLOUR16(unsigned char r, unsigned char g, unsigned char b);
-extern "C" int GBA_RLEDECOMP(void* src, void* dst, int bufsize);
+extern "C" int GBA_RLEDECOMP(void* src, void* dst);
 extern "C"  int GBA_LZDECOMP(void* src, void* dst);
 #endif
 #ifdef GBA 
-IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame);
+IWRAM int decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame);
 cinepak_info* decode_cinepak_init(int srcwidth, int srcheight);
 #else
-void decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame);
+unsigned int decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame);
 cinepak_info* decode_cinepak_init(int srcwidth, int srcheight);
 #endif 
 

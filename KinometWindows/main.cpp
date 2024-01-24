@@ -7,6 +7,7 @@
 #include "SDL_windows.h"
 #include <SDL.h>
 #include <string>
+#include "../KiNomet/MemoryBuffers.h"
 // variable declarations
 Uint8* audio_pos; // global pointer to the audio buffer to be played
 Uint32 audio_len; // remaining length of the sample we have to play
@@ -38,17 +39,19 @@ void initFrame(VideoKinometPacket* pack)
 		SDL_WINDOWPOS_UNDEFINED,           // initial y position, 
 		width,
 		height, SDL_WINDOW_OPENGL);
+	char* k =( char*) SDL_GetError();
 	if (mainWindow == NULL) {
 		// In the case that the window could not be made...
 		printf("Could not create window: %s\n", SDL_GetError());
 		exit(-1);
 	}
-
+	k = (char*)SDL_GetError();
 	renderer = SDL_CreateRenderer(mainWindow, -1, 0);
 	if (!renderer) {
 		fprintf(stderr, "Could not create renderer\n");
 		exit(-1);
 	}
+	k = (char*)SDL_GetError();
 	texture = SDL_CreateTexture
 	(
 		renderer,
@@ -56,6 +59,7 @@ void initFrame(VideoKinometPacket* pack)
 		SDL_TEXTUREACCESS_STREAMING,
 		width, height
 	);
+	k = (char*)SDL_GetError();
 	movieFps = (int)pack->FramesPerSecond;
 
 	SoundInited = 1;
@@ -104,7 +108,7 @@ bool handleFrame(VideoKinometPacket* pack)
 	{
 		return false;
 	}
-	
+
 	totalFrames++;
 	int height = pack->DisplaySize.h;
 	int width = pack->DisplaySize.w;
@@ -129,7 +133,7 @@ bool handleFrame(VideoKinometPacket* pack)
 	SDL_RenderPresent(renderer);
 	Uint64 end = SDL_GetPerformanceCounter();
 
-	float elapsedMS = (end - start) /( (float)SDL_GetPerformanceFrequency() * 1000.0f);
+	float elapsedMS = (end - start) / ((float)SDL_GetPerformanceFrequency() * 1000.0f);
 	float time = ((1000.0f / movieFps));
 	// Cap to 60 FPS
 	float dT = (current - last) / 1000.0f;
@@ -141,23 +145,33 @@ bool handleFrame(VideoKinometPacket* pack)
 }
 extern unsigned long maxNum;
 extern int codeBooks;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 	int SDL_main(int argc, char* argv[])
 	{
+		unsigned short vram[1024] = { 0xA0, 254, 253, 252 };
+		unsigned short palmem[1024] = { 0 };
+		unsigned short oldPal[] = { 0x1234, 0x5678 };
+		unsigned char newpal[] = { 0x0a, 0x0b, 0x0c };
+
+		const char charArray[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
+
+		
+
 		KinometAviControl l{};
 		//this will be on gba, so we're just gonna load the whole thing in and work with pointers.
 		frameHandled = 0;
 
-		
+
 		l.audiocallback = &handleAudio;
 		l.videoCallBack = &handleFrame;
 		l.GetSize = &GetQueuedBytes;
 		l.GetTicks = &GetTicks;
 		//l.init = &
-		
-		LoadAVI((unsigned char*)VideoFile, VideoFile_size,(unsigned char*)audio_outputmain, audio_outputmain_size, &l);//  NULL, NULL, &l);
+
+		LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);//  NULL, NULL, &l);
 		int overallSize = codeBookSize();
 		printf("%d", maxNum);
 		printf("%x", overallSize);

@@ -56,13 +56,7 @@ If used in commericial projects please add this file in plaintext into your comp
 #define bpp 2
 unsigned char* basePointer;
 int drawing = 0;
-void Trace(char* a, ...)
-{
-}
 
-void ERR(char* a, ...)
-{
-}
 int sizeVar = 0;
 
 /* ------------------------------------------------------------------------ */
@@ -360,10 +354,10 @@ void InitCodeBook(cinepak_info* cvinfo, int i)
 unsigned long maxNum = 0;
 #define KillChunk in_buffer+=chunk_size;//while (chunk_size > 0) { skip_byte(); chunk_size--; }
 #ifdef GBA
-IWRAM void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
+IWRAM int decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	unsigned char* frame)
 #else 
-void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
+unsigned int decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	unsigned char* frame)
 #endif
 {
@@ -396,8 +390,8 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 		if (len != size)
 		{
 
-			ERR("CVID: corruption %d (QT/AVI) != %ld (CV)\n", size, len);
-			/* return; */
+			//ERR("CVID: corruption %d (QT/AVI) != %ld (CV)\n", size, len);
+			return BADSTRIP;
 
 		}
 
@@ -419,8 +413,8 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 		if (strips >= MAX_STRIPS)
 		{
 
-			ERR("CVID: strip overflow (more than %d)\n", MAX_STRIPS);
-			return;
+		//	ERR("CVID: strip overflow (more than %d)\n", MAX_STRIPS);
+			return BADSTRIP;
 		
 		}
 
@@ -437,7 +431,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 	}
 	cvinfo->strip_num = strips;
  
-	TRACE("CVID: <%ld,%ld> strips %ld\n", cv_width, cv_height, strips);
+	//TRACE("CVID: <%ld,%ld> strips %ld\n", cv_width, cv_height, strips);
 
 
 	for (cur_strip = 0; cur_strip < strips; cur_strip++)
@@ -474,11 +468,11 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 		top_size -= 12;
 		x = 0; 
 
-		if (x1 != screenwidth)
-			WARN("CVID: Warning x1 (%ld) != width (%d)\n", x1, screenwidth);
+	/*	if (x1 != screenwidth)
+			WARN("CVID: Warning x1 (%ld) != width (%d)\n", x1, screenwidth);*/
 
-		TRACE("   %d) %04lx %04ld <%ld,%ld> <%ld,%ld> yt %ld\n",
-			cur_strip, strip_id, top_size, x0, y0, x1, y1, y_bottom);
+		//TRACE("   %d) %04lx %04ld <%ld,%ld> <%ld,%ld> yt %ld\n",
+		//	cur_strip, strip_id, top_size, x0, y0, x1, y1, y_bottom);
 
 
 		while (top_size > 0)
@@ -486,7 +480,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 			chunk_id = get_word();
 			chunk_size = get_word();
 
-			TRACE("        %04lx %04ld\n", chunk_id, chunk_size);
+			//TRACE("        %04lx %04ld\n", chunk_id, chunk_size);
 			top_size -= chunk_size;
 			chunk_size -= 4;
 
@@ -657,7 +651,7 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 
 			default:
 
-				ERR("CVID: unknown chunk_id %08lx\n", chunk_id);
+				//ERR("CVID: unknown chunk_id %08lx\n", chunk_id);
 
 
 				KillChunk
@@ -677,11 +671,10 @@ void decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int size,
 			xlen |= get_byte() << 8;
 			xlen |= get_byte(); /* Read Len */
 
-			WARN("CVID: END INFO chunk size %d cvid size1 %ld cvid size2 %ld\n",
-				size, len, xlen);
+		/*	WARN("CVID: END INFO chunk size %d cvid size1 %ld cvid size2 %ld\n",
+				size, len, xlen);*/
 
 		}
 	}
-
-	drawing = 0;
+	return len;
 }

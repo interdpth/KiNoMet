@@ -145,7 +145,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AudioDataPacket.cpp" />
     <ClCompile Include="AudioHandler.cpp" />
     <ClCompile Include="AudioKinometPacket.cpp" />
     <ClCompile Include="AudioManager.cpp" />
@@ -157,7 +156,7 @@
     <ClCompile Include="CodeBookManager.cpp" />
     <ClCompile Include="Compression.cpp" />
     <ClCompile Include="DataPacket.cpp" />
-    <ClCompile Include="Gba.c" />
+    <ClCompile Include="Gba.oldfsad" />
     <ClCompile Include="Gba.cpp" />
     <ClCompile Include="GDL_Audio.cpp" />
     <ClCompile Include="KinoAudio.cpp" />
@@ -172,7 +171,6 @@
     <ClCompile Include="VideoKinometPacket.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AudioDataPacket.h" />
     <ClInclude Include="AudioHandler.h" />
     <ClInclude Include="AudioKinometPacket.h" />
     <ClInclude Include="AudioManager.h" />
@@ -204,6 +202,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cinepak_asm.s" />
+    <None Include="Makefile" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

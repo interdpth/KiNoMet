@@ -15,7 +15,7 @@ void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
 //Ring buffer is 0x4000 bytes.
 
 #include "MemoryBuffers.h"
-void AudioHandler::Init(int t, int l, int fp, int sam)
+void AudioHandler::Init(AudioVersion t, int l, int fp, int sam)
 {
 
 	/*tmpBuf = (unsigned char*)malloc(TMP_SIZE);*/
@@ -30,10 +30,10 @@ void AudioHandler::Init(int t, int l, int fp, int sam)
 	swapped = false;
 }
 
-AudioDataPacket* AudioHandler::StartProcessing()
+AudioKinometPacket* AudioHandler::StartProcessing()
 {
 	ProcessPackets();
-	AudioDataPacket* curPack = GetCurrentPacket();
+	AudioKinometPacket* curPack = GetCurrentPacket();
 	if (curPack == nullptr) return NULL;
 	return curPack;
 }
@@ -43,7 +43,7 @@ IWRAM
 #endif
 int AudioHandler::ProcessAudio()
 {
-	AudioDataPacket* curPack = StartProcessing();
+	AudioKinometPacket* curPack = StartProcessing();
 	if (curPack == nullptr) return 0;
 
 	
@@ -56,7 +56,7 @@ int AudioHandler::ProcessAudio()
 
 
 
-int AudioHandler::Copy(AudioDataPacket* curPack, unsigned char* dstBuf, int len)
+int AudioHandler::Copy(AudioKinometPacket* curPack, unsigned char* dstBuf, int len)
 {
 
 	int bytesLeft = len;
@@ -65,7 +65,7 @@ int AudioHandler::Copy(AudioDataPacket* curPack, unsigned char* dstBuf, int len)
 		bytesLeft = curPack->len - (curPack->tracked);
 	}
 
-#ifdef  GBA
+#ifdef GBA
 	memcpy16_dma((unsigned short*)dstBuf, &((unsigned short*)curPack->data)[curPack->tracked], bytesLeft >> 1);
 #else
 	memcpy(dstBuf,   & ((unsigned char*)curPack->data)[curPack->tracked], bytesLeft);
@@ -108,9 +108,9 @@ void AudioHandler::Swap()
 /// Returns current working packet once ended. 
 /// Or returns nullptr
 /// </summary>
-AudioDataPacket* AudioHandler::ProcessPackets()
+AudioKinometPacket* AudioHandler::ProcessPackets()
 {
-	AudioDataPacket* curPack = GetCurrentPacket();
+	AudioKinometPacket* curPack = GetCurrentPacket();
 	if (curPack != nullptr && curPack->tracked >= curPack->len)
 	{
 		free(packets[0]);
@@ -136,14 +136,14 @@ void AudioHandler::ClearAudio()
 		packets.pop_back();
 	}
 }
-void AudioHandler::QueueAudio(AudioDataPacket* packet)
+void AudioHandler::QueueAudio(AudioKinometPacket* packet)
 {
 	packets.push_back(packet);
 }
 #ifdef GBA 
 IWRAM
 #endif
-AudioDataPacket* AudioHandler::GetCurrentPacket()
+AudioKinometPacket* AudioHandler::GetCurrentPacket()
 {
 
 	if (packets.size() == 0) {
@@ -180,7 +180,7 @@ int AudioHandler::GetSampleFreq()
 	return sample_rate;
 }
 
-int AudioHandler::GetType()
+AudioVersion AudioHandler::GetType()
 {
 	return type;
 }
@@ -196,7 +196,7 @@ unsigned char* AudioHandler::GetBuffer()
 	}
 	return MemoryBuffers::startBuf;
 }
-AudioDataPacket* AudioHandler::GetNextFrame()
+AudioKinometPacket* AudioHandler::GetNextFrame()
 {
 	return nullptr;
 

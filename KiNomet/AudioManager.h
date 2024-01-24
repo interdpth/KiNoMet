@@ -9,23 +9,23 @@ class AudioManager
 {
 
 private:
-	int ver;
+	AudioVersion ver;
 	AudioHandler* hndlr;
 
 public:
 	void Init(AudioHeader* src, int len, int fps, int frames, int (*func)());
 
-	int Copy(AudioDataPacket* curPack, unsigned char* dstBuf, int size);
-	int FillBuffers(unsigned int bytesLeft, AudioDataPacket* curPack);
+	int Copy(AudioKinometPacket* curPack, unsigned char* dstBuf, int size);
+	int FillBuffers(unsigned int bytesLeft, AudioKinometPacket* curPack);
 	int ProcessAudio();
 
-	AudioDataPacket* GetNextFrame();
+	AudioKinometPacket* GetNextFrame();
 	unsigned char* GetBuffer();
 
 	int GetSampleFreq();
-	AudioDataPacket* GetCurrPacket();
-	int GetType();
-	int GetBytesLeft(AudioDataPacket* curPack);
-	void Queue(AudioDataPacket* packet);
+	AudioKinometPacket* GetCurrPacket();
+	AudioVersion GetType();
+	int GetBytesLeft(AudioKinometPacket* curPack);
+	void Queue(AudioKinometPacket* packet);
 };
 

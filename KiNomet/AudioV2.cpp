@@ -88,7 +88,7 @@ AudioV2::AudioV2(AudioHeader* src,  int frames,  int (*func)()) :
 //		bytesLeft = curPack->len - (curPack->tracked);
 //	}
 //
-//#ifdef  GBA
+//#ifdef GBA
 //	memcpy16_dma((unsigned short*)dstBuf, (unsigned short*)&curPack->start[curPack->tracked], bytesLeft >> 1);
 //#else
 //	memcpy(dstBuf, &curPack->start[curPack->tracked], bytesLeft);
@@ -142,7 +142,7 @@ int AudioV2::ProcessAudio()
 //
 //	//curPack->len = decompSize;
 //	if (curPack->tracked >= decompSize) curPack->tracked = 0;
-//#ifdef  GBA
+//#ifdef GBA
 //	memcpy16_dma((unsigned short*)GetBuffer(), (unsigned short*)decompBuffer, decompSize >> 1);
 //#else
 //	memcpy(GetBuffer(), MemoryBuffers::DecompBuffer, decompSize);

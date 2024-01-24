@@ -27,7 +27,7 @@ void AudioManager::Init(AudioHeader* src, int len, int fps, int frames, int (*fu
 }
 
 
-int AudioManager::Copy(AudioDataPacket* curPack, unsigned char* dstBuf, int size)
+int AudioManager::Copy(AudioKinometPacket* curPack, unsigned char* dstBuf, int size)
 {
 	return	(hndlr)->Copy(curPack, dstBuf, size);
 }
@@ -49,28 +49,28 @@ int AudioManager::GetSampleFreq()
 	return	hndlr->GetSampleFreq();
 }
 
-int AudioManager::GetType()
+AudioVersion AudioManager::GetType()
 {
 	return	hndlr->GetType();
 }
 
-AudioDataPacket* AudioManager::GetNextFrame()
+AudioKinometPacket* AudioManager::GetNextFrame()
 {
 	return	hndlr->GetNextFrame();
 }
 
 
-void AudioManager::Queue(AudioDataPacket* packet)
+void AudioManager::Queue(AudioKinometPacket* packet)
 {
 	return hndlr->QueueAudio(packet);
 }
 
-AudioDataPacket* AudioManager::GetCurrPacket()
+AudioKinometPacket* AudioManager::GetCurrPacket()
 {
 	return hndlr->GetCurrentPacket();
 }
 
-int AudioManager::GetBytesLeft(AudioDataPacket* curPack)
+int AudioManager::GetBytesLeft(AudioKinometPacket* curPack)
 {
 
 	int bytesLeft = curPack->len - (curPack->tracked);

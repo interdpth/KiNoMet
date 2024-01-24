@@ -95,6 +95,13 @@ void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount) {
     *dma3_control = DMA_ENABLE | DMA_16 | amount;
     /*for (int i = 0; i < amount; i++) dest[i] = source[i];*/
 }
+
+void memcpy32_dma(unsigned long* dest, unsigned long* source, int amount) {
+	*dma3_source = (unsigned int)source;
+	*dma3_destination = (unsigned int)dest;
+	*dma3_control = DMA_ENABLE | DMA_32 | amount;
+	/*for (int i = 0; i < amount; i++) dest[i] = source[i];*/
+}
 void VBlankIntrWait()
 {
 #ifdef GBA
@@ -114,22 +121,29 @@ void memset(void* src, int val, int len) {
 	}
 
 }
-void* memcpy(void* dest, const void* src, int olen)
+//void memcpy(void*dst, void const*src, unsigned int olen)
+//{
+//
+//    memcpy16_dma((unsigned short*)dst, (unsigned short*)src, olen >> 1);
+//
+// 
+//
+//}
+
+void printf(char* string, ...)
 {
-
-    memcpy16_dma((unsigned short*)dest, (unsigned short*)src, olen >> 1);
-
- 
-
+	asm volatile("mov r0, %0;"
+		"swi 0xff;"
+		: // no ouput
+	: "r" (string)
+		: "r0");
 }
 
-void printf(char* string)
+
+void print(char* s)
 {
-
+	
 }
-
-
-
 
 
 int SwiDiv(int num, int denom)

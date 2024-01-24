@@ -1,5 +1,5 @@
 #include "Compression.h"
-#include "cinepak.h"
+
 Compression::Compression()
 {
 
@@ -52,71 +52,76 @@ int GBA_LZDECOMP(void* src, void* dst) {
 	}
 	return bytesWritten;
 }
-int GBA_RLEDECOMP(void* src, void* dst, int maxDstSize)
+
+int GBA_RLEDECOMP(inmemorybuffer* buffer)
 {
-	if (!dst || !src)return 0;
+	if (!buffer->dst || !buffer->src)return 0;
 
 	unsigned int ii, size = 0;
-	unsigned short* srcL = (unsigned short*)src, * dstD = (unsigned short*)dst;
+	unsigned short* srcL = (unsigned short*)buffer->src, * dstD = (unsigned short*)buffer->dst;
 
-	for (ii = 0; ii < maxDstSize; ii += size)
+	for (ii = 0; ii < buffer->len; ii += size)
 	{
 		// Get header byte
-		unsigned int header = *srcL++;
+		unsigned int header = *(srcL)++;
 
 		if (header & 0x80)		// compressed stint
 		{
-			size = min((header & ~0x80) + 3, maxDstSize - ii);
+			size = min((header & ~0x80) + 3, buffer->len - ii);
 
 			int j; for (j = 0; j < size; j++)dstD[ii + j] = *srcL; //can't used memset for 16bit
 			srcL++;
 		}
 		else				// noncompressed stint
 		{
-			size = min(header + 1, maxDstSize - ii);
-			memcpy(&dstD[ii], srcL, size * 2);
+			size = min(header + 1, buffer->len - ii);
+			inmemorybuffer tmp ((unsigned char*) & dstD[ii] , (unsigned char*)srcL, size * 2);
+			safe_memcpy(&tmp);
 
 			srcL += size;
 		}
 	}
 
-	return maxDstSize;
+	return buffer->len;
 }
 #endif
 
 //WHY ARE THESE NOT USING SWIS
-int Compression::LZDecomp(unsigned char* src, unsigned char* dst, int size)
+int Compression::LZDecomp(inmemorybuffer* buffer)
 {
-	unsigned char* realDst = dst;
+	unsigned char* realDst = buffer->dst;
+	 unsigned char* oldDst = buffer->dst;
 
 
+	realDst += GBA_LZDECOMP(buffer->src, buffer->dst);
 
-	realDst += GBA_LZDECOMP(src, dst); 
 
-
-	return realDst - dst;
+	return realDst - oldDst;
 }
-int Compression::RLEDecomp(unsigned char* src, unsigned char* dst, int size)
+int Compression::RLEDecomp(inmemorybuffer* buffer)
 {
-	unsigned char* realDst = dst;
+	unsigned char* realDst = buffer->dst;
 
-
-//#ifdef GBA
-
-	realDst += GBA_RLEDECOMP(src, dst, size);
-//#else
-//#endif
-	return realDst - dst;
-}
-int Compression::RawCopy(unsigned char* src, unsigned char* dst, int size)
-{
-	unsigned char* realDst = dst;
 
 #ifdef GBA
-	memcpy16_dma((unsigned short*)realDst, (unsigned short*)src, size>>1); realDst += size;
+
+	realDst += GBA_RLEDECOMP(buffer->src, buffer->dst);
 #else
-	memcpy(realDst, src, size); realDst += size;
+	realDst += GBA_RLEDECOMP(buffer);
+
+#endif
+	return realDst - buffer->dst;
+}
+int Compression::RawCopy(inmemorybuffer* buffer)
+{
+	unsigned char* realDst = buffer->dst;
+	unsigned char* oldDst = buffer->dst;
+	int size = buffer->len;
+#ifdef GBA
+	memcpy16_dma((unsigned short*)realDst, (unsigned short*)buffer->src, size>>1); realDst += size;
+#else
+	safe_memcpy(buffer); realDst += size;
 #endif
 
-	return realDst - dst;
+	return realDst - oldDst;
 }

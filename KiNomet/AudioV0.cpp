@@ -9,10 +9,10 @@ AudioV0::AudioV0(AudioHeader* src, int frames,  int (*func)()):
 	
 }
 
-AudioDataPacket* AudioV0::GetNextFrame()
+AudioKinometPacket* AudioV0::GetNextFrame()
 {
 	if (curFrame * 128 > len) return nullptr;
-	AudioDataPacket* p = new AudioDataPacket(curFrame, 0x500, &srcData[curFrame * 0x500]);
+	AudioKinometPacket* p = new AudioKinometPacket(V0, NULL, curFrame, 0x500, &srcData[curFrame * 0x500]);
 //	if (p != nullptr)
 //	{
 //////#ifdef GBA

@@ -185,9 +185,7 @@ typedef enum irqMASKS {
 typedef void (*IntFn)(void);
 void VBlankIntrWait();
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
-#ifdef GBA
-void* memcpy(void* dest, const void* src, unsigned int olen);
-#endif
+
 
 /*!	\defgroup grpNocash no$gba debugging
 	\ingroup grpCore

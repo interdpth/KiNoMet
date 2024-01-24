@@ -49,6 +49,61 @@ void QuickCopy(unsigned char* src, unsigned char* dst, int l)
 {
 	for (int i = 0; i < l; i++) dst[i] = src[i];
 }
+
+void ProcessAudio(AudioManager* audio, int& readSize, int curFrame, KinometAviControl* options)
+{
+	if (audio != nullptr)
+	{
+
+		//Check if there is a packet playing.
+		//Playing is defined as still being copied
+		//If there is a track playing(tmp not equal null)
+		// is it really playing(tmp is null or 0 bytes left or )
+
+		AudioKinometPacket* tmp = audio->GetCurrPacket();
+
+
+		if (tmp == nullptr || audio->GetBytesLeft(tmp) == 0)
+		{
+			tmp = audio->GetNextFrame();
+			if (tmp != nullptr)
+			{
+				audio->Queue(tmp);
+			}
+		}
+
+
+		if (tmp != nullptr)
+		{
+			readSize = audio->ProcessAudio();
+			if (readSize)
+			{
+				AudioKinometPacket kpm(audio->GetType(), audio->GetSampleFreq(), curFrame, readSize, audio->GetBuffer());
+				/*	AudioKinometPacket AudioKinometPacket(audio->GetType(), tmp);
+				AudioKinometPacket.type = 1;
+				AudioKinometPacket.frame = audio->GetBuffer();
+				AudioKinometPacket.screen = (rectangle*)audio->GetSampleFreq();
+				AudioKinometPacket.type = audio->GetType();
+				AudioKinometPacket.rect = (rectangle*)readSize;
+				AudioKinometPacket.frameid = curFrame;*/
+				options->audiocallback(&kpm);
+			}
+
+		}
+	}
+}
+
+
+void ProcessVideo(cinepak_info* ci, unsigned char* cineframe, _avioldindex_entry* cur, rectangle& screen, AVIStreamHeader* sthread, int curFrame, KinometAviControl* options)
+{
+	int len = decode_cinepak(ci, cineframe, cur->dwSize, Kinomet_FrameBuffer);
+
+		VideoKinometPacket videoPacket(screen, sthread->dwRate, curFrame, Kinomet_FrameBuffer, len);
+
+		options->videoCallBack(&videoPacket);
+		
+		
+}
 void LoadAVI(unsigned char* file,
 	int size,
 	unsigned char* audiofile,
@@ -63,7 +118,7 @@ void LoadAVI(unsigned char* file,
 	bool bValid = false;
 	int pos = 0;
 
-	
+
 	//Do we make it here? 
 	int debug = 0xFFFF1Daa;
 	BITMAPINFOHEADER* bmpinf = nullptr;
@@ -76,39 +131,25 @@ void LoadAVI(unsigned char* file,
 	if (bmpinf == nullptr || sthread == nullptr || hdrz == nullptr || moviPointer == nullptr) exit(-1);
 	screen.x = 0;
 	screen.y = 0;
-	screen.w = bmpinf->biWidth;
-	screen.h = bmpinf->biHeight;
-	VideoKinometPacket videoPack(screen, sthread->dwRate);
-	//AudioKinometPacket AudioPack;
-
+	screen.w = (unsigned char)bmpinf->biWidth;
+	screen.h = (unsigned char)bmpinf->biHeight;
+	VideoKinometPacket videoPack(screen, sthread->dwRate, -1 , nullptr, 0);
 	options->videoCallBack(&videoPack);
 	int readSize = 0;
 	//init on our side
-	//if (audiofile != nullptr)
-	//{
-	//	//determien
+	if (audiofile != nullptr)
+	{
+		//determien
 
-	//	audiomgr.Init((AudioHeader*)audiofile, audiofsize, fps, hdrz->dwTotalFrames, options->GetSize);
-	//	audio = &audiomgr;
-	//	//
-	//	//AudioPack.frame = NULL;
-	//	//int freq = audio->GetSampleFreq();
-	//	//pack.screen = (rectangle*)freq;
-	//	//pack.type = audio->GetType();
+		audiomgr.Init((AudioHeader*)audiofile, audiofsize, sthread->dwRate, hdrz->dwTotalFrames, options->GetSize);
+		audio = &audiomgr;
 
-	//	//pack.rect = (rectangle*)NULL;
-
-	//	//options->audiocallback(&pack);
-	//}
-
-	//Start buffering
-	//What are we doing???
+		AudioKinometPacket akp(audio->GetType(), audio->GetSampleFreq());
+		akp.FrameId = -1;
 
 
-	
-	//Send a faux packet over to init our consumer. 
-//Let's do setup
-
+		options->audiocallback(&akp);
+	}
 
 	int width = screen.w;
 	int height = screen.h;
@@ -140,7 +181,7 @@ void LoadAVI(unsigned char* file,
 
 		//Make sure we are a frame.
 		if (cur->FourCC != TAG_00DC) continue;
-		unsigned char* frame = moviPointer + cur->dwOffset;
+		unsigned char* cineframe = moviPointer + cur->dwOffset;
 		//sanity stuff.
 #ifdef  DEBUG
 		frame -= 4;
@@ -151,77 +192,26 @@ void LoadAVI(unsigned char* file,
 		int framesize = *(unsigned long*)frame; frame += 4;
 #else
 
-		int framesize = *(unsigned long*)frame; frame += 4;
+		int framesize = *(unsigned long*)cineframe; cineframe += 4;
 #endif //  DEBUG
 		//handle audio
 
 
-		videoPack.FrameId = curFrame;
-	
-		decode_cinepak(ci, frame, cur->dwSize, Kinomet_FrameBuffer);
-		//Hello we have a full framedata 
-
-		videoPack.len = 240 * 160 * 2;;
-		videoPack.data = Kinomet_FrameBuffer;
-		videoPack.DisplaySize = screen;
-
-		//if (audio != nullptr)
-		//{
-
-		//	//Check if there is a packet playing.
-		//	//Playing is defined as still being copied
-		//	//If there is a track playing(tmp not equal null)
-		//	// is it really playing(tmp is null or 0 bytes left or )
-
-		//	AudioKinometPacket* tmp = audio->GetCurrPacket();
 
 
-		//	if (tmp == nullptr || audio->GetBytesLeft(tmp) == 0)
-		//	{
-		//		tmp = audio->GetNextFrame();
-		//		if (tmp != nullptr)
-		//		{
-		//			audio->Queue(tmp);
-		//		}
-		//	}
-
-
-		//	if (tmp != nullptr )
-		//	{
-		//		readSize = audio->ProcessAudio();
-		//		if (readSize)
-		//		{
-		//			AudioKinometPacket.type = 1;
-		//			AudioKinometPacket.frame = audio->GetBuffer();
-		//			AudioKinometPacket.screen = (rectangle*)audio->GetSampleFreq();
-		//			AudioKinometPacket.type = audio->GetType();
-		//			AudioKinometPacket.rect = (rectangle*)readSize;
-		//			AudioKinometPacket.frameid = curFrame;
-		//			options->audiocallback(&AudioKinometPacket);
-		//		}
-
-		//	}
-		//}
+		//ProcessAudio(audio, readSize,  options);
 
 
 		//
-
-
-		if (options->videoCallBack(&videoPack))
-		{
-			curFrame++;
-		}
-
+		ProcessVideo(ci, cineframe, cur, screen, sthread, curFrame, options);
+		curFrame++;
 		//Capture timestamp after draw.
 		last = options->GetTicks();
 	}
 
 
 
-#ifndef  GBA
-	free(Kinomet_FrameBuffer);
-#endif
+
 	free_cvinfo(ci);
 	return;
 }
-

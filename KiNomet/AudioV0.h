@@ -15,6 +15,6 @@ class AudioV0 :
     unsigned char* srcData;
 public:
     AudioV0(AudioHeader* src,  int frames, int (*func)());
-    virtual AudioDataPacket* GetNextFrame();
+    virtual AudioKinometPacket* GetNextFrame();
 };
 

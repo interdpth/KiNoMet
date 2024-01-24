@@ -34,6 +34,9 @@
     <Filter Include="Packets">
       <UniqueIdentifier>{8b1c505a-ed1c-4044-88f2-766932e95a9c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="asm">
+      <UniqueIdentifier>{e9430d1c-8351-4bd0-bb8e-92ebe3391489}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KiNomet.cpp">
@@ -84,7 +87,7 @@
     <ClCompile Include="Gba.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Gba.c">
+    <ClCompile Include="Gba.oldfsad">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="AudioV2.cpp">
@@ -94,9 +97,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Packets.cpp">
-      <Filter>Packets</Filter>
-    </ClCompile>
-    <ClCompile Include="AudioDataPacket.cpp">
       <Filter>Packets</Filter>
     </ClCompile>
     <ClCompile Include="DataPacket.cpp">
@@ -173,9 +173,6 @@
     <ClInclude Include="DataPacket.h">
       <Filter>Packets</Filter>
     </ClInclude>
-    <ClInclude Include="AudioDataPacket.h">
-      <Filter>Packets</Filter>
-    </ClInclude>
     <ClInclude Include="VideoKinometPacket.h">
       <Filter>Packets</Filter>
     </ClInclude>
@@ -197,5 +194,6 @@
     <None Include="cinepak_asm.s">
       <Filter>Cinepak</Filter>
     </None>
+    <None Include="Makefile" />
   </ItemGroup>
 </Project>
