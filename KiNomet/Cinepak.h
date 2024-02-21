@@ -2,6 +2,7 @@
 #ifndef CINEPAK_H__
 #define CINEPAK_H__
 #ifndef  GBA
+#include <Windows.h>
 #include <stdio.h>
 #else
 #include "Gba.h"
@@ -14,7 +15,7 @@
 using namespace std;
 #define ICCVID_MAGIC mmioFOURCC('c', 'v', 'i', 'd')
 #define compare_fourcc(fcc1, fcc2) (((fcc1)^(fcc2))&~0x20202020)
-
+#define bpp 2
 #define DBUG    0
 
 #define cinepak_strip_Length 260
@@ -30,6 +31,8 @@ using namespace std;
 #define WARN printf
 #define TRACE printf
 #endif 
+
+
 /* ------------------------------------------------------------------------ */
 #ifdef GBA
 typedef struct __attribute__((__packed__))
@@ -67,6 +70,11 @@ typedef struct
     //  unsigned char reds[4], greens[4], blues[4];
 } memoryCodeBook;
 
+typedef struct
+{
+	unsigned long len;
+	unsigned char dat[0];
+}RawCineFrame;
 //CinePak instance info
 #ifdef GBA
 typedef struct __attribute__((__packed__))
@@ -79,10 +87,59 @@ typedef struct
     unsigned int strip_num;
 } cinepak_info;
 
+enum CvidAction :unsigned char {
+	RegularRead,
+	RegularRead_v4,
+	UcharRead,
+	UcharRead_v4,
 
+	RegularChunkRead,
+	RegularChunkRead_v4,
+
+	UcharChunkRead,
+	UcharChunkRead_v4,
+
+	FiveBitRead,
+	FiveBitFlagRead,
+	OneBitRead,
+
+	SKIPFRAME,
+
+
+};
+
+struct lookup {
+	unsigned short val;
+	CvidAction act;
+};
+
+
+struct CHeader {
+	unsigned char frame_flags;
+	unsigned long length;
+
+	unsigned long cv_width;
+	unsigned long cv_height;
+	unsigned int strips;
+};
+
+struct KHeader {
+	unsigned char frame_flags;
+	unsigned long length;
+//#ifndef GBA
+//	unsigned short cv_width;
+//	unsigned short cv_height;
+//#else
+	unsigned short cv_width;
+	unsigned short cv_height;
+//#endif
+	unsigned int strips;
+};
 extern int drawing;
+void  read_codebook(unsigned char** in_buffer, memoryCodeBook* c, int mode);
+void InitCodeBook(cinepak_info* cvinfo, int i);
 void free_codebooks(cinepak_info* cvinfo);
-
+extern int screenwidth, screenheight, frm_stride;
 #ifndef GBA
 unsigned short MAKECOLOUR16(unsigned char r, unsigned char g, unsigned char b);
 #else 
@@ -97,7 +154,14 @@ cinepak_info* decode_cinepak_init(int srcwidth, int srcheight);
 unsigned int decode_cinepak(cinepak_info* cvinfo, unsigned char* buf, int size, unsigned char* frame);
 cinepak_info* decode_cinepak_init(int srcwidth, int srcheight);
 #endif 
-
+unsigned long get_long(unsigned char** in_buffer);
+unsigned short get_ushort(unsigned char** in_buffer);
 void free_cvinfo(cinepak_info* cvinfo);
-
+inline void cvid_v1_16(unsigned char* frm, unsigned char* limit, int stride, memoryCodeBook* cb);
+inline void cvid_v4_16(unsigned char* frm, unsigned char* limit, int stride, memoryCodeBook* cb0,
+	memoryCodeBook* cb1, memoryCodeBook* cb2, memoryCodeBook* cb3);
 #endif
+
+class Cinepak
+{
+};

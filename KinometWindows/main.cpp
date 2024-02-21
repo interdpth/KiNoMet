@@ -145,7 +145,11 @@ bool handleFrame(VideoKinometPacket* pack)
 }
 extern unsigned long maxNum;
 extern int codeBooks;
-
+void LoadKino(unsigned char* file,
+	int size,
+	unsigned char* audiofile,
+	int audiofsize,
+	KinometAviControl* options);
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -171,7 +175,8 @@ extern "C" {
 		l.GetTicks = &GetTicks;
 		//l.init = &
 
-		LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);//  NULL, NULL, &l);
+		//LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);//  NULL, NULL, &l);
+		LoadKino((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);//  NULL, NULL, &l);
 		int overallSize = codeBookSize();
 		printf("%d", maxNum);
 		printf("%x", overallSize);

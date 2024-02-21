@@ -7,7 +7,10 @@
 #include "Packets.h"
 #include "SmallBuffer.h"
 #include "Cinepak.h"
-
+enum KinoFileFormat {
+	Cinepak,
+	Kinopack
+};
 #include "AudioKinometPacket.h"
 #include "VideoKinometPacket.h"
 #define 	AVIIF_LIST   0x00000001
@@ -21,6 +24,7 @@ typedef struct KinometAviControl
 	int(*GetSize)();
 	unsigned int(*GetTicks)();
 	void (*init)();
+	KinoFileFormat Format;
 };
 void LoadAVI(unsigned char* file,
 		int size,

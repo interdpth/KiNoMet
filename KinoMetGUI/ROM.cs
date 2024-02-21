@@ -13,9 +13,10 @@ namespace KinometGui
         private static string comment = "//---------------------------------------------------------------------------------";
         public static void MakeSource(string ArrayName, byte[] buffer, string outputdir)
         {
+ 
             //---------------------------------------------------------------------------------
-            UInt64 counter = 0UL;
-            UInt64 length = (ulong)buffer.Length;
+            int counter = 0;
+            int length =  buffer.Length;
 
             ROM.headerLines.Add($"#ifndef _{ArrayName}_h_\n");
             ROM.headerLines.Add($"#define _{ArrayName}_h_\n");
@@ -40,6 +41,7 @@ namespace KinometGui
                     ROM.sourceLines.Add(thislIne);
                     thislIne = "";
                 }
+                
             }
 
             if (!string.IsNullOrEmpty(thislIne))
