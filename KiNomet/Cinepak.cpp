@@ -591,7 +591,7 @@ unsigned int decode_cinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 				}
 				KillChunk
 					break;
-
+				back kinometpack to this and revert the logic
 				/* -------------------- Frame -------------------- */
 			case 0x3000:
 				while ((chunk_size > 0) && (y < y_bottom))
