@@ -1,6 +1,7 @@
 #include "KiNoMet.h"
 #include "../KinoMet/Cinepak.h"
 #include "VideoFile.h"
+#include "KinoVideoFile.h"
 #include "audio_outputmain.h"
 #include "audio.h"
 #include <stdio.h>
@@ -173,10 +174,11 @@ extern "C" {
 		l.videoCallBack = &handleFrame;
 		l.GetSize = &GetQueuedBytes;
 		l.GetTicks = &GetTicks;
+		l.Format = KinoFileFormat::Kinopack;
 		//l.init = &
 
 		//LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);//  NULL, NULL, &l);
-		LoadKino((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);//  NULL, NULL, &l);
+		LoadKino((unsigned char*)KinoVideoFile, KinoVideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);//  NULL, NULL, &l);
 		int overallSize = codeBookSize();
 		printf("%d", maxNum);
 		printf("%x", overallSize);

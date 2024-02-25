@@ -149,9 +149,6 @@
     <ClInclude Include="KinoAudio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SmallBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="tonc_asminc.h">
       <Filter>Header Files</Filter>
     </ClInclude>

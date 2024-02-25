@@ -201,7 +201,6 @@
     <ClInclude Include="KinometPacket.h" />
     <ClInclude Include="MemoryBuffers.h" />
     <ClInclude Include="Packets.h" />
-    <ClInclude Include="SmallBuffer.h" />
     <ClInclude Include="SNES.h" />
     <ClInclude Include="tonc_asminc.h" />
     <ClInclude Include="UserInterface.h" />

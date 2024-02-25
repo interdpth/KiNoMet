@@ -100,7 +100,10 @@ namespace KinometGui
             P.WaitForExit();
 
 
-            ROM.MakeSource("VideoFile", File.ReadAllBytes($"{Processing}\\kinomet_{fn}_final.avi"), $"{OutputFolder}");
+            ROM.MakeSource("KinoVideoFile", File.ReadAllBytes($"{Processing}\\kinomet_{fn}_final.avi"), $"{OutputFolder}");
+            ROM.Write(OutputFolder, "KinoVideoFile");
+
+            ROM.MakeSource("VideoFile", File.ReadAllBytes($"{Processing}\\{fn}_final.avi"), $"{OutputFolder}");
             ROM.Write(OutputFolder, "VideoFile");
         }
     }

@@ -143,6 +143,45 @@ void  read_codebook(unsigned char** in_buffer, memoryCodeBook* c, int mode)
 
 	}
 }
+
+void  read_codebook(SmallBuffer* buffer, memoryCodeBook* c, int mode)
+/* ---------------------------------------------------------------------- */
+{
+	signed int uvr, uvg, uvb;
+
+	int y0 = buffer->GetByte();
+	int y1 = buffer->GetByte();
+	int y2 = buffer->GetByte();
+	int y3 = buffer->GetByte();
+
+	if (mode)        /* black and white */
+	{
+		c->rgb[0] = MAKECOLOUR16(y0, y0, y0);
+		c->rgb[1] = MAKECOLOUR16(y1, y1, y1);
+		c->rgb[2] = MAKECOLOUR16(y2, y2, y2);
+		c->rgb[3] = MAKECOLOUR16(y3, y3, y3);
+	}
+	else            /* colour */
+	{
+		signed 	int v = buffer->GetByte();
+		signed 	int u = buffer->GetByte();
+	
+		uvr = v << 1;
+		uvg = -((u + 1) >> 1) - v;
+		uvb = u << 1;
+
+		c->rgb[0] = MAKECOLOUR16(uiclp[y0 + uvr], uiclp[y0 + uvg], uiclp[y0 + uvb]);
+
+		c->rgb[1] = MAKECOLOUR16(uiclp[y1 + uvr], uiclp[y1 + uvg], uiclp[y1 + uvb]);
+
+		c->rgb[2] = MAKECOLOUR16(uiclp[y2 + uvr], uiclp[y2 + uvg], uiclp[y2 + uvb]);
+
+		c->rgb[3] = MAKECOLOUR16(uiclp[y3 + uvr], uiclp[y3 + uvg], uiclp[y3 + uvb]);
+
+
+	}
+}
+
 #ifndef GBA
 unsigned short inline MAKECOLOUR16(unsigned char r, unsigned  char g, unsigned char b)
 {

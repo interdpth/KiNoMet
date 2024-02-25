@@ -14,6 +14,7 @@ private:
 	bool SelfDelete;
 public:
 	void SkipByte();
+	void SetEndian(int e);
 	SmallBuffer(unsigned char* src, int len);
 	SmallBuffer(int len);
 	~SmallBuffer();

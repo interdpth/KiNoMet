@@ -12,6 +12,7 @@
 #define  BADSTRIP ERRORDECODING-1
 #include "MemoryBuffers.h"
 #include <vector>
+#include "C:\Users\Endeavor\Documents\GitHub\KiNoMet\MirrorIO\SmallBuffer.h"
 using namespace std;
 #define ICCVID_MAGIC mmioFOURCC('c', 'v', 'i', 'd')
 #define compare_fourcc(fcc1, fcc2) (((fcc1)^(fcc2))&~0x20202020)
@@ -88,24 +89,22 @@ typedef struct
 } cinepak_info;
 
 enum CvidAction :unsigned char {
-	RegularRead,
-	RegularRead_v4,
-	UcharRead,
-	UcharRead_v4,
+	RegularRead=0x90,
+	RegularRead_v4=0x91,
+	UcharRead=0x92,
+	UcharRead_v4=0x93,
 
-	RegularChunkRead,
-	RegularChunkRead_v4,
+	RegularChunkRead = 0x94,
+	RegularChunkRead_v4 = 0x95,
 
-	UcharChunkRead,
-	UcharChunkRead_v4,
+	UcharChunkRead = 0x96,
+	UcharChunkRead_v4 = 0x97,
 
-	FiveBitRead,
-	FiveBitFlagRead,
-	OneBitRead,
+	FiveBitRead = 0x98,
+	FiveBitFlagRead = 0x99,
+	OneBitRead=0x9a,
 
-	SKIPFRAME,
-
-
+	SKIPFRAME = 0x9F,
 };
 
 struct lookup {
@@ -136,7 +135,8 @@ struct KHeader {
 	unsigned int strips;
 };
 extern int drawing;
-void  read_codebook(unsigned char** in_buffer, memoryCodeBook* c, int mode);
+void  read_codebook(SmallBuffer* buffer, memoryCodeBook* c, int mode);
+void  read_codebook(unsigned char** buffer, memoryCodeBook* c, int mode);
 void InitCodeBook(cinepak_info* cvinfo, int i);
 void free_codebooks(cinepak_info* cvinfo);
 extern int screenwidth, screenheight, frm_stride;

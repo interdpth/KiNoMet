@@ -43,8 +43,8 @@ int main(int argc, char* argv[])
 
 	FILE* fp2 = nullptr;
 	fopen_s(&fp2, outfile, "wb");
-	if (fp2) {
-
+	if (fp2) 
+	{
 		Kinomet_Encode(srcBuffer, buferlen, &theDst);
 		unsigned char* dat = &theDst.front();
 		fwrite((void*)dat, theDst.size(), 1,  fp2);

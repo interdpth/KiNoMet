@@ -53,6 +53,13 @@ lookup actionLookup[] = {
 {0x3200,OneBitRead},
 };
 
+struct extralookup
+{
+	int old;
+	CvidAction act;
+	int oldsize;
+	int newsize;
+};
 
 lookup* GetAction(int val) {
 	for (int i = 0; i < 11; i++)
@@ -74,7 +81,7 @@ extern unsigned long maxNum;
 #define KillChunk in_buffer+=chunk_size;//while (chunk_size > 0) { skip_byte(); chunk_size--; }
 #define NewKillChunk input->Seek(chunk_size, SEEK_CUR);//while (chunk_size > 0) { skip_byte(); chunk_size--; }
 
-unsigned int decode_cinepak_encode_kinometpack(cinepak_info* memorycvinfo, int screenwidth, int screenheight, unsigned char* inputFrame, int size, std::vector<unsigned char>* destBuffer)
+unsigned int decode_cinepak_encode_kinometpack(cinepak_info* memorycvinfo, int screenwidth, int screenheight, unsigned char* inputFrame, int size, std::vector<unsigned char>* destBuffer, std::vector< extralookup>* alllookup)
 {
 	memoryCodeBook* v4_codebook, * v1_codebook, * codebook = NULL;
 	unsigned long
@@ -93,6 +100,7 @@ unsigned int decode_cinepak_encode_kinometpack(cinepak_info* memorycvinfo, int s
 	//WRITE HEADER. 
 
 	SmallBuffer* input = new SmallBuffer(inputFrame, size);
+	input->SetEndian(BE);
 	LargeBuffer* output = new LargeBuffer(size);
 	//What can I say?  i like my code
 
@@ -190,7 +198,8 @@ unsigned int decode_cinepak_encode_kinometpack(cinepak_info* memorycvinfo, int s
 		strip_id = input->Read16();        /* 1000 = key strip, 1100 = iter strip */
 		output->Write16(strip_id);
 		top_size = input->Read16();
-		output->Write16(top_size);
+		unsigned short* totalSize = (unsigned short* )output->GetCurrentBuffer();
+		output->Write16(0);//top_size);
 
 
 		y0 = input->Read16();
@@ -203,8 +212,8 @@ unsigned int decode_cinepak_encode_kinometpack(cinepak_info* memorycvinfo, int s
 
 		y_bottom += y1;
 		top_size -= 12;
+		*totalSize += 6;
 		x = 0;
-
 		while (top_size > 0)
 		{
 			chunk_id = input->Read16();
@@ -215,7 +224,10 @@ unsigned int decode_cinepak_encode_kinometpack(cinepak_info* memorycvinfo, int s
 			auto t = GetAction(chunk_id);
 			output->WriteByte(t->act);
 
-
+			extralookup l;
+			l.act = t->act;
+			l.old = chunk_id;
+			l.oldsize = chunk_size;
 			unsigned short* newSize = (unsigned short*)output->GetCurrentBuffer();
 			output->Write16(0);
 
@@ -224,13 +236,14 @@ unsigned int decode_cinepak_encode_kinometpack(cinepak_info* memorycvinfo, int s
 			OutputDebugStringA(sl);
 
 			top_size -= chunk_size;
+
 			chunk_size -= 4;
 			try {
-				switch (chunk_id)
+				switch (t->act)
 				{
 					/* -------------------- Codebook Entries -------------------- */
-				case 0x2000:
-				case 0x2200:
+				case RegularRead:
+				case RegularRead_v4:
 					codebook = (chunk_id == 0x2200 ? v1_codebook : v4_codebook);
 					cnum = chunk_size / 6;
 					for (i = 0; i < cnum; i++) {
@@ -245,8 +258,8 @@ unsigned int decode_cinepak_encode_kinometpack(cinepak_info* memorycvinfo, int s
 					//NewKillChunk
 					break;
 
-				case 0x2400:
-				case 0x2600:        /* 8 bit per pixel */
+				case UcharRead:
+				case UcharRead_v4:        /* 8 bit per pixel */
 					codebook = (chunk_id == 0x2600 ? v1_codebook : v4_codebook);
 					cnum = chunk_size / 4;
 					for (int i = 0; i < cnum; i++)
@@ -256,8 +269,8 @@ unsigned int decode_cinepak_encode_kinometpack(cinepak_info* memorycvinfo, int s
 					//NewKillChunk
 					break;
 
-				case 0x2100:
-				case 0x2300:
+				case RegularChunkRead:
+				case RegularChunkRead_v4:
 					codebook = (chunk_id == 0x2300 ? v1_codebook : v4_codebook);
 
 					ci = 0;
@@ -286,8 +299,8 @@ unsigned int decode_cinepak_encode_kinometpack(cinepak_info* memorycvinfo, int s
 					//	FillChunk
 					break;
 
-				case 0x2500:
-				case 0x2700:        /* 8 bit per pixel */
+				case UcharChunkRead:
+				case UcharChunkRead_v4:        /* 8 bit per pixel */
 					codebook = (chunk_id == 0x2700 ? v1_codebook : v4_codebook);
 
 					ci = 0;
@@ -317,7 +330,7 @@ unsigned int decode_cinepak_encode_kinometpack(cinepak_info* memorycvinfo, int s
 					break;
 
 					/* -------------------- Frame -------------------- */
-				case 0x3000:
+				case FiveBitRead:
 				{
 					unsigned char fullBreak = false;
 					while ((chunk_size > 4) && (y < y_bottom))//There we check for greater than 4 here becasue there is the intial flag read, as well as it read 4 bytes or 1.
@@ -363,7 +376,7 @@ unsigned int decode_cinepak_encode_kinometpack(cinepak_info* memorycvinfo, int s
 				//FillChunk
 				break;
 
-				case 0x3100:
+				case FiveBitFlagRead:
 					if (chunk_size == 857)
 					{
 						printf("Wait");
@@ -422,7 +435,7 @@ unsigned int decode_cinepak_encode_kinometpack(cinepak_info* memorycvinfo, int s
 						//FillChunk
 					break;
 
-				case 0x3200:        /* each byte is a V1 codebook */
+				case OneBitRead:        /* each byte is a V1 codebook */
 					while ((chunk_size > 0) && (y < y_bottom))
 					{
 						output->WriteByte(input->GetByte());
@@ -460,8 +473,13 @@ unsigned int decode_cinepak_encode_kinometpack(cinepak_info* memorycvinfo, int s
 				//output->WriteByte();
 				input->GetByte();//just run 
 			}
-			*newSize = (output->Pos() - start);
 
+			printf("%x %x %x", (int)output->Pos(), (int)start, (int)output->Pos() - (int)start);
+			*newSize = ((int)output->Pos() - (int)start);
+
+			l.newsize = *newSize;
+			*totalSize += l.newsize;
+			alllookup->push_back(l);
 			if (nsize == 0)
 			{
 				sprintf_s(sl, 1023, "Processed %04lx. Processed %04ld bytes\n", chunk_id, nsize);
@@ -496,7 +514,7 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 	unsigned char* destBuffer)
 
 {
-
+	SmallBuffer* buffer = new SmallBuffer(inputFrame, size);
 	drawing = 1;
 	memoryCodeBook* v4_codebook, * v1_codebook, * codebook = NULL;
 	unsigned long
@@ -510,24 +528,24 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 
 	y = 0;
 	y_bottom = 0;
-	unsigned char* in_buffer = inputFrame;
-	KHeader* CinePakhdr = (KHeader*)in_buffer;
-	in_buffer += sizeof(KHeader);
 
+	KHeader* CinePakhdr = (KHeader*)buffer->GetBuffer();;
+	buffer->Seek(sizeof(KHeader), SEEK_CUR);
 	curDest = destBuffer;
 
-	if (CinePakhdr->length != size)
-	{
-		if (CinePakhdr->length & 0x01) CinePakhdr->length++; /* AVIs tend to have a size mismatch */
-		if (CinePakhdr->length != size)
-		{
+	//if (CinePakhdr->length != size)
+	//{
+	//	if (CinePakhdr->length & 0x01) CinePakhdr->length++; /* AVIs tend to have a size mismatch */
+	//	if (CinePakhdr->length != size)
+	//	{
 
-			//ERR("CVID: corruption %d (QT/AVI) != %ld (CV)\n", size, len);
-			return BADSTRIP;
+	//		//ERR("CVID: corruption %d (QT/AVI) != %ld (CV)\n", size, len);
+	//		delete buffer;
+	//		return BADSTRIP;
 
-		}
+	//	}
 
-	}
+	//}
 
 
 	free_codebooks(memorycvinfo);
@@ -544,6 +562,7 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 		{
 
 			//	ERR("CVID: strip overflow (more than %d)\n", MAX_STRIPS);
+			delete buffer;
 			return BADSTRIP;
 
 		}
@@ -587,16 +606,16 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 			v1_codebook = memorycvinfo->v1_codebook[cur_strip - 1];
 		}
 
-		strip_id = get_ushort(&in_buffer);        /* 1000 = key strip, 1100 = iter strip */
+		strip_id = buffer->Read16();       /* 1000 = key strip, 1100 = iter strip */
 		if (strip_id > 0x2000) {
 			printf("aww shit");
 		}
-		top_size = get_ushort(&in_buffer);
+		top_size = buffer->Read16();
 
-		y1 = get_ushort(&in_buffer);
+		y1 = buffer->Read16();
 
 		y_bottom += y1;
-		top_size -= 12;
+		top_size -= 6;
 		x = 0;
 
 		/*	if (x1 != screenwidth)
@@ -608,16 +627,16 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 
 		while (top_size > 0)
 		{
-			chunk_id = get_byte(in_buffer);
-			chunk_size = get_ushort(&in_buffer);
+			chunk_id = buffer->GetByte();
+			chunk_size = buffer->Read16();
 
 			char sl[1024] = { 0 };
-			sprintf_s(sl, 1023, "%04lx %04ld\n", chunk_id, chunk_size);
+			sprintf_s(sl, 1023, "%04lx %04lx\n", chunk_id, chunk_size);
 			OutputDebugStringA(sl);
 
 			top_size -= chunk_size;
-			chunk_size -= 4;
-
+			chunk_size -= 3;
+			
 			switch (chunk_id)
 			{
 				/* -------------------- Codebook Entries -------------------- */
@@ -625,14 +644,20 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 			case RegularRead_v4:
 				codebook = (chunk_id == RegularRead_v4 ? v1_codebook : v4_codebook);
 				cnum = chunk_size / 6;
-				for (i = 0; i < cnum; i++) read_codebook(&in_buffer, codebook + i, 0);
+				for (i = 0; i < cnum; i++) 
+				{
+					read_codebook(buffer, codebook + i, 0); chunk_size -= 6;
+				}
 				break;
 
 			case UcharRead:
 			case UcharRead_v4:        /* 8 bit per pixel */
 				codebook = (chunk_id == UcharRead_v4 ? v1_codebook : v4_codebook);
 				cnum = chunk_size / 4;
-				for (i = 0; i < cnum; i++) read_codebook(&in_buffer, codebook + i, 1);
+				for (i = 0; i < cnum; i++)
+				{
+					read_codebook(buffer, codebook + i, 1); chunk_size -= 4;
+				}
 				break;
 
 			case RegularChunkRead:
@@ -642,7 +667,7 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 				ci = 0;
 				while (chunk_size > 0)
 				{
-					flag = get_long(&in_buffer);
+					flag = buffer->Read32();
 					chunk_size -= 4;
 
 					for (i = 0; i < 32; i++)
@@ -650,14 +675,13 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 						if (flag & 0x80000000)
 						{
 							chunk_size -= 6;
-							read_codebook(&in_buffer, codebook + ci, 0);
+							read_codebook(buffer, codebook + ci, 0);
 						}
 
 						ci++;
 						flag <<= 1;
 					}
 				}
-				KillChunk
 					break;
 
 			case UcharChunkRead:
@@ -667,7 +691,7 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 				ci = 0;
 				while (chunk_size > 0)
 				{
-					flag = get_long(&in_buffer);
+					flag = buffer->Read32();
 					chunk_size -= 4;
 
 					for (i = 0; i < 32; i++)
@@ -675,38 +699,45 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 						if (flag & 0x80000000)
 						{
 							chunk_size -= 4;
-							read_codebook(&in_buffer, codebook + ci, 1);
+							read_codebook(buffer, codebook + ci, 1);
 						}
 
 						ci++;
 						flag <<= 1;
 					}
 				}
-				KillChunk
 					break;
 
 				/* -------------------- Frame -------------------- */
 			case FiveBitRead:
-				while ((chunk_size > 0) && (y < y_bottom))
+			{
+				unsigned char fullBreak = false;
+				while ((chunk_size > 4) && (y < y_bottom))//There we check for greater than 4 here becasue there is the intial flag read, as well as it read 4 bytes or 1.
 				{
-					flag = get_long(&in_buffer);
+					flag = buffer->Read32();
 					chunk_size -= 4;
-
+					if (chunk_size <= 0)break;
 					for (i = 0; i < 32; i++)
 					{
-						if (y >= y_bottom) break;
+						if (y >= y_bottom || chunk_size < 0) break;
 						if (flag & 0x80000000)    /* 4 bytes per block */
 						{
-							d0 = get_byte(in_buffer);
-							d1 = get_byte(in_buffer);
-							d2 = get_byte(in_buffer);
-							d3 = get_byte(in_buffer);
+							if (chunk_size < 4) break; //Make sure there's enough data
+
+							d0 = buffer->GetByte();
+							d1 = buffer->GetByte();
+							d2 = buffer->GetByte();
+							d3 = buffer->GetByte();
 							cvid_v4_16(curDest + ((y * frm_stride) + (x * bpp)), destBuffer, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3); chunk_size -= 4;
+
+
+							chunk_size -= 4;
 
 						}
 						else        /* 1 byte per block */
 						{
-							cvid_v1_16(curDest + ((y * frm_stride) + (x * bpp)), destBuffer, frm_stride, v1_codebook + get_byte(in_buffer)); chunk_size--;
+							if (chunk_size <= 0) break;
+							cvid_v1_16(curDest + ((y * frm_stride) + (x * bpp)), destBuffer, frm_stride, v1_codebook + buffer->GetByte()); chunk_size--;
 						}
 
 						x += 4;
@@ -718,43 +749,45 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 						flag <<= 1;
 					}
 				}
-				KillChunk
-					break;
+				//NewKillChunk
+			}
+			//FillChunk
+			break;
 
 			case FiveBitFlagRead:
 				while ((chunk_size > 0) && (y < y_bottom))
 				{
 					/* ---- flag bits: 0 = SKIP, 10 = V1, 11 = V4 ---- */
-					flag = get_long(&in_buffer);
+					flag = buffer->Read32();
 					chunk_size -= 4;
 					mask = 0x80000000;
 
-					while ((mask) && (y < y_bottom))
+					while ((chunk_size > 0) && (y < y_bottom))
 					{
-						if (flag & mask)
+						/*if (flag & mask)
+						{*/
+						if (mask == 1)
 						{
-							if (mask == 1)
-							{
-								if (chunk_size < 0) break;
-								flag = get_long(&in_buffer);
-								chunk_size -= 4;
-								mask = 0x80000000;
-							}
-							else mask >>= 1;
 
-							if (flag & mask)        /* V4 */
-							{
-								d0 = get_byte(in_buffer);
-								d1 = get_byte(in_buffer);
-								d2 = get_byte(in_buffer);
-								d3 = get_byte(in_buffer);
-								cvid_v4_16(curDest + ((y * frm_stride) + (x * bpp)), destBuffer, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3); chunk_size -= 4;
-							}
-							else        /* V1 */
-							{
-								cvid_v1_16(curDest + ((y * frm_stride) + (x * bpp)), destBuffer, frm_stride, v1_codebook + get_byte(in_buffer)); chunk_size--;
-							}
-						}        /* else SKIP */
+							flag = buffer->Read32();
+							chunk_size -= 4;
+							mask = 0x80000000;
+						}
+						else mask >>= 1;
+
+						if (flag & mask)        /* V4 */
+						{
+							d0 = buffer->GetByte();
+							d1 = buffer->GetByte();
+							d2 = buffer->GetByte();
+							d3 = buffer->GetByte();
+							cvid_v4_16(curDest + ((y * frm_stride) + (x * bpp)), destBuffer, frm_stride, v4_codebook + d0, v4_codebook + d1, v4_codebook + d2, v4_codebook + d3); chunk_size -= 4;
+						}
+						else        /* V1 */
+						{
+							cvid_v1_16(curDest + ((y * frm_stride) + (x * bpp)), destBuffer, frm_stride, v1_codebook + buffer->GetByte()); chunk_size--;
+						}
+						//}        /* else SKIP */
 
 						mask >>= 1;
 						x += 4;
@@ -765,14 +798,13 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 						}
 					}
 				}
-
-				KillChunk
 					break;
 
-			case OneBitRead:        /* each byte is a V1 codebook */
+			case OneBitRead:     
+				/* each byte is a V1 codebook */
 				while ((chunk_size > 0) && (y < y_bottom))
 				{
-					cvid_v1_16(curDest + ((y * frm_stride) + (x * bpp)), destBuffer, frm_stride, v1_codebook + get_byte(in_buffer)); chunk_size--;
+					cvid_v1_16(curDest + ((y * frm_stride) + (x * bpp)), destBuffer, frm_stride, v1_codebook + buffer->GetByte()); chunk_size--;
 					x += 4;
 					if (x >= screenwidth)
 					{
@@ -780,7 +812,6 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 						y += 4;
 					}
 				}
-				KillChunk
 					break;
 
 			default:
@@ -788,12 +819,18 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 				char sl[1024] = { 0 };
 				sprintf_s(sl, 1023, "CVID: unknown chunk_id %08lx\n", chunk_id);
 				OutputDebugStringA(sl);
-				KillChunk
 					break;
+			}
+
+			if (chunk_size != 0)
+			{
+				printf("Chunk_Id %d has remaining %d", chunk_id, chunk_size);
+				buffer->Seek(chunk_size, SEEK_CUR);
 			}
 		}
 	}
 
+	delete buffer;
 	return CinePakhdr->length;
 }
 
@@ -805,6 +842,7 @@ unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFram
 
 void Kinomet_Encode(unsigned char* src, int srcsize, vector<unsigned char>* dst)
 {
+	std::vector< extralookup> alllookup;
 	SmallBuffer* buf = new SmallBuffer(src, srcsize);
 	{
 		BITMAPINFOHEADER* bmpinf = nullptr;
@@ -816,7 +854,7 @@ void Kinomet_Encode(unsigned char* src, int srcsize, vector<unsigned char>* dst)
 		_avioldindex_entry* idxList = (_avioldindex_entry*)buf->GetCurrentBuffer();
 
 
-	
+		
 		//Store what we need
 		
 			SmallBuffer* newFile = new SmallBuffer( srcsize);
@@ -880,21 +918,28 @@ void Kinomet_Encode(unsigned char* src, int srcsize, vector<unsigned char>* dst)
 					RawCineFrame* cineFrame = (RawCineFrame*)(&moviPointer[cur->inf.dwOffset]);
 					int framesize = cineFrame->len;
 					std::vector<unsigned char> rawFrame;
-					int chunkLen = decode_cinepak_encode_kinometpack(ci, bmpinf->biWidth, bmpinf->biHeight, cineFrame->dat, cur->inf.dwSize, &rawFrame);
+					int chunkLen = decode_cinepak_encode_kinometpack(ci, bmpinf->biWidth, bmpinf->biHeight, cineFrame->dat, cur->inf.dwSize, &rawFrame, &alllookup);
 					kinoindex_entry kie = { 0 };
 					kie.dwOffset = lastChunk;
-					kie.dwSize = chunkLen;
+					kie.dwSize = chunkLen + 8;
 					if (chunkLen == BADSTRIP || chunkLen < 0)
 					{
 						printf("ERROR");
-
-
 					}
-					else {
+					else 
+					{
+						//We have the new frame.
+						//len
+						int z = 0xDEADBEEF;
+						for (int i = 0; i < 4; i++)
+						{
+							rawFrames.push_back(((unsigned char*)&z)[i]);
+						}
+
 
 						//We have the new frame.
 						//len
-						int z = rawFrame.size();
+						z = rawFrame.size();
 						for (int i = 0; i < 4; i++)
 						{
 							rawFrames.push_back(((unsigned char*)&z)[i]);
@@ -913,10 +958,7 @@ void Kinomet_Encode(unsigned char* src, int srcsize, vector<unsigned char>* dst)
 						OutputDebugStringA(sl);
 
 						headers.push_back(kie);
-
-
-
-						lastChunk += chunkLen;
+						lastChunk += kie.dwSize;
 					}
 					curFrame++;
 				}
@@ -966,5 +1008,21 @@ void Kinomet_Encode(unsigned char* src, int srcsize, vector<unsigned char>* dst)
 			delete newFile;
 		
 	}
+
+	
 	delete buf;
+
+
+	FILE* fp;
+	fopen_s(&fp, "OUTPUT.LOG", "w");
+	for (int i = 0; i < alllookup.size(); i++)
+	{
+		extralookup* thislookup = &alllookup[i];
+		char blah[2048] = { 0 };
+		sprintf_s(blah, 2047, "Frame: %d, Old ID: %x, Old Size: %d, New ID: %d, New Size: %d\n", i, thislookup->old, thislookup->oldsize, thislookup->newsize, thislookup->newsize);
+		fwrite(blah, 1, strlen(blah), fp);
+
+
+	}
+	fclose(fp);
 }

@@ -94,13 +94,14 @@ void ProcessAudio(AudioManager* audio, int& readSize, int curFrame, KinometAviCo
 	}
 }
 
-
+unsigned int decode_kinepak(cinepak_info* memorycvinfo, unsigned char* inputFrame, int size,
+	unsigned char* destBuffer);
 void ProcessVideo(cinepak_info* ci, unsigned char* cineframe, kinoindex_entry* cur, rectangle& screen, int fps, int curFrame, KinometAviControl* options)
 {
 	int len = 0;
 	if (options->Format == KinoFileFormat::Kinopack)
 	{
-		len = decode_cinepak(ci, cineframe, cur->dwSize, Kinomet_FrameBuffer);
+		len = decode_kinepak(ci, cineframe, cur->dwSize, Kinomet_FrameBuffer);
 	}
 	else 
 	{
@@ -188,6 +189,8 @@ void LoadKino(unsigned char* file,
 	//Process AUDIO before processing frames.
 	int audioFrames = audiofsize / 0x4000;
 	int audioUpdate = 0;
+
+	unsigned char* cineframe = moviPointer;//fix for tracking later
 	while (curFrame < numFrames)
 	{
 
@@ -199,13 +202,18 @@ void LoadKino(unsigned char* file,
 		//sanity stuff.
 #ifdef  DEBUG
 		frame -= 4;
-		unsigned int fourcc = *(unsigned long*)frame; frame += 4;
+		unsigned int fourcc = *(ubnsigned long*)frame; frame += 4;
 
 		if (fourcc != cur->FourCC) continue;
 
 		int framesize = *(unsigned long*)frame; frame += 4;
 #else
 
+		if (*(unsigned long*)cineframe != 0xDEADBEEF)
+		{
+			break;
+	    }
+		cineframe += 4;
 		int framesize = *(unsigned long*)cineframe; cineframe += 4;
 #endif //  DEBUG
 		//handle audio

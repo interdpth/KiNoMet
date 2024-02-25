@@ -152,6 +152,7 @@
   <ItemGroup>
     <ClCompile Include="audio.cpp" />
     <ClCompile Include="audio_outputmain.cpp" />
+    <ClCompile Include="KinoVideoFile.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SDL_windows_main.cpp" />
     <ClCompile Include="VideoFile.cpp" />
@@ -164,6 +165,7 @@
   <ItemGroup>
     <ClInclude Include="audio.h" />
     <ClInclude Include="audio_outputmain.h" />
+    <ClInclude Include="KinoVideoFile.h" />
     <ClInclude Include="VideoFile.h" />
   </ItemGroup>
   <ItemGroup>

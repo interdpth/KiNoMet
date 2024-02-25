@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 #include "Packets.h"
-#include "SmallBuffer.h"
 #include "Cinepak.h"
 enum KinoFileFormat {
 	Cinepak,

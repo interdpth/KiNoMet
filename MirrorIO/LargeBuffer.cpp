@@ -37,7 +37,7 @@ unsigned char* LargeBuffer:: GetBuffer()
 }
 
 
-LargeBuffer::LargeBuffer(int len) {
+LargeBuffer::LargeBuffer( int len) {
 
 	
 	//transfer contents to us 
@@ -157,12 +157,13 @@ int LargeBuffer::Read32()
 
 	if (endian == LE)
 	{
-		val2 = (src[pos + 0] << 24 | src[pos + 1] << 16 | src[pos + 2] << 8 | src[pos + 3]);
+		val2 = ((unsigned long)src[pos + 3] << 24) | ((unsigned long)src[pos + 2] << 16) | ((unsigned long)src[pos + 1] << 8) | src[pos + 0];
 	}
 	else {
-		val2 = (src[pos + 3] << 24 | src[pos + 2] << 16 | src[pos + 1] << 8 | src[pos + 0]);
+		val2 = ((unsigned long)src[pos + 0] << 24) | ((unsigned long)src[pos + 1] << 16) | ((unsigned long)src[pos + 2] << 8) | src[pos + 3];
 	}
 	pos += 4;
+	printf("%x", val2);
 	return val2;
 }
 
@@ -172,12 +173,15 @@ int LargeBuffer::Read16()
 
 	if (endian == LE)
 	{
-		val2 = (src[pos + 0] << 8 | src[pos + 1]);
+
+		val2=  ((unsigned short)src[pos + 1] << 8) | src[pos +0];
 	}
 	else {
-		val2 = (src[pos + 1] << 8 | src[pos + 0]);
+		val2 = ((unsigned short)src[pos + 0] << 8) | src[pos + 1];
 	}
+
 	pos += 2;
+	printf("%x", val2);
 	return val2;
 }
 
@@ -202,6 +206,7 @@ void LargeBuffer::Write16(unsigned short val)
 	}
 	else
 	{
+
 		src[pos + 0] = (val >> 8) & 0xFF;
 		src[pos + 1] = val & 0xFF;
 	}
