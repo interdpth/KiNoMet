@@ -5,19 +5,20 @@
 
 SmallBuffer::SmallBuffer(unsigned char* src, int len)
 {
-	SelfDelete = false;
+	SelfDelete = false;/*
 	unsigned char arr[4] = { 0x56 , 0x34, 0x12, 0x08 };
 	unsigned long tmp = 0x8123456;
 
 	volatile unsigned char endianCheck = *(unsigned char*)&tmp;
 	if (endianCheck == 0x56)
 	{
-		endian = LE;
+		
 	}
 	else
 	{
 		endian = BE;
-	}
+	}*/
+	endian = LE;
 	//Determien endian
 	start = src;
 	pos = 0;;
@@ -31,6 +32,46 @@ SmallBuffer::~SmallBuffer()
 		delete[] start;
 	}
 }
+
+#include "CinePakio.h"
+void SmallBuffer::ReadCodeBook(memoryCodeBook* c, int mode)
+
+/* ---------------------------------------------------------------------- */
+{
+	signed int uvr, uvg, uvb;
+	oldcvid_codebook* curbk = ((oldcvid_codebook*)(&start[pos]));
+	int y0 = curbk->y0;
+	int y1 = curbk->y1;
+	int y2 = curbk->y2;
+	int y3 = curbk->y3;
+	pos += 4;//y0-y3;
+	if (mode)        /* black and white */
+	{
+		c->rgb[0] = MAKECOLOUR16(y0, y0, y0);
+		c->rgb[1] = MAKECOLOUR16(y1, y1, y1);
+		c->rgb[2] = MAKECOLOUR16(y2, y2, y2);
+		c->rgb[3] = MAKECOLOUR16(y3, y3, y3);
+	}
+	else            /* colour */
+	{
+		signed 	int v = curbk->v;
+		signed 	int u = curbk->u;
+		pos += 2;//we read v and u
+		uvr = v << 1;
+		uvg = -((u + 1) >> 1) - v;
+		uvb = u << 1;
+
+		c->rgb[0] = MAKECOLOUR16(uiclp[y0 + uvr], uiclp[y0 + uvg], uiclp[y0 + uvb]);
+
+		c->rgb[1] = MAKECOLOUR16(uiclp[y1 + uvr], uiclp[y1 + uvg], uiclp[y1 + uvb]);
+
+		c->rgb[2] = MAKECOLOUR16(uiclp[y2 + uvr], uiclp[y2 + uvg], uiclp[y2 + uvb]);
+
+		c->rgb[3] = MAKECOLOUR16(uiclp[y3 + uvr], uiclp[y3 + uvg], uiclp[y3 + uvb]);
+
+	}
+}
+
 SmallBuffer::SmallBuffer(int len)
 {
 	SelfDelete = true;
@@ -77,9 +118,7 @@ unsigned char SmallBuffer::GetByte()
 		printf("awww yes");
 	}
 
-	unsigned char b = start[pos];
-	pos++;
-	return b;
+	return start[pos++];
 }
 void SmallBuffer::SkipByte()
 {

@@ -379,8 +379,9 @@ unsigned int decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int
 	y = 0;
 	y_bottom = 0;
 	in_buffer = inputFrame;
-	CinepakIo* tmpIo = new CinepakIo(in_buffer, size);
+	SmallBuffer* tmpIo = new SmallBuffer(in_buffer, size);
 	if (tmpIo) {
+		tmpIo->SetEndian(BE);
 		frame_flags = get_byte();
 		len = get_byte() << 16;
 		len |= get_byte() << 8;

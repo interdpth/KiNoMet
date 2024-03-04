@@ -55,6 +55,8 @@ void CinepakIo::SkipByte()
 {
 	pos++;
 }
+
+
 void CinepakIo::ReadCodeBook(memoryCodeBook* c, int mode)
 
 /* ---------------------------------------------------------------------- */

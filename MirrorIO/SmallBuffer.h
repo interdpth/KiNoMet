@@ -4,6 +4,7 @@
 #define SEEK_SET    0
 #define LE 0
 #define BE 1
+#include "CinePakio.h"
 class SmallBuffer
 {
 private:
@@ -11,8 +12,10 @@ private:
 	int pos;
 	int max;
 	int endian;
-	bool SelfDelete;
+	int SelfDelete;
 public:
+
+	void ReadCodeBook(memoryCodeBook* c, int mode);
 	void SkipByte();
 	void SetEndian(int e);
 	SmallBuffer(unsigned char* src, int len);
