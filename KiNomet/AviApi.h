@@ -1,7 +1,7 @@
 #pragma once
 #include <stdio.h>
 #include <stdlib.h>
-#include "..\MirrorIO\SmallBuffer.h"
+#include "SmallBuffer.h"
 void printDebug(char* message, ...);
 /*
 A chunk containing video, audio or subtitle data uses a dwFourCC containing 2 hexadecimal
@@ -172,18 +172,11 @@ typedef struct
 
 #endif
 
-typedef struct kinoindex_entry {
-	unsigned long dwOffset;
-	unsigned long dwSize;
-}kinoindex_entry;
-
 typedef struct {
 	unsigned int FourCC;
 	unsigned int dwFlags;
-	kinoindex_entry inf;
+	unsigned int dwOffset;
+	unsigned int dwSize;
 }_avioldindex_entry;
-
-
-
 
 void LoadAviInfo(SmallBuffer* buf, MainAVIHeader** hdrz, AVIStreamHeader** sthread, BITMAPINFOHEADER** bmpinf, unsigned char** moviPointer);

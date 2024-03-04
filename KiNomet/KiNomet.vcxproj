@@ -72,8 +72,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\..\libtta-master;$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\Users\Endeavor\Documents\GitHub\KiNoMet\MirrorIO</IncludePath>
-    <LibraryPath>..\libtta-master\debug;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);C:\Users\Endeavor\Documents\GitHub\KiNoMet\Debug</LibraryPath>
+    <IncludePath>..\..\libtta-master;$(VC_IncludePath);$(WindowsSDK_IncludePath);..\MirrorIO</IncludePath>
+    <LibraryPath>..\libtta-master\debug;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);..\MirrorIO;..\Debug</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -96,7 +96,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>MirrorIO.lib</AdditionalDependencies>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -153,21 +154,13 @@
     <ClCompile Include="AviApi.cpp" />
     <ClCompile Include="Cinepak.cpp" />
     <ClCompile Include="CodeBookManager.cpp" />
-    <ClCompile Include="CodecCinepak.cpp" />
-    <ClCompile Include="CodecKinomet.cpp" />
-    <ClCompile Include="CodecKinometCompressed.cpp" />
-    <ClCompile Include="CodecManager.cpp" />
-    <ClCompile Include="Codecs.cpp" />
     <ClCompile Include="Compression.cpp" />
     <ClCompile Include="DataPacket.cpp" />
     <ClCompile Include="Gba.cpp" />
     <ClCompile Include="GDL_Audio.cpp" />
     <ClCompile Include="KinoAudio.cpp" />
     <ClCompile Include="KiNomet.cpp" />
-    <ClCompile Include="KinometEDcode.cpp" />
     <ClCompile Include="KinometPacket.cpp" />
-    <ClCompile Include="Kinomet_Pack.cpp" />
-    <ClCompile Include="lzcompress.cpp" />
     <ClCompile Include="MemoryBuffers.cpp" />
     <ClCompile Include="Packets.cpp" />
     <ClCompile Include="SNES.cpp" />
@@ -186,18 +179,12 @@
     <ClInclude Include="BaseTypes.h" />
     <ClInclude Include="Cinepak.h" />
     <ClInclude Include="CodeBookManager.h" />
-    <ClInclude Include="CodecCinepak.h" />
-    <ClInclude Include="CodecKinomet.h" />
-    <ClInclude Include="CodecKinometCompressed.h" />
-    <ClInclude Include="CodecManager.h" />
-    <ClInclude Include="Codecs.h" />
     <ClInclude Include="Compression.h" />
     <ClInclude Include="DataPacket.h" />
     <ClInclude Include="Gba.h" />
     <ClInclude Include="GDL_Audio.h" />
     <ClInclude Include="KinoAudio.h" />
     <ClInclude Include="KiNoMet.h" />
-    <ClInclude Include="Kinomet_Pack.h" />
     <ClInclude Include="KinometPacket.h" />
     <ClInclude Include="MemoryBuffers.h" />
     <ClInclude Include="Packets.h" />

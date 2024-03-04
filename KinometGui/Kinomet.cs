@@ -91,21 +91,8 @@ namespace KinometGui
             PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-fflags discardcorrupt -i {Processing}\\{tmpVideo} -vf mpdecimate -c:v cinepak -max_strips 5 -q 30 -s 240x160 -ar {KinoSettings.SampleRate} -an {Processing}\\{fn}_final.avi" };
             P = Process.Start(PSI);
             P.WaitForExit();
-
-            //Now that we have FInal.Avi, run the program! 
-
-
-            PSI = new ProcessStartInfo { FileName = "KinometConverter.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"{Processing}\\{fn}_final.avi {Processing}\\kinomet_{fn}_final.avi" };
-            P = Process.Start(PSI);
-            P.WaitForExit();
-
-
-            ROM.MakeSource("KinoVideoFile", File.ReadAllBytes($"{Processing}\\kinomet_{fn}_final.avi"), $"{OutputFolder}");
-            ROM.Write(OutputFolder, "KinoVideoFile");
-
             ROM.MakeSource("VideoFile", File.ReadAllBytes($"{Processing}\\{fn}_final.avi"), $"{OutputFolder}");
             ROM.Write(OutputFolder, "VideoFile");
         }
     }
 }
-

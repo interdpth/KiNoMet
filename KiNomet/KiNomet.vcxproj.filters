@@ -37,12 +37,6 @@
     <Filter Include="asm">
       <UniqueIdentifier>{e9430d1c-8351-4bd0-bb8e-92ebe3391489}</UniqueIdentifier>
     </Filter>
-    <Filter Include="KinometCodec">
-      <UniqueIdentifier>{a44b9cb0-2f47-4807-9e4a-91fb64efb37e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Codecs">
-      <UniqueIdentifier>{3c473957-420d-4a47-9990-19329b2413d9}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KiNomet.cpp">
@@ -53,6 +47,9 @@
     </ClCompile>
     <ClCompile Include="Compression.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Cinepak.cpp">
+      <Filter>Cinepak</Filter>
     </ClCompile>
     <ClCompile Include="Test.cpp">
       <Filter>Tests</Filter>
@@ -108,40 +105,13 @@
     <ClCompile Include="KinometPacket.cpp">
       <Filter>Packets</Filter>
     </ClCompile>
-    <ClCompile Include="KinometEDcode.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="lzcompress.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Codecs.cpp">
-      <Filter>Codecs</Filter>
-    </ClCompile>
-    <ClCompile Include="Kinomet_Pack.cpp">
-      <Filter>KinometCodec</Filter>
-    </ClCompile>
-    <ClCompile Include="Cinepak.cpp">
-      <Filter>Cinepak</Filter>
-    </ClCompile>
-    <ClCompile Include="CodecCinepak.cpp">
-      <Filter>Codecs</Filter>
-    </ClCompile>
-    <ClCompile Include="CodecKinomet.cpp">
-      <Filter>Codecs</Filter>
-    </ClCompile>
-    <ClCompile Include="CodecManager.cpp">
-      <Filter>Codecs</Filter>
-    </ClCompile>
-    <ClCompile Include="CodecKinometCompressed.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Compression.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="KiNoMet.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Cinepak.h">
+      <Filter>Cinepak</Filter>
     </ClInclude>
     <ClInclude Include="GDL_Audio.h">
       <Filter>Header Files</Filter>
@@ -203,25 +173,7 @@
     <ClInclude Include="BaseTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Kinomet_Pack.h">
-      <Filter>KinometCodec</Filter>
-    </ClInclude>
-    <ClInclude Include="Cinepak.h">
-      <Filter>Cinepak</Filter>
-    </ClInclude>
-    <ClInclude Include="Codecs.h">
-      <Filter>Codecs</Filter>
-    </ClInclude>
-    <ClInclude Include="CodecCinepak.h">
-      <Filter>Codecs</Filter>
-    </ClInclude>
-    <ClInclude Include="CodecKinomet.h">
-      <Filter>Codecs</Filter>
-    </ClInclude>
-    <ClInclude Include="CodecManager.h">
-      <Filter>Codecs</Filter>
-    </ClInclude>
-    <ClInclude Include="CodecKinometCompressed.h">
+    <ClInclude Include="KiNoMet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

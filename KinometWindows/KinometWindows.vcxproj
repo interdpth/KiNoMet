@@ -73,8 +73,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\sdl\include;..\KiNomet;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\sdl;..\Debug;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);C:\Users\Endeavor\Documents\GitHub\KiNoMet\Debug</LibraryPath>
+    <IncludePath>C:\sdl\include;..\KiNomet;..\MirrorIO;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\sdl;..\Debug;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -94,13 +94,11 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
-      <AdditionalOptions>/Zm100 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>MirrorIO.lib;sdl2.lib;KiNoMet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>MirrorIo.lib;sdl2.lib;KiNoMet.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -152,7 +150,6 @@
   <ItemGroup>
     <ClCompile Include="audio.cpp" />
     <ClCompile Include="audio_outputmain.cpp" />
-    <ClCompile Include="KinoVideoFile.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SDL_windows_main.cpp" />
     <ClCompile Include="VideoFile.cpp" />
@@ -165,7 +162,6 @@
   <ItemGroup>
     <ClInclude Include="audio.h" />
     <ClInclude Include="audio_outputmain.h" />
-    <ClInclude Include="KinoVideoFile.h" />
     <ClInclude Include="VideoFile.h" />
   </ItemGroup>
   <ItemGroup>

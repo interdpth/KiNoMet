@@ -39,8 +39,6 @@ unsigned char* LargeBuffer:: GetBuffer()
 
 LargeBuffer::LargeBuffer( int len) {
 
-	
-	//transfer contents to us 
 	for (int i = 0; i < len; i++)
 	{
 		dat.push_back(0);
@@ -90,7 +88,9 @@ LargeBuffer::LargeBuffer(std::vector<unsigned char>* srcp, int len) {
 	}
 
 	//Determien endian
+	
 	src = &dat.front();
+	start = &src;
 	pos = 0;;
 	max = len;
 }
@@ -151,6 +151,10 @@ int LargeBuffer::Read32()
 
 	char sl[1024] = { 0 };
 
+	if (max < pos + 4)
+	{
+		printf("oh jeeze");
+	}
 
 
 	unsigned long val2 = 0;// (start[pos + 0] << 24 | start[pos + 1] << 16 | start[pos + 2] << 8 | start[pos + 3]);
@@ -169,6 +173,11 @@ int LargeBuffer::Read32()
 
 int LargeBuffer::Read16()
 {
+	if (max < pos + 2)
+	{
+		//printf("oh jeeze");
+		dat.push_back(0xFF);	dat.push_back(0xFF);
+	}
 	unsigned short val2 = 0;// (start[pos + 0] << 24 | start[pos + 1] << 16 | start[pos + 2] << 8 | start[pos + 3]);
 
 	if (endian == LE)

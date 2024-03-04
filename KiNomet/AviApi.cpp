@@ -108,5 +108,5 @@ void LoadAviInfo(SmallBuffer* buf, MainAVIHeader** hdrz, AVIStreamHeader** sthre
 
 	if (tagIdx1 != TAG_IDX1)  error((char*)"Invalid avi");
 	buf->Read(&size, 4);
-	return;
+
 }

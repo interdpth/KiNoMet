@@ -1,7 +1,7 @@
 #pragma once
 #include "cinepak.h"
 
-typedef std::vector<uint8_t> Buffer;
+
 enum CompType
 {
 
@@ -20,6 +20,5 @@ public:
     static int LZDecomp(inmemorybuffer* buffer);
     static int RLEDecomp(inmemorybuffer* buffer);
     static int RawCopy(inmemorybuffer* buffer);
-    static Buffer LZCompress(Buffer& b);
 };
 

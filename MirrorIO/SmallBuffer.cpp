@@ -3,10 +3,6 @@
 #include <stdio.h>
 #endif
 
-void SmallBuffer::SetEndian(int e)
-{
-	endian = e;
-}
 SmallBuffer::SmallBuffer(unsigned char* src, int len)
 {
 	SelfDelete = false;
@@ -70,6 +66,10 @@ int SmallBuffer::GetRemaining()
 }
 
 
+void SmallBuffer::SetEndian(int e)
+{
+	endian = e;
+}
 
 unsigned char SmallBuffer::GetByte()
 {
