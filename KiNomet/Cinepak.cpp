@@ -379,6 +379,7 @@ unsigned int decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int
 	y = 0;
 	y_bottom = 0;
 	in_buffer = inputFrame;
+	if (size == 0) return 0;
 	SmallBuffer* tmpIo = new SmallBuffer(in_buffer, size);
 	if (tmpIo) {
 		tmpIo->SetEndian(BE);
@@ -558,7 +559,7 @@ unsigned int decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int
 
 					/* -------------------- Frame -------------------- */
 				case 0x3000:
-					while ((chunk_size > 0) && (y < y_bottom))
+					while ((chunk_size > 4) && (y < y_bottom))
 					{
 						flag = get_long();
 						chunk_size -= 4;
@@ -568,6 +569,7 @@ unsigned int decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int
 							if (y >= y_bottom) break;
 							if (flag & 0x80000000)    /* 4 bytes per block */
 							{
+								if (chunk_size <  4) break;
 								d0 = get_byte();
 								d1 = get_byte();
 								d2 = get_byte();
@@ -577,6 +579,7 @@ unsigned int decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int
 							}
 							else        /* 1 byte per block */
 							{
+								if (chunk_size < 1) break;
 								V1C
 							}
 
