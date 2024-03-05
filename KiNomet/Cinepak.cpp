@@ -53,6 +53,7 @@ If used in commericial projects please add this file in plaintext into your comp
 
 #include "Cinepak.h"
 #include "SmallBuffer.h"
+#include "LargeBuffer.h"
 #define bpp 2
 unsigned char* basePointer;
 int drawing = 0;
@@ -380,7 +381,7 @@ unsigned int decode_cinepak(cinepak_info* cvinfo, unsigned char* inputFrame, int
 	y_bottom = 0;
 	in_buffer = inputFrame;
 	if (size == 0) return 0;
-	SmallBuffer* tmpIo = new SmallBuffer(in_buffer, size);
+	LargeBuffer* tmpIo = new LargeBuffer(in_buffer, size);
 	if (tmpIo) {
 		tmpIo->SetEndian(BE);
 		frame_flags = get_byte();

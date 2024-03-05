@@ -5,10 +5,13 @@
 #include "stdio.h"
 LargeBuffer::LargeBuffer(unsigned char* srcp, int len)
 {
-	
 	for (int i = 0; i < len; i++)
 	{
-		dat.push_back(srcp[i]);
+		dat.push_back(0);
+	}
+	for (int i = 0; i < len; i++)
+	{
+		dat[i] = srcp[i];
 	}
 
 
@@ -25,12 +28,16 @@ LargeBuffer::LargeBuffer(unsigned char* srcp, int len)
 	}
 
 	//Determien endian
+	start = nullptr;
 	src = &dat.front();
 	
 	pos = 0;;
 	max = len;
 }
-
+LargeBuffer::~LargeBuffer()
+{
+	dat.resize(0);
+}
 unsigned char* LargeBuffer:: GetBuffer()
 {
 	return src;
@@ -194,6 +201,48 @@ int LargeBuffer::Read16()
 	return val2;
 }
 
+void LargeBuffer::SetEndian(int e)
+{
+	endian = e;
+}
+
+void LargeBuffer::ReadCodeBook(memoryCodeBook* c, int mode)
+
+/* ---------------------------------------------------------------------- */
+{
+	signed int uvr, uvg, uvb;
+	oldcvid_codebook* curbk = ((oldcvid_codebook*)(&src[pos]));
+	int y0 = curbk->y0;
+	int y1 = curbk->y1;
+	int y2 = curbk->y2;
+	int y3 = curbk->y3;
+	pos += 4;//y0-y3;
+	if (mode)        /* black and white */
+	{
+		c->rgb[0] = MAKECOLOUR16(y0, y0, y0);
+		c->rgb[1] = MAKECOLOUR16(y1, y1, y1);
+		c->rgb[2] = MAKECOLOUR16(y2, y2, y2);
+		c->rgb[3] = MAKECOLOUR16(y3, y3, y3);
+	}
+	else            /* colour */
+	{
+		signed 	int v = curbk->v;
+		signed 	int u = curbk->u;
+		pos += 2;//we read v and u
+		uvr = v << 1;
+		uvg = -((u + 1) >> 1) - v;
+		uvb = u << 1;
+
+		c->rgb[0] = MAKECOLOUR16(uiclp[y0 + uvr], uiclp[y0 + uvg], uiclp[y0 + uvb]);
+
+		c->rgb[1] = MAKECOLOUR16(uiclp[y1 + uvr], uiclp[y1 + uvg], uiclp[y1 + uvb]);
+
+		c->rgb[2] = MAKECOLOUR16(uiclp[y2 + uvr], uiclp[y2 + uvg], uiclp[y2 + uvb]);
+
+		c->rgb[3] = MAKECOLOUR16(uiclp[y3 + uvr], uiclp[y3 + uvg], uiclp[y3 + uvb]);
+
+	}
+}
 
 void LargeBuffer::WriteByte(unsigned char b)
 {
