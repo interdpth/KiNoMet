@@ -29,6 +29,12 @@ namespace KinometGui.Properties
         public static int mffreq = 10512;
         public static int zmfreq = 13379;
         public static int freq = mffreq;
+        // MP3 (MPEG Layer III) only supports a fixed set of sample rates. 11025Hz (MPEG-2.5)
+        // is the closest standard rate to mffreq and is what AudioV3/RenderAudioV3 use.
+        public static int mp3freq = 11025;
+        // Mono CBR bitrate (kbps) used when encoding AudioV3 tracks. Low enough to keep
+        // files small for a GBA cart, plenty for the GBA's speaker/headphone output.
+        public static int mp3Bitrate = 32;
         private string OutputFolder { get; set; }
         private string srcFile { get; set; }
         private int fps { get; set; }
@@ -55,6 +61,9 @@ namespace KinometGui.Properties
                     break;
                 case 2:
                     RenderAudioV2();
+                    break;
+                case 3:
+                    RenderAudioV3();
                     break;
             }
         }
@@ -438,6 +447,7 @@ namespace KinometGui.Properties
 
 
             //private void EmergencyRender()
+
             //{
             //    using (RawSourceWaveStream raw = new RawSourceWaveStream(srcStream, outFormat))
             //    {
@@ -476,6 +486,57 @@ namespace KinometGui.Properties
             //    }
             //}
 
+        }
+
+        /// <summary>
+        /// Stores the audio as a real MP3 file (see Kinomet.cs, which encodes
+        /// audio_outputmain.wav to audio_outputmain.mp3 via ffmpeg/libmp3lame before
+        /// calling Render() with audiov==3). Unlike V0/V1/V2, which store raw or
+        /// lightly RLE/LZ-compressed 8-bit PCM, this keeps the compressed MP3 bytes
+        /// as-is -- MP3 typically compresses 8-15x smaller than that PCM, which is
+        /// the actual fix for "videos are huge due to audio". Decoding happens at
+        /// playback time (see KiNomet/AudioV3.cpp).
+        /// </summary>
+        private void RenderAudioV3()
+        {
+            FileInfo srcAudio = new FileInfo(srcFile);
+
+            if (srcAudio.Extension.ToLower() != ".mp3")
+            {
+                Console.WriteLine($"RenderAudioV3 expects an already-encoded .mp3 file, got {srcAudio.Extension}");
+                return;
+            }
+
+            byte[] mp3Bytes = File.ReadAllBytes(srcFile);
+            if (mp3Bytes == null || mp3Bytes.Length == 0)
+            {
+                Console.WriteLine("MP3 source is empty or missing.");
+                return;
+            }
+
+            AudioHeader aHdr = new AudioHeader(0x41555633, (uint)mp3Bytes.Length, (uint)mp3Bytes.Length, (ushort)audiov, (ushort)fps, (uint)mp3freq);
+
+            string fn = srcAudio.Name.Replace(srcAudio.Extension, "");
+            if (File.Exists($"{OutputFolder}\\{fn}.raw")) File.Delete($"{OutputFolder}\\{fn}.raw");
+            using (FileStream fs = new FileStream($"{OutputFolder}\\{fn}.raw", FileMode.OpenOrCreate))
+            using (BinaryWriter bw = new BinaryWriter(fs))
+            {
+                byte[] fbuffer = new byte[AudioHeader.GetHdrSize()];
+                Util.Memset(fbuffer, 0, fbuffer.Length);
+                bw.Write(fbuffer);
+
+                bw.Write(mp3Bytes);
+
+                aHdr.compressedlength = (uint)mp3Bytes.Length;
+                aHdr.Write(bw);
+
+                bw.Close();
+            }
+
+            Console.WriteLine($"MP3 audio: {mp3Bytes.Length} bytes @ {mp3Bitrate}kbps");
+
+            ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
+            ROM.Write(OutputFolder, fn);
         }
     }
 }

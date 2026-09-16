@@ -6,6 +6,7 @@ enum AudioVersion :unsigned char
 	V0,
 	V1,
 	V2,
+	V3,
 	UNK
 };
 

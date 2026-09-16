@@ -151,6 +151,8 @@
     <ClCompile Include="AudioV0.cpp" />
     <ClCompile Include="AudioV1.cpp" />
     <ClCompile Include="AudioV2.cpp" />
+    <ClCompile Include="AudioV3.cpp" />
+    <ClCompile Include="mp3_decoder_gba_stub.c" />
     <ClCompile Include="AviApi.cpp" />
     <ClCompile Include="Cinepak.cpp" />
     <ClCompile Include="CodeBookManager.cpp" />
@@ -175,6 +177,9 @@
     <ClInclude Include="AudioV0.h" />
     <ClInclude Include="AudioV1.h" />
     <ClInclude Include="AudioV2.h" />
+    <ClInclude Include="AudioV3.h" />
+    <ClInclude Include="mp3_decoder_gba.h" />
+    <ClInclude Include="thirdparty\dr_mp3.h" />
     <ClInclude Include="AviApi.h" />
     <ClInclude Include="BaseTypes.h" />
     <ClInclude Include="Cinepak.h" />

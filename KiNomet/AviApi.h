@@ -1,7 +1,7 @@
 #pragma once
 #include <stdio.h>
 #include <stdlib.h>
-#include "SmallBuffer.h"
+#include "..\MirrorIO\SmallBuffer.h"
 void printDebug(char* message, ...);
 /*
 A chunk containing video, audio or subtitle data uses a dwFourCC containing 2 hexadecimal

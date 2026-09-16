@@ -47,3 +47,6 @@ KinometWindows/KinometWindows.vcxproj
 KinometWindows/VideoFile.cpp
 KinometWindows/VideoFile.h
 KinometWindows/videoplayback.mp4
+KinoMetGBA/Steamboat_Willie_final.avi
+KinoMetGBA/VideoFile.cpp
+KinoMetGBA/VideoFile.h

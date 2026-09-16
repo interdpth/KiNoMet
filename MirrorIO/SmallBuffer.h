@@ -4,7 +4,10 @@
 #define SEEK_SET    0
 #define LE 0
 #define BE 1
-#include "CinePakio.h"
+
+// Fixed backslashes for MSYS compatibility
+#include "../MirrorIO/CinePakio.h"
+
 class SmallBuffer
 {
 private:

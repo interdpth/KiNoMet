@@ -1,7 +1,7 @@
 #pragma once
 #include <stdio.h>
 #include <iostream>
-
+#include <cstring>
 class GBAU32Pointer {
 public:	
 	GBAU32Pointer( unsigned char* dat)

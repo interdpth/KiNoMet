@@ -52,8 +52,8 @@ If used in commericial projects please add this file in plaintext into your comp
 #include <stdlib.h>
 
 #include "Cinepak.h"
-#include "SmallBuffer.h"
-#include "LargeBuffer.h"
+#include "..\MirrorIO\SmallBuffer.h"
+#include "..\MirrorIO\LargeBuffer.h"
 #define bpp 2
 unsigned char* basePointer;
 int drawing = 0;

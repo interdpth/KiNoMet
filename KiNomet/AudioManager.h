@@ -3,6 +3,7 @@
 #include "AudioV0.h"
 #include "AudioV1.h"
 #include "AudioV2.h"
+#include "AudioV3.h"
 
 
 class AudioManager

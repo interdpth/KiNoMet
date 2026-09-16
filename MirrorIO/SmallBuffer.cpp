@@ -5,23 +5,11 @@
 
 SmallBuffer::SmallBuffer(unsigned char* src, int len)
 {
-	SelfDelete = false;/*
-	unsigned char arr[4] = { 0x56 , 0x34, 0x12, 0x08 };
-	unsigned long tmp = 0x8123456;
-
-	volatile unsigned char endianCheck = *(unsigned char*)&tmp;
-	if (endianCheck == 0x56)
-	{
-		
-	}
-	else
-	{
-		endian = BE;
-	}*/
+	SelfDelete = false;
 	endian = LE;
-	//Determien endian
+	//Determine endian
 	start = src;
-	pos = 0;;
+	pos = 0;
 	max = len;
 }
 
@@ -35,8 +23,6 @@ SmallBuffer::~SmallBuffer()
 
 #include "CinePakio.h"
 void SmallBuffer::ReadCodeBook(memoryCodeBook* c, int mode)
-
-/* ---------------------------------------------------------------------- */
 {
 	signed int uvr, uvg, uvb;
 	oldcvid_codebook* curbk = ((oldcvid_codebook*)(&start[pos]));
@@ -44,7 +30,8 @@ void SmallBuffer::ReadCodeBook(memoryCodeBook* c, int mode)
 	int y1 = curbk->y1;
 	int y2 = curbk->y2;
 	int y3 = curbk->y3;
-	pos += 4;//y0-y3;
+	pos += 4; //y0-y3;
+	
 	if (mode)        /* black and white */
 	{
 		c->rgb[0] = MAKECOLOUR16(y0, y0, y0);
@@ -56,19 +43,15 @@ void SmallBuffer::ReadCodeBook(memoryCodeBook* c, int mode)
 	{
 		signed 	int v = curbk->v;
 		signed 	int u = curbk->u;
-		pos += 2;//we read v and u
+		pos += 2; //we read v and u
 		uvr = v << 1;
 		uvg = -((u + 1) >> 1) - v;
 		uvb = u << 1;
 
 		c->rgb[0] = MAKECOLOUR16(uiclp[y0 + uvr], uiclp[y0 + uvg], uiclp[y0 + uvb]);
-
 		c->rgb[1] = MAKECOLOUR16(uiclp[y1 + uvr], uiclp[y1 + uvg], uiclp[y1 + uvb]);
-
 		c->rgb[2] = MAKECOLOUR16(uiclp[y2 + uvr], uiclp[y2 + uvg], uiclp[y2 + uvb]);
-
 		c->rgb[3] = MAKECOLOUR16(uiclp[y3 + uvr], uiclp[y3 + uvg], uiclp[y3 + uvb]);
-
 	}
 }
 
@@ -80,17 +63,17 @@ SmallBuffer::SmallBuffer(int len)
 	if (endianCheck == 0x8123456)
 	{
 		endian = LE;
-
 	}
 	else
 	{
 		endian = BE;
 	}
-	//Determien endian
+	//Determine endian
 	start = new unsigned char[len];
-	pos = 0;;
+	pos = 0;
 	max = len;
 }
+
 unsigned char* SmallBuffer::GetCurrentBuffer()
 {
 	return &start[pos];
@@ -106,7 +89,6 @@ int SmallBuffer::GetRemaining()
 	return max - pos;
 }
 
-
 void SmallBuffer::SetEndian(int e)
 {
 	endian = e;
@@ -114,26 +96,30 @@ void SmallBuffer::SetEndian(int e)
 
 unsigned char SmallBuffer::GetByte()
 {
+#ifndef GBA
 	if (pos + 1 > max) {
-		printf("awww yes");
+		printf("awww yes\n");
 	}
-
+#endif
 	return start[pos++];
 }
+
 void SmallBuffer::SkipByte()
 {
 	if (pos + 1 > max)
 	{
 		return;
 	}
-
 	pos++;
 }
+
 void SmallBuffer::Seek(int offset, int type)
 {
+#ifndef GBA
 	if (pos + offset > max) {
-		printf("awww yes");
+		printf("awww yes\n");
 	}
+#endif
 	switch (type)
 	{
 	case SEEK_CUR: pos += offset; break;
@@ -141,27 +127,27 @@ void SmallBuffer::Seek(int offset, int type)
 	case SEEK_SET: pos = offset;  break;
 	}
 }
+
 int SmallBuffer::Read(void* dst, int len)
 {
+#ifndef GBA
 	if (pos + len > max) {
-		printf("awww yes");
+		printf("awww yes\n");
 	}
+#endif
 	int i = 0;
 	for (i = 0; i < len; i++) ((unsigned char*)dst)[i] = start[pos + i];
 	pos += i;
 	return i;
 }
 
-
 int SmallBuffer::Read32()
 {
-	int i = 0;
-
-	char sl[1024] = { 0 };
+#ifndef GBA
 	if (pos + 4 > max) {
-		printf("awww yes");
+		printf("awww yes\n");
 	}
-
+#endif
 
 	unsigned long val2 = 0;
 	if (endian == LE)
@@ -173,22 +159,24 @@ int SmallBuffer::Read32()
 	}
 
 	pos += 4;
+#ifndef GBA
 	printf("SmallBuffer::Read32 %x\n", val2);
+#endif
 	return val2;
 }
 
 int SmallBuffer::Read16()
 {
-
+#ifndef GBA
 	if (pos + 2 > max) {
-		printf("awww yes");
+		printf("awww yes\n");
 	}
+#endif
 
 	unsigned short val2 = 0;
 
 	if (endian == LE)
 	{
-
 		val2 = ((unsigned short)start[pos + 1] << 8) | start[pos + 0];
 	}
 	else {
@@ -196,26 +184,32 @@ int SmallBuffer::Read16()
 	}
 
 	pos += 2;
+#ifndef GBA
 	printf("SmallBuffer::Read16 %x\n", val2);
+#endif
 	return val2;
 }
 
-
 void SmallBuffer::WriteByte(unsigned char b)
 {
+#ifndef GBA
 	if (max < pos + 1)
 	{
-		printf("oh jeeze");
+		printf("oh jeeze\n");
 	}
+#endif
 	start[pos] = b;
 	pos += 1;
 }
+
 void SmallBuffer::Write16(unsigned short value)
 {
+#ifndef GBA
 	if (max < pos + 2)
 	{
-		printf("oh jeeze");
+		printf("oh jeeze\n");
 	}
+#endif
 	if (endian == LE)
 	{
 		start[pos + 0] = value & 0xFF;        // Least significant byte
@@ -227,6 +221,7 @@ void SmallBuffer::Write16(unsigned short value)
 	}
 	pos += 2;
 }
+
 unsigned char* SmallBuffer::GetBuffer()
 {
 	return start;
@@ -234,16 +229,15 @@ unsigned char* SmallBuffer::GetBuffer()
 
 void SmallBuffer::Write32(unsigned long value)
 {
-
+#ifndef GBA
 	if (max < pos + 4)
 	{
-		printf("oh jeeze");
+		printf("oh jeeze\n");
 	}
-
+#endif
 
 	if (endian == LE)
 	{
-
 		start[pos + 0] = value & 0xFF;         // Least significant byte
 		start[pos + 1] = (value >> 8) & 0xFF;
 		start[pos + 2] = (value >> 16) & 0xFF;
@@ -256,12 +250,8 @@ void SmallBuffer::Write32(unsigned long value)
 		start[pos + 3] = value & 0xFF;         // Least significant byte
 	}
 
-
 	pos += 4;
-
-	return;
 }
-
 
 int SmallBuffer::Pos()
 {

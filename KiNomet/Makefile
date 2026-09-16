@@ -17,8 +17,8 @@ include $(DEVKITARM)/gba_rules
 # all directories are relative to this makefile
 #---------------------------------------------------------------------------------
 BUILD		?=	release
-SOURCES		:=	.
-INCLUDES	:=	.
+SOURCES		:=	. ../MirrorIO
+INCLUDES	:=	. ../MirrorIO
 DATA		:=
 LIB		:=	$(TOPDIR)/gba/lib
 
@@ -33,6 +33,7 @@ CFLAGS	:=	-g -Wall -O3\
 		$(ARCH)
 
 CFLAGS	+=	$(INCLUDE) -DGBA -fno-inline-small-functions -gdwarf-4 -static
+
 CXXFLAGS	:=	$(CFLAGS) -fno-inline-small-functions -gdwarf-4 -static
 
 ASFLAGS	:=	-gdwarf-4 $(ARCH)
@@ -125,7 +126,8 @@ DEPENDS	:=	$(OFILES:.o=.d)
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-$(GBABIN)	:	$(OFILES) $(LIB)
+$(GBABIN): $(OFILES)
+	@mkdir -p "$(LIB)"
 	@rm -f "$(GBABIN)"
 	@$(AR) rcs "$(GBABIN)" $(OFILES) 
 	@echo built ... $(notdir $@)

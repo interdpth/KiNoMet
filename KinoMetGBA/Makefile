@@ -49,7 +49,7 @@ CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions
 
 ASFLAGS	:=	-gdwarf-4 $(ARCH)
 ifdef offset
-LDFLAGS	=	-gdwarf-4 $(ARCH) $(INSERT) -Wl,-Map,$(notdir $*.map) -T C:\Users\Endeavor\Documents\GitHub\KiNoMet\KinoMetGBA\linker.lsc
+LDFLAGS	=	-gdwarf-4 $(ARCH) $(INSERT) -Wl,-Map,$(notdir $*.map) -T linker.lsc
 else
 LDFLAGS	=	-gdwarf-4 $(ARCH) $(INSERT) -Wl,-Map,$(notdir $*.map)
 endif
@@ -63,7 +63,7 @@ LIBS	:= -lgba -lKiNoMet
 # list of directories containing libraries, this must be the top level containing
 # include and lib
 #---------------------------------------------------------------------------------
-LIBDIRS	:=	$(LIBGBA) C:\Users\Endeavor\Documents\GitHub\KiNoMet\gba\ C:\Users\Endeavor\Documents\GitHub\KiNoMet\KinoMetGBA
+LIBDIRS := $(LIBGBA) $(CURDIR)/../gba/ $(CURDIR)/../kinomet
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
@@ -86,6 +86,7 @@ CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
+export LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir))
 
 ifneq ($(strip $(MUSIC)),)
 	export AUDIOFILES	:=	$(foreach dir,$(notdir $(wildcard $(MUSIC)/*.*)),$(CURDIR)/$(MUSIC)/$(dir))

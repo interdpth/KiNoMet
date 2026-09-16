@@ -14,7 +14,7 @@
 using namespace std;
 #define ICCVID_MAGIC mmioFOURCC('c', 'v', 'i', 'd')
 #define compare_fourcc(fcc1, fcc2) (((fcc1)^(fcc2))&~0x20202020)
-#include "CinePakio.h"
+#include "..\MirrorIO\CinePakio.h"
 #define DBUG    0
 
 #define cinepak_strip_Length 260

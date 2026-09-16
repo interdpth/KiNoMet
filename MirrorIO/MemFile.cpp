@@ -39,6 +39,7 @@ bool MemFile::ValidFileSize()
 MemFile::MemFile(char* file, int expectedMinSize)
 {
 	_expectedFileSize = expectedMinSize;
+	#ifndef GBA
 	FILE* FP = nullptr;
 	fopen_s(&FP, file, "r+b");
 	fileName = file;
@@ -54,6 +55,7 @@ MemFile::MemFile(char* file, int expectedMinSize)
 	::fread(_theFile, 1, _fileSize , FP);
 	fclose(FP);
 	FP = NULL;
+	#endif
 }
 
 //Saves to disk
@@ -65,13 +67,15 @@ void MemFile::save()
 void MemFile::save(char* file)
 {
 	//std functions
-	
+	#ifndef GBA
+
 	FILE* FP = nullptr;
 	fopen_s(&FP, file, "w+b");
 
 	::fseek(FP, 0, SEEK_SET);
 	::fwrite(_theFile, _fileSize, 1,FP);
 	::fclose(FP);
+	#endif
 }
 unsigned char MemFile::fgetc()
 {
@@ -82,9 +86,12 @@ void MemFile::seek(unsigned long offset)
 {
 	if (offset >= 32000000)
 	{
+			#ifndef GBA
 		char buffer[1000] = { 0 };
 		sprintf_s(buffer, 1000, "attempted to seek out of bounds, %d (0x%X)", offset, offset);
 		throw new std::exception(buffer);
+		
+		#endif
 	}
 	fileIndex = offset; 
 }
@@ -105,8 +112,11 @@ void MemFile::fwrite(void* src, int count, int size)
 	if (readSize > 0x800000)
 	{
 		char buffer[1000] = { 0 };
+		#ifndef GBA
 		sprintf_s(buffer, 1000, "attempted to read %p size %d many times, write size: %d", &src, count, size );
+		
 		throw new std::exception(buffer);
+		#endif
 	}
 	if (readSize + fileIndex > this->_fileSize)
 	{

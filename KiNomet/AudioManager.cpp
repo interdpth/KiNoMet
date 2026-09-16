@@ -9,7 +9,12 @@
 void AudioManager::Init(AudioHeader* src, int len, int fps, int frames, int (*func)())
 {
 	int hdr = src->hdr;
-	if (hdr == 0x41555632)//AUV2
+	if (hdr == 0x41555633)//AUV3 (MP3)
+	{
+		hndlr = new AudioV3(src, frames, func);
+		ver = V3;
+	}
+	else if (hdr == 0x41555632)//AUV2
 	{
 		hndlr = new AudioV2(src, frames, func);
 		ver = V2;
