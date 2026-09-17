@@ -35,7 +35,14 @@ unsigned short tsize;
 int totalFrames = 0;
 int TickCounter = 0;
 unsigned short* frameBuffer;
-unsigned long requestCount = 0;
+// volatile: this is written only from onInterrupt() (the Timer3 ISR) and spun on in
+// handleFrame()'s "while (requestCount < 1)" loop below. Without volatile, the compiler
+// is free to cache the loop's read of requestCount in a register instead of re-reading
+// memory each iteration -- so even though the ISR really does increment it in RAM, the
+// spinning core can hang forever on a stale cached value. This is a real, silent GBA-only
+// hang: nothing about it shows up on Windows, since that build never runs this ISR/spin
+// pair at all.
+volatile unsigned long requestCount = 0;
 IWRAM void frameRequest() {
 	//if (drawing) return; //If we're drawing we don't want to be allowed to draw.
 	requestCount++;
@@ -221,7 +228,12 @@ IWRAM bool handleFrame(VideoKinometPacket* packet)
 
 void VideoLoader()
 {
-	int sample_rate = 10512;//For nows
+	// Was hardcoded to 10512 ("For nows"), so the DMA/Timer0 playback clock never matched
+	// whatever sample rate the audio was actually encoded at unless it happened to be
+	// exactly 10512Hz -- e.g. AudioV3 (MP3) tracks are 11025Hz, which would play ~4.6% too
+	// fast/high-pitched and drift out of sync with the video over time. Read the real rate
+	// out of the AudioHeader instead, so this works for whatever the track was encoded at.
+	int sample_rate = ((AudioHeader*)audio_outputmain)->freq;
 	lastFrame = 0;
 	ticks_per_sample = CLOCK / sample_rate;
 	channel_a_vblanks_remaining = (audio_outputmain_size * ticks_per_sample) / CYCLES_PER_BLANK;

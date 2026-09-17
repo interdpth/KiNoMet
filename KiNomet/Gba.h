@@ -162,7 +162,32 @@ extern unsigned int channel_b_vblanks_remaining;
 #define INT_BUTTON 	0x1000
 #define INT_CART 	0x2000
 
-#define IWRAM __attribute__((section(".IWRAM"), target("arm"), noinline))
+// NOTE: this is intentionally placed in EWRAM (.ewram, 256K at 0x02000000), not real
+// hardware IWRAM (32K at 0x03000000). Two reasons:
+//  1. The devkitARM GBA linker script's IWRAM output section only captures the
+//     lowercase input-section names ".iwram"/".iwram*" (confirmed against a real
+//     build's .map: "*(.iwram .iwram*)"). This macro previously emitted the
+//     uppercase section name ".IWRAM", which never matched that rule -- so despite
+//     the name, functions tagged IWRAM were never actually linked into hardware
+//     IWRAM; they were silently placed by the linker's orphan-section handling
+//     (almost certainly still in ROM), running slower than intended. That was a
+//     pre-existing latent bug, unrelated to anything below.
+//  2. Real hardware IWRAM is now needed by the ported GBA MP3 decoder
+//     (mp3_decoder_gba.h), which relocates to fixed IWRAM addresses for the
+//     duration of playback. (Earlier note here said "~31 of its 32K starting at
+//     0x03000000" -- that was wrong on both counts, corrected after a real armips
+//     symbol dump: the decoder's actual real, non-overlapping peak footprint is
+//     ~0x5A54 (23124) bytes, and as of the mp3_decoder_include.a22 CURR_WRAM_ADDR
+//     fix it now starts at 0x03002000, not 0x03000000 -- see that file's own
+//     comment for the full collision story with KiNoMet's .bss/.data.) Regardless
+//     of the exact numbers, IWRAM is tight enough (~23K of 32K used by the decoder
+//     alone) that there is no room left for KiNoMet's own code there, so everything
+//     using this macro is moved to EWRAM instead: much more headroom (256K), no
+//     address collision with the decoder, still real RAM (not ROM) so it stays
+//     writable/faster than ROM.
+//     long_call is required because EWRAM (0x02000000) sits far enough from ROM
+//     code (0x08000000+) that a relative branch could go out of range.
+#define IWRAM __attribute__((section(".ewram"), target("arm"), long_call, noinline))
 #define ARM __attribute__((section(".ROM"), target("arm"), noinline))
 typedef enum irqMASKS {
 	IRQ_VBLANK = (1 << 0),		/*!< vertical blank interrupt mask */
@@ -189,6 +214,7 @@ typedef void (*IntFn)(void);
 void VBlankIntrWait();
 void memcpy16_dma(unsigned short* dest, unsigned short* source, int amount);
 #ifdef GBA
+//void memcpy(void* dest, const void* src, unsigned int len);
 #endif
 
 /*!	\defgroup grpNocash no$gba debugging
