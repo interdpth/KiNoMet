@@ -1,5 +1,6 @@
 #include "KiNoMet.h"
 #include "../KinoMet/Cinepak.h"
+#include "../KiNomet/kvc1_load.h"
 #include "VideoFile.h"
 #include "audio_outputmain.h"
 #include "audio.h"
@@ -171,7 +172,8 @@ extern "C" {
 		l.GetTicks = &GetTicks;
 		//l.init = &
 
-		LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);//  NULL, NULL, &l);
+		// KVC1-C replaces Cinepak -- see KiNomet/kvc1_load.cpp.
+		LoadKvc1((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);
 		int overallSize = codeBookSize();
 		printf("%d", maxNum);
 		printf("%x", overallSize);

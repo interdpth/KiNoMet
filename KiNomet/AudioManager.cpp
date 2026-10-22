@@ -19,6 +19,11 @@ void AudioManager::Init(AudioHeader* src, int len, int fps, int frames, int (*fu
 		hndlr = new AudioV2(src, frames, func);
 		ver = V2;
 	}
+	else if (hdr == 0x41555634)//AUV4 (ADPCM -- see AudioV4.h)
+	{
+		hndlr = new AudioV4(src, frames, func);
+		ver = V4;
+	}
 	if (hdr == 0x41555631)//AUV1
 	{
 		hndlr = new AudioV1(src, frames, func);

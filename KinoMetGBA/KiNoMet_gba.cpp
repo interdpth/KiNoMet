@@ -1,5 +1,6 @@
 
 #include "..\KiNomet\KiNoMet.h"
+#include "..\KiNomet\kvc1_load.h"
 #include "VideoFile.h"
 
 #include "audio_outputmain.h"
@@ -248,7 +249,9 @@ void VideoLoader()
 
 	SetupAudio();
 	//.StartPlaying();
-	LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);// 
+	// KVC1-C replaces Cinepak -- see KiNomet/kvc1_load.cpp. VideoFile/_size is
+	// baked by the GUI's kvc1_tools encoder now, not ffmpeg's cinepak muxer.
+	LoadKvc1((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);
 	return;
 }
 
