@@ -1,9 +1,19 @@
 
 #include "..\KiNomet\KiNoMet.h"
 #include "..\KiNomet\kvc1_load.h"
-#include "VideoFile.h"
-
-#include "audio_outputmain.h"
+// Video and audio are linked in as raw binaries from data/ (VideoFile.bin,
+// audio_outputmain.bin) by the Makefile's bin2o rule, not C arrays.
+extern "C"
+{
+	extern const unsigned char VideoFile_bin[];
+	extern const unsigned char VideoFile_bin_end[];
+	extern const unsigned char audio_outputmain_bin[];
+	extern const unsigned char audio_outputmain_bin_end[];
+}
+#define VideoFile VideoFile_bin
+#define VideoFile_size ((int)(VideoFile_bin_end - VideoFile_bin))
+#define audio_outputmain audio_outputmain_bin
+#define audio_outputmain_size ((int)(audio_outputmain_bin_end - audio_outputmain_bin))
 #include "..\KiNomet\Gba.h"
 #include <stdio.h>
 #include "../KiNomet/AudioHandler.h"
@@ -249,8 +259,8 @@ void VideoLoader()
 
 	SetupAudio();
 	//.StartPlaying();
-	// KVC1-C replaces Cinepak -- see KiNomet/kvc1_load.cpp. VideoFile/_size is
-	// baked by the GUI's kvc1_tools encoder now, not ffmpeg's cinepak muxer.
+	// KVC1-C replaces Cinepak -- see KiNomet/kvc1_load.cpp. VideoFile is
+	// data/VideoFile.bin, written by the GUI's kvc1_tools encoder.
 	LoadKvc1((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);
 	return;
 }
