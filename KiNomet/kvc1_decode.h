@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-// KVC1 (format version 2) decoder core, plain C, shared verbatim by the GBA
+// KVC1 (format version 3) decoder core, plain C, shared verbatim by the GBA
 // and Windows builds. File format: KinoMetGUI/kvc1_tools/kvc1_encoder.py's
 // module docstring. Python reference decoder: kvc1_decode_ref.py.
 //
@@ -40,7 +40,7 @@ typedef struct {
     uint8_t *buf;
     uint32_t bufsize;
     uint32_t chunk_frames_left;
-    const uint8_t *ops, *ops_end, *flat, *btc, *raw, *vq;
+    const uint8_t *ops, *ops_end, *flat, *btc, *raw, *paint, *pal4, *vq;
 } kvc1_reader_t;
 
 // Parses the file header. buf must be 4-byte aligned (the GBA BIOS LZ77 call

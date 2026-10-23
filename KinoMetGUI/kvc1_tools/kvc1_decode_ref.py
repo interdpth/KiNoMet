@@ -53,7 +53,7 @@ def decode(path):
     data = open(path, "rb").read()
     assert data[:4] == b"KVC1", "bad magic"
     ver, fps, w, h, n_cb, n_frames, max_declen, _ = struct.unpack_from("<BBHHHIII", data, 4)
-    assert ver == 2, f"unsupported version {ver}"
+    assert ver == 3, f"unsupported version {ver}"
     pos = 24
     cb = np.frombuffer(data, dtype="<u2", count=n_cb * 16, offset=pos).reshape(n_cb, 16)
     pos += n_cb * 32
@@ -69,39 +69,52 @@ def decode(path):
         pos += (clen + 3) & ~3
         dec = lz_decompress(payload) if tag == 1 else payload
         assert len(dec) == dlen <= max_declen, "chunk size mismatch"
-        ops_len, n_flat, n_btc, n_raw = struct.unpack_from("<HHHH", dec, 0)
-        p = 8
+        ops_len, n_flat, n_btc, n_raw, n_paint, n_pal4 = struct.unpack_from("<HHHHHH", dec, 0)
+        p = 12
         ops = dec[p:p + ops_len]; p += ops_len
         flat = np.frombuffer(dec, dtype="<u2", count=n_flat, offset=p); p += 2 * n_flat
         btc = np.frombuffer(dec, dtype="<u2", count=3 * n_btc, offset=p).reshape(n_btc, 3); p += 6 * n_btc
         raw = np.frombuffer(dec, dtype="<u2", count=16 * n_raw, offset=p).reshape(n_raw, 16); p += 32 * n_raw
+        paint = np.frombuffer(dec, dtype="<u2", count=2 * n_paint, offset=p).reshape(n_paint, 2); p += 4 * n_paint
+        pal4 = np.frombuffer(dec, dtype=[("c", "<u2", (4,)), ("i", "<u4")], count=n_pal4, offset=p); p += 12 * n_pal4
         vq = np.frombuffer(dec, dtype=np.uint8, offset=p)
-        oi = fi = bi = ri = vi = 0
+        oi = fi = bi = ri = vi = pi = qi = 0
         bits = np.arange(16, dtype=np.uint16)
         for _ in range(nfr):
             b = 0
             while b < nb:
                 op = ops[oi]; oi += 1
-                if op < 0x80:
-                    b += op + 1
-                    continue
                 n = (op & 31) + 1
                 kind = op >> 5
-                if kind == 4:      # FLAT
+                assert b + n <= nb, "op run crossed a frame boundary"
+                if kind == 0:      # SKIP
+                    pass
+                elif kind == 1:    # FLAT
                     flatfb[b:b + n] = flat[fi:fi + n, None]; fi += n
-                elif kind == 5:    # VQ
+                elif kind == 2:    # VQ
                     flatfb[b:b + n] = cb[vq[vi:vi + n]]; vi += n
-                elif kind == 6:    # BTC
+                elif kind == 3:    # BTC
                     e = btc[bi:bi + n]; bi += n
                     m = ((e[:, 2:3] >> bits) & 1).astype(bool)
                     flatfb[b:b + n] = np.where(m, e[:, 1:2], e[:, 0:1])
-                else:              # RAW
+                elif kind == 4:    # RAW
                     flatfb[b:b + n] = raw[ri:ri + n]; ri += n
+                elif kind == 5:    # PAINT
+                    e = paint[pi:pi + n]; pi += n
+                    m = ((e[:, 1:2] >> bits) & 1).astype(bool)
+                    flatfb[b:b + n] = np.where(m, e[:, 0:1], flatfb[b:b + n])
+                elif kind == 6:    # PAL4
+                    e = pal4[qi:qi + n]; qi += n
+                    sel = (e["i"][:, None] >> (2 * bits.astype(np.uint32))) & 3
+                    flatfb[b:b + n] = np.take_along_axis(e["c"], sel.astype(np.int64), axis=1)
+                else:
+                    raise AssertionError("bad op kind 7")
                 b += n
             assert b == nb, "op run crossed a frame boundary"
             yield fb.reshape(bh, bw, 4, 4).transpose(0, 2, 1, 3).reshape(h, w).copy()
             done += 1
-        assert oi == len(ops) and fi == len(flat) and bi == len(btc) and ri == len(raw) and vi == len(vq), \
+        assert oi == len(ops) and fi == len(flat) and bi == len(btc) and ri == len(raw) and vi == len(vq) \
+            and pi == len(paint) and qi == len(pal4), \
             "chunk has leftover data"
     assert pos == len(data), f"trailing bytes in file ({len(data) - pos})"
 

@@ -42,7 +42,7 @@ void LoadKvc1(unsigned char* file, int size, unsigned char* audiofile, int audio
     kvc1_reader_t rd;
     int err = kvc1_reader_init(&rd, file, (uint32_t)size, kvc1_chunk_buf, sizeof(kvc1_chunk_buf));
     if (err == KVC1_ERR_BUFFER) kvc1_halt("kvc1: chunk larger than KVC1_CHUNK_CAP -- re-encode with a matching --chunk-cap");
-    if (err != KVC1_OK) kvc1_halt("kvc1: not a version 2 KVC1 file -- re-encode with the current kvc1_encoder.py");
+    if (err != KVC1_OK) kvc1_halt("kvc1: not a version 3 KVC1 file -- re-encode with the current kvc1_encoder.py");
 
     rectangle screen;
     screen.x = 0; screen.y = 0;

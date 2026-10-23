@@ -72,7 +72,7 @@ int kvc1_reader_init(kvc1_reader_t *rd, const uint8_t *file, uint32_t size,
                      uint8_t *buf, uint32_t bufsize) {
     if (size < 24 || file[0] != 'K' || file[1] != 'V' || file[2] != 'C' || file[3] != '1')
         return KVC1_ERR_MAGIC;
-    if (file[4] != 2) return KVC1_ERR_VERSION;
+    if (file[4] != 3) return KVC1_ERR_VERSION;
     rd->file = file;
     rd->size = size;
     rd->fps = file[5];
@@ -100,18 +100,21 @@ static int load_chunk(kvc1_reader_t *rd) {
     uint8_t nfr = h[1];
     uint32_t clen = rd32(h + 4);
     uint32_t dlen = rd32(h + 8);
-    if (nfr == 0 || dlen < 8 || dlen > rd->bufsize) return KVC1_ERR_CORRUPT;
+    if (nfr == 0 || dlen < 12 || dlen > rd->bufsize) return KVC1_ERR_CORRUPT;
     kvc1_decompress_stream(tag, h + 12, rd->buf, dlen);
     rd->p = h + 12 + ((clen + 3u) & ~3u);
 
     const uint8_t *b = rd->buf;
     uint16_t ops_len = rd16(b), n_flat = rd16(b + 2), n_btc = rd16(b + 4), n_raw = rd16(b + 6);
-    rd->ops = b + 8;
+    uint16_t n_paint = rd16(b + 8), n_pal4 = rd16(b + 10);
+    rd->ops = b + 12;
     rd->ops_end = rd->ops + ops_len;
     rd->flat = rd->ops_end;
     rd->btc = rd->flat + 2u * n_flat;
     rd->raw = rd->btc + 6u * n_btc;
-    rd->vq = rd->raw + 32u * n_raw;
+    rd->paint = rd->raw + 32u * n_raw;
+    rd->pal4 = rd->paint + 4u * n_paint;
+    rd->vq = rd->pal4 + 12u * n_pal4;
     if (rd->vq > b + dlen) return KVC1_ERR_CORRUPT;
     rd->chunk_frames_left = nfr;
     return KVC1_OK;
@@ -131,29 +134,31 @@ int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16) {
     const int bw = rd->blocks_w;
     const int nb = rd->nblocks;
     const uint8_t *ops = rd->ops, *flat = rd->flat, *btc = rd->btc, *raw = rd->raw, *vq = rd->vq;
+    const uint8_t *paint = rd->paint, *pal4 = rd->pal4;
     int b = 0;
     while (b < nb) {
         if (ops >= rd->ops_end) return KVC1_ERR_CORRUPT;
         uint8_t op = *ops++;
-        if (op < 0x80) { b += op + 1; continue; }
         int n = (op & 31) + 1;
         int kind = op >> 5;
         if (b + n > nb) return KVC1_ERR_CORRUPT;
+        if (kind == 0) { b += n; continue; } /* SKIP: keep what's on screen */
+        if (kind == 7) return KVC1_ERR_CORRUPT;
         for (; n > 0; n--, b++) {
             uint16_t *dst = framebuffer16 + (b / bw) * 4 * stride + (b % bw) * 4;
             switch (kind) {
-            case 4: /* FLAT */
+            case 1: /* FLAT */
                 fill_block(dst, stride, rd16(flat));
                 flat += 2;
                 break;
-            case 5: { /* VQ */
+            case 2: { /* VQ */
                 const uint8_t *e = rd->codebook + (uint32_t)(*vq++) * 32u;
                 for (int r = 0; r < 4; r++, dst += stride, e += 8) {
                     dst[0] = rd16(e); dst[1] = rd16(e + 2); dst[2] = rd16(e + 4); dst[3] = rd16(e + 6);
                 }
                 break;
             }
-            case 6: { /* BTC */
+            case 3: { /* BTC */
                 uint16_t c0 = rd16(btc), c1 = rd16(btc + 2), m = rd16(btc + 4);
                 btc += 6;
                 for (int r = 0; r < 4; r++, dst += stride, m >>= 4) {
@@ -164,16 +169,40 @@ int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16) {
                 }
                 break;
             }
-            default: /* RAW */
+            case 4: /* RAW */
                 for (int r = 0; r < 4; r++, dst += stride, raw += 8) {
                     dst[0] = rd16(raw); dst[1] = rd16(raw + 2); dst[2] = rd16(raw + 4); dst[3] = rd16(raw + 6);
                 }
                 break;
+            case 5: { /* PAINT: one colour over what's on screen */
+                uint16_t c = rd16(paint), m = rd16(paint + 2);
+                paint += 4;
+                for (int r = 0; r < 4; r++, dst += stride, m >>= 4) {
+                    if (m & 1) dst[0] = c;
+                    if (m & 2) dst[1] = c;
+                    if (m & 4) dst[2] = c;
+                    if (m & 8) dst[3] = c;
+                }
+                break;
+            }
+            default: { /* PAL4: 4 colours, 2-bit index per pixel */
+                uint16_t pal[4] = { rd16(pal4), rd16(pal4 + 2), rd16(pal4 + 4), rd16(pal4 + 6) };
+                uint32_t idx = rd32(pal4 + 8);
+                pal4 += 12;
+                for (int r = 0; r < 4; r++, dst += stride, idx >>= 8) {
+                    dst[0] = pal[idx & 3];
+                    dst[1] = pal[(idx >> 2) & 3];
+                    dst[2] = pal[(idx >> 4) & 3];
+                    dst[3] = pal[(idx >> 6) & 3];
+                }
+                break;
+            }
             }
         }
     }
     if (b != nb) return KVC1_ERR_CORRUPT;
     rd->ops = ops; rd->flat = flat; rd->btc = btc; rd->raw = raw; rd->vq = vq;
+    rd->paint = paint; rd->pal4 = pal4;
     rd->chunk_frames_left--;
     rd->frame++;
     return 1;

@@ -15,7 +15,7 @@ file lands just under that size.
 File layout (little-endian; every chunk payload starts 4-byte aligned, which
 the GBA BIOS LZ77 call requires):
   0   magic        "KVC1"
-  4   version      u8   = 2
+  4   version      u8   = 3
   5   fps          u8
   6   width        u16
   8   height       u16
@@ -33,17 +33,20 @@ the GBA BIOS LZ77 call requires):
     payload
 
 Decoded chunk:
-  u16 ops_len, u16 n_flat, u16 n_btc, u16 n_raw    (VQ count = whatever is left)
-  ops[ops_len]       run opcodes, block-scan order, frame after frame;
-                     a run never crosses a frame boundary:
-                       0x00-0x7F  SKIP n = op+1 (1..128)
-                       0x80-0x9F  FLAT n = (op&31)+1
-                       0xA0-0xBF  VQ   n = (op&31)+1
-                       0xC0-0xDF  BTC  n = (op&31)+1
-                       0xE0-0xFF  RAW  n = (op&31)+1
+  u16 ops_len, n_flat, n_btc, n_raw, n_paint, n_pal4   (VQ count = whatever is left)
+  ops[ops_len]       run opcodes, block-scan order, frame after frame; a run
+                     never crosses a frame boundary. op = kind<<5 | (n-1),
+                     n = 1..32 blocks:
+                       kind 0 SKIP  (keep what's on screen)
+                       kind 1 FLAT  kind 2 VQ  kind 3 BTC  kind 4 RAW
+                       kind 5 PAINT kind 6 PAL4
   flat[n_flat]       u16 colour
   btc[n_btc]         u16 c0, u16 c1, u16 mask (bit k set -> pixel k uses c1)
   raw[n_raw]         16 x u16 pixels, raster order within the block
+  paint[n_paint]     u16 colour, u16 mask (bit k set -> pixel k = colour,
+                     others keep what's on screen)
+  pal4[n_pal4]       4 x u16 colours, u32 indices (2 bits per pixel, pixel k
+                     at bits 2k..2k+1)
   vq[...]            u8 codebook index
 Pixels within a block are raster order (row 0 left-to-right, then row 1 ...).
 """
@@ -60,17 +63,17 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gba_lz77  # noqa: E402
 from kvc1_codec import (  # noqa: E402
-    MODE_SKIP, MODE_FLAT, MODE_VQ, MODE_BTC, MODE_RAW,
+    MODE_FLAT, MODE_VQ, MODE_BTC, MODE_RAW, MODE_PAINT, MODE_PAL4, N_MODES,
     frame_to_blocks, rgb888_to_555, pack555, wsse, analyze_blocks,
-    btc_reconstruct, train_codebook, VQSearcher, choose_modes,
+    btc_reconstruct, pal4_reconstruct, paint_candidate, paint_reconstruct,
+    persistence, train_codebook, VQSearcher, choose_modes,
 )
 
 MAGIC = b"KVC1"
-VERSION = 2
+VERSION = 3
 HEADER_SIZE = 24
 CHUNK_HDR_SIZE = 12
-CHUNK_INNER_HDR = 8
-OP_BASE = {MODE_FLAT: 0x80, MODE_VQ: 0xA0, MODE_BTC: 0xC0, MODE_RAW: 0xE0}
+CHUNK_INNER_HDR = 12
 
 
 def log(msg):
@@ -103,27 +106,21 @@ def encode_ops(modes):
     starts = np.concatenate(([0], cut))
     ends = np.concatenate((cut, [len(modes)]))
     for s, e in zip(starts.tolist(), ends.tolist()):
-        m = int(modes[s])
+        base = int(modes[s]) << 5
         n = e - s
-        if m == MODE_SKIP:
-            while n > 0:
-                k = min(n, 128)
-                out.append(k - 1)
-                n -= k
-        else:
-            base = OP_BASE[m]
-            while n > 0:
-                k = min(n, 32)
-                out.append(base | (k - 1))
-                n -= k
+        while n > 0:
+            k = min(n, 32)
+            out.append(base | (k - 1))
+            n -= k
     return bytes(out)
 
 
 class Prepared:
     """Per-frame data that doesn't depend on lambda (computed once)."""
 
-    def __init__(self, blocks, ana, vq_idx, d_vq, codebook, bh, bw, fps):
+    def __init__(self, blocks, ana, vq_idx, d_vq, codebook, bh, bw, fps, weight):
         self.blocks = blocks      # (F,nb,16,3) uint8 RGB555
+        self.weight = weight      # (F,nb) float32 persistence weight
         self.ana = ana            # dict of (F,nb,...) arrays
         self.vq_idx = vq_idx      # (F,nb) uint8
         self.d_vq = d_vq          # (F,nb) float32
@@ -131,7 +128,7 @@ class Prepared:
         self.bh, self.bw, self.fps = bh, bw, fps
 
 
-def prepare(video_path, w, h, fps, n_clusters, dither, seed=0, max_train=400000):
+def prepare(video_path, w, h, fps, n_clusters, dither, persist_cap=45, seed=0, max_train=400000):
     t0 = time.time()
     log(f"extracting frames via ffmpeg @ {w}x{h} {fps}fps ...")
     blocks = []
@@ -144,7 +141,7 @@ def prepare(video_path, w, h, fps, n_clusters, dither, seed=0, max_train=400000)
     F, nb = blocks.shape[:2]
     log(f"{F} frames ({F / fps:.1f}s), {nb} blocks/frame")
 
-    keys = ("flat_c", "d_flat", "btc_c0", "btc_c1", "btc_mask", "d_btc")
+    keys = ("flat_c", "d_flat", "btc_c0", "btc_c1", "btc_mask", "d_btc", "pal4_c", "pal4_idx", "d_pal4")
     ana = {k: [] for k in keys}
     for f in range(F):
         a = analyze_blocks(blocks[f])
@@ -167,8 +164,9 @@ def prepare(video_path, w, h, fps, n_clusters, dither, seed=0, max_train=400000)
     d_vq = np.empty((F, nb), dtype=np.float32)
     for f in range(F):
         vq_idx[f], d_vq[f] = vs.search(blocks[f])
+    weight = persistence(blocks, cap=persist_cap) if persist_cap > 1 else np.ones((F, nb), dtype=np.float32)
     log(f"analysis done in {time.time() - t0:.1f}s")
-    return Prepared(blocks, ana, vq_idx, d_vq, codebook, bh, bw, fps)
+    return Prepared(blocks, ana, vq_idx, d_vq, codebook, bh, bw, fps, weight)
 
 
 def run_pass(P, lam, chunk_cap):
@@ -179,23 +177,29 @@ def run_pass(P, lam, chunk_cap):
     cb = P.codebook
     ref = np.zeros((nb, 16, 3), dtype=np.uint8)
     frames = []
-    counts = np.zeros(5, dtype=np.int64)
+    counts = np.zeros(N_MODES, dtype=np.int64)
     sse = 0.0
     bumped = 0
     frame_budget = chunk_cap - CHUNK_INNER_HDR
     for f in range(F):
         cur = P.blocks[f]
         d_skip = wsse(cur, ref)
+        p_col, p_mask, d_paint = paint_candidate(cur, ref)
+        w = P.weight[f]
         lf = lam
         while True:
-            modes = choose_modes(d_skip, a["d_flat"][f], P.d_vq[f], a["d_btc"][f], lf, allow_skip=f > 0)
+            modes = choose_modes(w, d_skip, a["d_flat"][f], P.d_vq[f], a["d_btc"][f], d_paint,
+                                 a["d_pal4"][f], lf, allow_skip=f > 0)
             m_flat = modes == MODE_FLAT
             m_vq = modes == MODE_VQ
             m_btc = modes == MODE_BTC
             m_raw = modes == MODE_RAW
+            m_paint = modes == MODE_PAINT
+            m_pal4 = modes == MODE_PAL4
             ops = encode_ops(modes)
             size = (len(ops) + 2 * int(m_flat.sum()) + int(m_vq.sum())
-                    + 6 * int(m_btc.sum()) + 32 * int(m_raw.sum()))
+                    + 6 * int(m_btc.sum()) + 32 * int(m_raw.sum())
+                    + 4 * int(m_paint.sum()) + 12 * int(m_pal4.sum()))
             if size <= frame_budget:
                 break
             lf = lf * 2.0 if lf > 0 else 1.0
@@ -212,7 +216,14 @@ def run_pass(P, lam, chunk_cap):
         btc_bytes = np.stack([pack555(c0), pack555(c1), mask], axis=1).astype("<u2").tobytes()
         raw_bytes = pack555(raw_b).astype("<u2").tobytes()
         vq_bytes = vqi.tobytes()
-        frames.append((ops, flat_bytes, btc_bytes, raw_bytes, vq_bytes))
+        pc, pm = p_col[m_paint], p_mask[m_paint]
+        paint_bytes = np.stack([pack555(pc), pm], axis=1).astype("<u2").tobytes()
+        qc, qi = a["pal4_c"][f][m_pal4], a["pal4_idx"][f][m_pal4]
+        pal4_rec = np.empty((len(qi),), dtype=[("c", "<u2", (4,)), ("i", "<u4")])
+        pal4_rec["c"] = pack555(qc)
+        pal4_rec["i"] = qi
+        pal4_bytes = pal4_rec.tobytes()
+        frames.append((ops, flat_bytes, btc_bytes, raw_bytes, paint_bytes, pal4_bytes, vq_bytes))
 
         # Reconstruct exactly what the decoder will show.
         ref = ref.copy()
@@ -220,9 +231,11 @@ def run_pass(P, lam, chunk_cap):
         ref[m_vq] = cb[vqi]
         ref[m_btc] = btc_reconstruct(c0, c1, mask)
         ref[m_raw] = raw_b
+        ref[m_paint] = paint_reconstruct(ref[m_paint], pc, pm)
+        ref[m_pal4] = pal4_reconstruct(qc, qi)
         d = cur.astype(np.int32) - ref.astype(np.int32)
         sse += float((d * d).sum())
-        counts += np.bincount(modes, minlength=5)
+        counts += np.bincount(modes, minlength=N_MODES)
 
     mse = sse / (F * nb * 48)
     psnr = 10 * math.log10(31.0 ** 2 / mse) if mse > 0 else 99.0
@@ -241,9 +254,12 @@ def build_chunks(frames, chunk_cap):
         flat = b"".join(fr[1] for fr in cur)
         btc = b"".join(fr[2] for fr in cur)
         raw = b"".join(fr[3] for fr in cur)
-        vq = b"".join(fr[4] for fr in cur)
-        hdr = struct.pack("<HHHH", len(ops), len(flat) // 2, len(btc) // 6, len(raw) // 32)
-        chunks.append((len(cur), hdr + ops + flat + btc + raw + vq))
+        paint = b"".join(fr[4] for fr in cur)
+        pal4 = b"".join(fr[5] for fr in cur)
+        vq = b"".join(fr[6] for fr in cur)
+        hdr = struct.pack("<HHHHHH", len(ops), len(flat) // 2, len(btc) // 6, len(raw) // 32,
+                          len(paint) // 4, len(pal4) // 12)
+        chunks.append((len(cur), hdr + ops + flat + btc + raw + paint + pal4 + vq))
 
     for fr in frames:
         sz = sum(len(x) for x in fr)
@@ -302,7 +318,7 @@ def write_file(path, P, cchunks):
 def report(stats, size, F, fps, lam):
     c = stats["counts"]
     tot = c.sum()
-    names = ["SKIP", "FLAT", "VQ", "BTC", "RAW"]
+    names = ["SKIP", "FLAT", "VQ", "BTC", "RAW", "PAINT", "PAL4"]
     mix = " ".join(f"{n}={c[i] / tot:.1%}" for i, n in enumerate(names))
     log(f"lambda={lam:.3g}: {size} bytes ({size * 8 / (F / fps) / 1000:.1f} kbit/s), "
         f"PSNR {stats['psnr']:.2f} dB, {mix}"
@@ -310,8 +326,8 @@ def report(stats, size, F, fps, lam):
 
 
 def encode(video_path, out_path, w=240, h=160, fps=15, n_clusters=256, dither=False,
-           lam=None, target_bytes=0, chunk_cap=16384, jobs=0):
-    P = prepare(video_path, w, h, fps, n_clusters, dither)
+           lam=None, target_bytes=0, chunk_cap=16384, jobs=0, persist_cap=45):
+    P = prepare(video_path, w, h, fps, n_clusters, dither, persist_cap=persist_cap)
     F = P.blocks.shape[0]
     n_cb = P.codebook.shape[0]
 
@@ -393,11 +409,15 @@ def main():
     ap.add_argument("--chunk-cap", type=int, default=16384,
                     help="max decoded bytes per chunk (= decoder buffer size, KVC1_CHUNK_CAP)")
     ap.add_argument("--dither", action="store_true")
+    ap.add_argument("--persist-cap", type=int, default=45,
+                    help="weight a block's error by how many frames it stays on screen, up to this "
+                         "many (static text/title cards get sharper); 1 disables")
     ap.add_argument("--jobs", type=int, default=0, help="LZ worker processes (0 = all cores)")
     args = ap.parse_args()
     encode(args.video, args.out, w=args.width, h=args.height, fps=args.fps,
            n_clusters=args.clusters, dither=args.dither, lam=args.lam,
-           target_bytes=args.target_bytes, chunk_cap=args.chunk_cap, jobs=args.jobs)
+           target_bytes=args.target_bytes, chunk_cap=args.chunk_cap, jobs=args.jobs,
+           persist_cap=args.persist_cap)
 
 
 if __name__ == "__main__":
