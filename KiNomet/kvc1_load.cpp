@@ -62,9 +62,8 @@ void LoadKvc1(unsigned char* file, int size, unsigned char* audiofile, int audio
     options->videoCallBack(&videoPack);
 
     CreateFrameBuffer(rd.width, rd.height);
+    /* CreateFrameBuffer already blacks out the screen, which SKIP blocks rely on. */
     uint16_t* fb16 = (uint16_t*)Kinomet_FrameBuffer;
-    /* SKIP blocks keep what's already there, so start from black. */
-    for (int i = 0; i < rd.width * rd.height; i++) fb16[i] = 0;
 
     int readSize = 0;
     int curFrame = 0;
