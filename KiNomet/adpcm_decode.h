@@ -1,6 +1,10 @@
 #pragma once
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Portable 8-bit-domain, 4-bit, IMA-style ADPCM decoder. Shared verbatim
 // between GBA and the Windows/preview build -- the whole decode loop is a
 // handful of integer ops (table lookups, adds, shifts), well inside the
@@ -33,3 +37,7 @@ typedef struct {
 // exit, so back-to-back calls (one per video frame, see
 // AudioV4::GetNextFrame()) continue the same adaptive stream correctly.
 void adpcm_decode(const uint8_t *src, int nsamples, int8_t *dst, adpcm_state_t *state);
+
+#ifdef __cplusplus
+}
+#endif

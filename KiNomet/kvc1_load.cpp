@@ -72,10 +72,19 @@ static inline unsigned short kvc1_rd_u16(const unsigned char* p) {
 #define KVC1_VQ_CAP   36000u
 #define KVC1_RAW_CAP  32768u
 
-static unsigned char kvc1_mode_buf[KVC1_MODE_CAP];
-static unsigned char kvc1_flat_buf[KVC1_FLAT_CAP];
-static unsigned char kvc1_vq_buf[KVC1_VQ_CAP];
-static unsigned char kvc1_raw_buf[KVC1_RAW_CAP];
+// On GBA these must live in EWRAM: plain globals land in .bss, which devkitARM
+// links into the 32KB IWRAM, and ~208KB of buffers overflow it. ".sbss" is
+// devkitARM's zero-initialised, NOLOAD EWRAM section (libgba's EWRAM_BSS), so
+// they cost no ROM space either.
+#ifdef GBA
+#define KVC1_EWRAM_BSS __attribute__((section(".sbss"), aligned(4)))
+#else
+#define KVC1_EWRAM_BSS
+#endif
+static unsigned char kvc1_mode_buf[KVC1_MODE_CAP] KVC1_EWRAM_BSS;
+static unsigned char kvc1_flat_buf[KVC1_FLAT_CAP] KVC1_EWRAM_BSS;
+static unsigned char kvc1_vq_buf[KVC1_VQ_CAP] KVC1_EWRAM_BSS;
+static unsigned char kvc1_raw_buf[KVC1_RAW_CAP] KVC1_EWRAM_BSS;
 
 static inline unsigned short kvc1_pack_at(const unsigned char* rgb) {
     return kvc1_pack555(rgb[0], rgb[1], rgb[2]);
