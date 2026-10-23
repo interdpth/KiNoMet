@@ -3,6 +3,7 @@ using Microsoft.WindowsAPICodePack.Shell;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web;
 
@@ -25,18 +26,25 @@ namespace KinometGui
 
         public int GetFrames(string videoFile)
         {
-            var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = false, RedirectStandardError = true, RedirectStandardOutput = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -map 0:v:0 -c copy -f null -" };
+            // Quote the path (spaces in it otherwise split the argument and ffmpeg
+            // fails to open the file), and drain stderr before WaitForExit so a
+            // long log can't fill the pipe and deadlock.
+            var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = false, RedirectStandardError = true, RedirectStandardOutput = true, CreateNoWindow = true, Arguments = $"-hide_banner -i \"{videoFile}\" -map 0:v:0 -c copy -f null -" };
             var P = Process.Start(PSI);
+            var stdoutTask = P.StandardOutput.ReadToEndAsync();
+            string err = P.StandardError.ReadToEnd();
             P.WaitForExit();
+            string read = stdoutTask.Result + err;
 
-            string read = P.StandardOutput.ReadToEnd() + P.StandardError.ReadToEnd();
-
-            int idx = read.IndexOf("frame=");
-            string news = read.Substring(idx + 6);
-            string val = news.Split(' ')[0];
-            int ret = Convert.ToInt32(val);
-            return ret;
-
+            // ffmpeg pads the count ("frame=  299") and rewrites the progress line
+            // with \r, so take the LAST frame= value and allow whitespace.
+            var matches = Regex.Matches(read, @"frame=\s*(\d+)");
+            if (matches.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    $"ffmpeg did not report a frame count for \"{videoFile}\" (exit code {P.ExitCode}). ffmpeg output:\n{read}");
+            }
+            return Convert.ToInt32(matches[matches.Count - 1].Groups[1].Value);
         }
         AllSight sight;
         /// <summary>
@@ -182,7 +190,7 @@ namespace KinometGui
                 if (fps < 0.5f) fps = 0.5f;
             }
 
-            var PSI2 = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -filter:v fps=fps={targetFps} -s 240x160 {Processing}\\{tmpVideo}" };
+            var PSI2 = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-y -i \"{videoFile}\" -filter:v fps=fps={targetFps} -s 240x160 \"{Processing}\\{tmpVideo}\"" };
             var P2 = Process.Start(PSI2);
             P2.WaitForExit();
 
@@ -194,7 +202,7 @@ namespace KinometGui
                 temp = $"-filter:a \"atempo = {fps}\"";
             }
             if (File.Exists(audioSrcForRender)) File.Delete(audioSrcForRender);
-            var PSI1 = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-i {Processing}\\{tmpVideo} {temp} -ac 1 -ar {KinoSettings.SampleRate} {audioSrcForRender}" };
+            var PSI1 = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-y -i \"{Processing}\\{tmpVideo}\" {temp} -ac 1 -ar {KinoSettings.SampleRate} \"{audioSrcForRender}\"" };
             var P1 = Process.Start(PSI1);
             P1.WaitForExit();
             if (!File.Exists(audioSrcForRender))
