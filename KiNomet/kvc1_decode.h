@@ -5,32 +5,55 @@
 extern "C" {
 #endif
 
-// Decompresses one KVC1-C stream (mode/flat/vq/raw -- see kvc1_encoder.py's
-// module docstring for the container format) into dst.
-//   tag 0: stored raw -- dst gets a straight copy of declen bytes from src.
-//   tag 1: GBA BIOS LZ77UnComp format -- on GBA this is the real hardware
-//          BIOS call (via the GBA_LZDECOMP wrapper in cinepak_asm.s, swi
-//          0x11); off GBA it's kvc1_lz_decompress()'s own software port.
-// src must point at the 4-byte LZ77 header (magic+length) when tag==1, or
-// directly at the raw bytes when tag==0 -- the caller (kvc1_load.cpp) reads
-// those straight out of the per-stream chunk header and doesn't duplicate
-// src's length itself here; declen is trusted (it's self-describing in the
-// file, written by the same encoder that wrote the LZ77 header's length
-// field, so the two always agree).
+// KVC1 (format version 2) decoder core, plain C, shared verbatim by the GBA
+// and Windows builds. File format: KinoMetGUI/kvc1_tools/kvc1_encoder.py's
+// module docstring. Python reference decoder: kvc1_decode_ref.py.
+//
+// Usage:
+//   kvc1_reader_t rd;
+//   if (kvc1_reader_init(&rd, file, size, buf, sizeof buf) != KVC1_OK) ...;
+//   while (kvc1_reader_next_frame(&rd, framebuffer16) == 1) { show frame }
+//
+// framebuffer16 is width*height RGB555 pixels and must persist between calls:
+// SKIP blocks leave whatever the previous frame put there.
+//
+// buf receives one decoded chunk at a time. KVC1_CHUNK_CAP is the encoder's
+// default --chunk-cap; init fails if the file needs more than bufsize.
+
+#define KVC1_CHUNK_CAP 16384u
+
+#define KVC1_OK            0
+#define KVC1_ERR_MAGIC    -1
+#define KVC1_ERR_VERSION  -2
+#define KVC1_ERR_BUFFER   -3
+#define KVC1_ERR_CORRUPT  -4
+
+typedef struct {
+    const uint8_t *file;
+    uint32_t       size;
+    const uint8_t *p;          // next chunk header
+    const uint8_t *codebook;   // n_codebook * 16 little-endian u16 pixels
+    uint16_t width, height, blocks_w, nblocks;
+    uint8_t  fps;
+    uint32_t n_frames;
+    uint32_t frame;            // frames decoded so far
+    uint8_t *buf;
+    uint32_t bufsize;
+    uint32_t chunk_frames_left;
+    const uint8_t *ops, *ops_end, *flat, *btc, *raw, *vq;
+} kvc1_reader_t;
+
+// Parses the file header. buf must be 4-byte aligned (the GBA BIOS LZ77 call
+// writes words). Returns KVC1_OK or a KVC1_ERR_* code.
+int kvc1_reader_init(kvc1_reader_t *rd, const uint8_t *file, uint32_t size,
+                     uint8_t *buf, uint32_t bufsize);
+
+// Decodes the next frame into framebuffer16 (width*height u16, row-major).
+// Returns 1 if a frame was decoded, 0 after the last frame, or a KVC1_ERR_* code.
+int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16);
+
+// Decompresses one stored (tag 0) or BIOS-LZ77 (tag 1) payload into dst.
 void kvc1_decompress_stream(uint8_t tag, const uint8_t *src, uint8_t *dst, uint32_t declen);
-
-// Packs an RGB555 triple (each 0..31) into the GBA's native 15-bit color
-// (bit0-4=R, bit5-9=G, bit10-14=B -- same layout as MAKECOLOUR16 in
-// KiNomet/cinepak_asm.s, reused here rather than re-deriving it).
-static inline uint16_t kvc1_pack555(uint8_t r, uint8_t g, uint8_t b) {
-    return (uint16_t)((r & 31u) | ((g & 31u) << 5) | ((b & 31u) << 10));
-}
-
-// Writes one 4x4 block of already-packed 16-bit pixels (16 of them, raster
-// order within the block) into a 16-bit framebuffer of the given pixel
-// width, at block index bidx (row-major over a blocks_w x blocks_h grid).
-void kvc1_write_block(uint16_t *framebuffer16, int width_px, int blocks_w,
-                       int bidx, const uint16_t pixels[16]);
 
 #ifdef __cplusplus
 }

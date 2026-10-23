@@ -173,47 +173,38 @@ namespace KinometGui
         {
             FileInfo fi = new FileInfo(videoFile);
             string fn = fi.Name.Split('.')[0];
-            string tmpVideo = $"{fn}.mp4";
-            var vidInfoProp = ShellFile.FromFilePath(videoFile).Properties;
-            var vidInfo = vidInfoProp.System.Video;
-            long mInfo = (long)vidInfoProp.System.Media.Duration.Value;
-
-            TimeSpan ts = TimeSpan.FromTicks(mInfo);
-            uint fr = (vidInfo.FrameRate.Value == null ? 0 : vidInfo.FrameRate.Value.Value) / 1000;
             int targetFps = KinoSettings.FPS;
-            float fps = (float)((float)fr / (float)targetFps);
-            int numframes = GetFrames(videoFile);
-            if (fps > 100.0 || fps < 0.5)
-            {
-                if (fps > 100.0f) fps = 100.0f;
-                if (fps < 0.5f) fps = 0.5f;
-            }
 
-            var PSI2 = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-y -i \"{videoFile}\" -filter:v fps=fps={targetFps} -s 240x160 \"{Processing}\\{tmpVideo}\"" };
-            var P2 = Process.Start(PSI2);
-            P2.WaitForExit();
-
-            string outPutAud = "wav";
-            string audioSrcForRender = $"{Processing}\\audio_outputmain.{outPutAud}";
-            string temp = "";
-            if (fps != 1)
-            {
-                temp = $"-filter:a \"atempo = {fps}\"";
-            }
+            // Audio straight from the source at its real speed. The encoder drops
+            // frames to reach targetFps but keeps the running time, so the audio
+            // must not be time-stretched (the old atempo step made it ~1.5x too
+            // long for a 25fps source and threw playback out of sync).
+            string audioSrcForRender = $"{Processing}\\audio_outputmain.wav";
             if (File.Exists(audioSrcForRender)) File.Delete(audioSrcForRender);
-            var PSI1 = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-y -i \"{Processing}\\{tmpVideo}\" {temp} -ac 1 -ar {KinoSettings.SampleRate} \"{audioSrcForRender}\"" };
+            var PSI1 = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = false, CreateNoWindow = true, Arguments = $"-y -v error -i \"{videoFile}\" -vn -ac 1 -ar {KinoSettings.SampleRate} \"{audioSrcForRender}\"" };
             var P1 = Process.Start(PSI1);
             P1.WaitForExit();
             if (!File.Exists(audioSrcForRender))
             {
-                Thread.Sleep(2000);
+                Debug.WriteLine($"ffmpeg could not extract audio from {videoFile}");
+                return;
             }
 
-            (new RenderAudio(audiov, $"{OutputFolder}", audioSrcForRender, targetFps, (int)numframes)).Render();
+            // numframes isn't used by the ADPCM path; it's the 15fps frame count for the others.
+            int numframes = (int)Math.Ceiling(GetFrames(videoFile) * (double)targetFps / Math.Max(1, GetSourceFps(videoFile)));
+            (new RenderAudio(audiov, $"{OutputFolder}", audioSrcForRender, targetFps, numframes)).Render();
+            string audioBin = $"{OutputFolder}\\audio_outputmain.bin";
+            long audioBytes = File.Exists(audioBin) ? new FileInfo(audioBin).Length : 0;
 
-            // Hand the resized clip to the Python encoder (KinoMetGUI/kvc1_tools)
-            // instead of ffmpeg's Cinepak path. Requires python3 with numpy and
-            // scikit-learn on PATH (see that tool's own requirements).
+            // Video gets whatever is left of the ROM media budget.
+            long videoBudget = KinoSettings.MediaBudgetBytes - audioBytes;
+            if (videoBudget < 100000)
+            {
+                Debug.WriteLine($"Audio alone is {audioBytes} bytes, leaving only {videoBudget} of the {KinoSettings.MediaBudgetBytes}-byte budget for video.");
+                return;
+            }
+
+            // The encoder reads the original file itself (scales to 240x160 at targetFps).
             string kvc1Path = $"{Processing}\\{fn}.kvc1";
             if (File.Exists(kvc1Path)) File.Delete(kvc1Path);
             string encoderScript = FindKvc1Encoder();
@@ -222,7 +213,7 @@ namespace KinometGui
                 Debug.WriteLine($"Could not find kvc1_tools\\kvc1_encoder.py next to {AppDomain.CurrentDomain.BaseDirectory} or in any parent folder. Rebuild so the scripts are copied to the output folder.");
                 return;
             }
-            string encoderArgs = $"\"{encoderScript}\" \"{Processing}\\{tmpVideo}\" \"{kvc1Path}\" --fps {targetFps}";
+            string encoderArgs = $"\"{encoderScript}\" \"{videoFile}\" \"{kvc1Path}\" --fps {targetFps} --target-bytes {videoBudget}";
             string encoderLog = RunPython(encoderArgs, out int encoderExit);
             Debug.WriteLine(encoderLog);
             if (encoderExit != 0 || !File.Exists(kvc1Path))
@@ -233,7 +224,29 @@ namespace KinometGui
 
             // Raw binary: GBA links data/VideoFile.bin, Windows loads it at runtime.
             File.Copy(kvc1Path, $"{OutputFolder}\\VideoFile.bin", true);
-            Debug.WriteLine($"Wrote {OutputFolder}\\VideoFile.bin and audio_outputmain.bin -- copy both into KinoMetGBA\\data (and next to KinometWindows.exe).");
+            long videoBytes = new FileInfo(kvc1Path).Length;
+            Debug.WriteLine($"VideoFile.bin {videoBytes} + audio_outputmain.bin {audioBytes} = {videoBytes + audioBytes} bytes (budget {KinoSettings.MediaBudgetBytes}).");
+            Debug.WriteLine($"Copy both from {OutputFolder} into KinoMetGBA\\data (and next to KinometWindows.exe).");
+        }
+
+        /// <summary>Source frame rate via ffprobe (falls back to 30).</summary>
+        private static double GetSourceFps(string videoFile)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo { FileName = "ffprobe.exe", UseShellExecute = false, RedirectStandardOutput = true, CreateNoWindow = true, Arguments = $"-v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 \"{videoFile}\"" };
+                var p = Process.Start(psi);
+                string s = p.StandardOutput.ReadToEnd().Trim();
+                p.WaitForExit();
+                var parts = s.Split('/');
+                double num = double.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture);
+                double den = parts.Length > 1 ? double.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture) : 1;
+                return den > 0 && num > 0 ? num / den : 30;
+            }
+            catch (Exception)
+            {
+                return 30;
+            }
         }
 
         /// <summary>

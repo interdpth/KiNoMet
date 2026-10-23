@@ -1,34 +1,52 @@
 """
-KVC1-C codec core: codebook training and per-frame block classification.
+KVC1 (version 2) codec core: frame analysis, codebook training and
+rate-distortion mode selection.
 
-Block model: the 240x160 frame is divided into 4x4-pixel blocks (60x40 = 2400
-blocks). Each block is coded one of four ways, chosen per-block per-frame by
-comparing against fixed thresholds (see classify_frame):
-  SKIP (0): identical enough to the same block in the previous frame -> costs
-            nothing, the decoder just leaves that region of VRAM untouched.
-  FLAT (1): low internal variance -> one averaged RGB555 colour for all 16
-            pixels (3 bytes).
-  VQ   (2): matched against a trained, whole-video codebook entry (1 byte:
-            the codebook index).
-  RAW  (3): fallback for blocks that are neither flat nor a good codebook
-            match -> all 16 pixels stored verbatim (48 bytes).
+Block model: the frame is divided into 4x4-pixel blocks (240x160 -> 60x40 =
+2400 blocks). Each block, each frame, is coded one of five ways:
+  SKIP: unchanged from what is already on screen (0 bytes).
+  FLAT: one RGB555 colour for all 16 pixels (2 bytes).
+  VQ:   index into a whole-video codebook of 4x4 blocks (1 byte).
+  BTC:  two RGB555 colours + a 16-bit pixel mask (6 bytes) -- sharp edges
+        and text for very little data.
+  RAW:  16 explicit RGB555 pixels (32 bytes).
 
-All color math happens in RGB555 space (0..31 per channel) from the start,
-since that's the GBA's native 15-bit color -- quantizing at the very end
-would throw away the headroom ordered dithering needs.
+The mode is picked per block by minimising  D + lambda * R  (distortion plus
+lambda times bytes). One lambda for the whole video gives roughly constant
+quality; the encoder searches lambda to hit a byte budget.
+
+SKIP is judged against the *reconstructed* previous frame (what the decoder
+actually has on screen), so errors never accumulate.
+
+All colour math is in RGB555 space (0..31 per channel), the GBA's native
+format.
 """
 import numpy as np
 from sklearn.cluster import MiniBatchKMeans
 
 BLOCK = 4
 
+MODE_SKIP, MODE_FLAT, MODE_VQ, MODE_BTC, MODE_RAW = 0, 1, 2, 3, 4
+MODE_BYTES = np.array([0, 2, 1, 6, 32], dtype=np.float32)
+
+# Per-channel weights for the distortion measure (R, G, B): the eye is most
+# sensitive to green, least to blue.
+CH_W = np.array([1.0, 2.0, 0.6], dtype=np.float32)
+_SQRT_W = np.sqrt(CH_W)
+
 
 def frame_to_blocks(frame555):
-    """frame555: (H,W,3) uint8 array, values 0..31. Returns (nblocks,16,3)."""
+    """frame555: (H,W,3) uint8, values 0..31. Returns (nblocks,16,3), bh, bw."""
     h, w, _ = frame555.shape
     bh, bw = h // BLOCK, w // BLOCK
-    b = frame555.reshape(bh, BLOCK, bw, BLOCK, 3).transpose(0, 2, 1, 3, 4)
+    b = frame555[:bh * BLOCK, :bw * BLOCK].reshape(bh, BLOCK, bw, BLOCK, 3).transpose(0, 2, 1, 3, 4)
     return b.reshape(bh * bw, BLOCK * BLOCK, 3), bh, bw
+
+
+def blocks_to_frame(blocks, bh, bw):
+    """Inverse of frame_to_blocks. blocks: (nblocks,16,C)."""
+    c = blocks.shape[-1]
+    return blocks.reshape(bh, bw, BLOCK, BLOCK, c).transpose(0, 2, 1, 3, 4).reshape(bh * BLOCK, bw * BLOCK, c)
 
 
 _BAYER4 = np.array([
@@ -36,139 +54,132 @@ _BAYER4 = np.array([
     [12, 4, 14, 6],
     [3, 11, 1, 9],
     [15, 7, 13, 5],
-], dtype=np.float32) / 16.0 - 0.5  # centered ordered-dither offsets, range [-0.5, 0.5)
+], dtype=np.float32) / 16.0 - 0.5
 
 
-def dither_offsets(h, w):
-    """Tiles the 4x4 Bayer matrix across an (h,w) frame, scaled to roughly one
-    quantization step (8 levels per RGB555 step in 0..255 space)."""
-    ty = (h + 3) // 4
-    tx = (w + 3) // 4
-    tile = np.tile(_BAYER4, (ty, tx))[:h, :w]
-    return tile * 8.0  # one 8-bit LSB step at the >>3 truncation point
+def rgb888_to_555(frame888, dither=False):
+    """frame888: (H,W,3) uint8. Returns (H,W,3) uint8 in 0..31 (rounded, or
+    ordered-dithered when dither=True). Dithering is off by default: its
+    noise defeats SKIP/FLAT and costs a lot of bytes at low bitrates."""
+    f = frame888.astype(np.float32)
+    if dither:
+        h, w, _ = frame888.shape
+        tile = np.tile(_BAYER4, ((h + 3) // 4, (w + 3) // 4))[:h, :w] * 8.0
+        f = f + tile[:, :, None]
+        return (np.clip(f, 0, 255).astype(np.uint8) >> 3).astype(np.uint8)
+    return np.clip(np.rint(f * (31.0 / 255.0)), 0, 31).astype(np.uint8)
 
 
-def rgb888_to_555_dithered(frame888, off):
-    """frame888: (H,W,3) uint8. off: (H,W) dither offsets. Returns (H,W,3) uint8 0..31."""
-    f = frame888.astype(np.float32) + off[:, :, None]
-    f = np.clip(f, 0, 255)
-    return (f.astype(np.uint8) >> 3).astype(np.uint8)
+def pack555(rgb):
+    """rgb: (...,3) integer 0..31 -> (...) uint16 GBA colour (R low bits)."""
+    rgb = rgb.astype(np.uint16)
+    return rgb[..., 0] | (rgb[..., 1] << 5) | (rgb[..., 2] << 10)
 
 
-def train_codebook(all_blocks555, n_clusters=256, n_reserved_mono=2, seed=0,
-                    mono_oversample_frac=0.08):
-    """all_blocks555: (N,16,3) uint8 sample of blocks (0..31 per channel) drawn
-    from across the whole video. Returns (n_clusters,16,3) uint8 codebook.
-
-    The first n_reserved_mono entries are hardcoded pure black/white (gray)
-    rather than trained, and near-gray blocks in the training sample are
-    oversampled before fitting the rest -- without this, a 256-entry k-means
-    codebook trained on mostly-colourful game footage tends not to allocate
-    any cluster near pure gray, so grayscale UI/text elements get matched to
-    the nearest *available* cluster, which can have a visible colour tint
-    even though its average brightness is right. That showed up as visible
-    color fringing on narration text in earlier testing of this exact design
-    and is why this reservation/oversampling exists at all, not just as a
-    generic quality nicety.
-    """
-    n = all_blocks555.shape[0]
-    flat = all_blocks555.reshape(n, -1).astype(np.float32)
-
-    chan_max = all_blocks555.max(axis=1).astype(np.int16)
-    chan_min = all_blocks555.min(axis=1).astype(np.int16)
-    chan_spread = (chan_max - chan_min).max(axis=1)  # (N,) -- per-block max channel spread
-    is_gray = chan_spread < 2.0
-
-    gray_idx = np.nonzero(is_gray)[0]
-    target_gray_n = int(n * mono_oversample_frac)
-    if len(gray_idx) > 0 and len(gray_idx) < target_gray_n:
-        reps = int(np.ceil(target_gray_n / len(gray_idx)))
-        oversampled = np.tile(flat[gray_idx], (reps, 1))[:target_gray_n]
-        flat = np.concatenate([flat, oversampled], axis=0)
-
-    n_train_clusters = max(1, n_clusters - n_reserved_mono)
-    km = MiniBatchKMeans(n_clusters=n_train_clusters, random_state=seed,
-                          batch_size=max(1024, n_train_clusters * 8),
-                          n_init=3, max_iter=200)
-    km.fit(flat)
-    trained = np.clip(np.round(km.cluster_centers_), 0, 31).astype(np.uint8).reshape(n_train_clusters, 16, 3)
-
-    reserved = np.zeros((n_reserved_mono, 16, 3), dtype=np.uint8)
-    if n_reserved_mono >= 1:
-        reserved[0, :, :] = 0
-    if n_reserved_mono >= 2:
-        reserved[1, :, :] = 31
-
-    return np.concatenate([reserved, trained], axis=0)
+def unpack555(v):
+    v = v.astype(np.uint16)
+    return np.stack([v & 31, (v >> 5) & 31, (v >> 10) & 31], axis=-1).astype(np.uint8)
 
 
-class FrameClassifier:
-    """Holds the codebook and precomputed per-entry stats, classifies/encodes
-    one frame at a time against the previous frame's RGB555 pixels."""
+def wsse(a, b):
+    """Weighted squared error per block. a,b: (nb,16,3) numeric. Returns (nb,) float32."""
+    d = a.astype(np.float32) - b.astype(np.float32)
+    return ((d * d) * CH_W).sum(axis=(1, 2))
 
-    def __init__(self, codebook, skip_t=30, flat_t=300, vq_t=3000):
-        self.codebook = codebook  # (C,16,3) uint8
-        self.n_clusters = codebook.shape[0]
-        self.skip_t = skip_t
-        self.flat_t = flat_t
-        self.vq_t = vq_t
 
-        cb_flat = codebook.reshape(self.n_clusters, -1).astype(np.float32)
-        self._cb_flat = cb_flat
-        cb_max = codebook.max(axis=1).astype(np.int16)
-        cb_min = codebook.min(axis=1).astype(np.int16)
-        self._cb_is_gray = (cb_max - cb_min).max(axis=1) < 0.5
+def analyze_blocks(blocks):
+    """Everything about a frame's blocks that doesn't depend on the previous
+    frame: FLAT and BTC candidates and their distortions.
+    blocks: (nb,16,3) uint8. Returns dict of arrays."""
+    x = blocks.astype(np.float32)
+    nb = x.shape[0]
 
-    def encode_frame(self, cur_blocks, prev_blocks):
-        """cur_blocks, prev_blocks: (nblocks,16,3) uint8 (prev_blocks may be
-        None for the first frame, forcing non-SKIP everywhere).
-        Returns: modes (nblocks,) uint8, flat_vals list of (3,) uint8 triples,
-        vq_idx list of ints, raw_blocks list of (16,3) uint8 arrays -- in
-        block-scan order, consumed by the caller in that same order.
-        """
-        nblocks = cur_blocks.shape[0]
-        cur_f = cur_blocks.astype(np.int16)
+    flat_c = np.clip(np.rint(x.mean(axis=1)), 0, 31).astype(np.uint8)          # (nb,3)
+    d_flat = wsse(x, flat_c[:, None, :].astype(np.float32))
 
-        if prev_blocks is not None:
-            diff = np.abs(cur_f - prev_blocks.astype(np.int16)).sum(axis=(1, 2))
-            is_skip = diff < self.skip_t
-        else:
-            is_skip = np.zeros(nblocks, dtype=bool)
+    # BTC: split pixels into two groups (start at the luma mean, then two
+    # rounds of 2-means in weighted RGB), one colour per group.
+    lum = x @ np.array([0.3, 0.59, 0.11], dtype=np.float32)                    # (nb,16)
+    m = lum > lum.mean(axis=1, keepdims=True)
+    for _ in range(3):
+        n1 = m.sum(axis=1, keepdims=True).astype(np.float32)
+        n0 = 16.0 - n1
+        c1 = (x * m[:, :, None]).sum(axis=1) / np.maximum(n1, 1.0)
+        c0 = (x * ~m[:, :, None]).sum(axis=1) / np.maximum(n0, 1.0)
+        c1 = np.where(n1 > 0, c1, c0)
+        c0 = np.where(n0 > 0, c0, c1)
+        c0q = np.clip(np.rint(c0), 0, 31)
+        c1q = np.clip(np.rint(c1), 0, 31)
+        e0 = (((x - c0q[:, None, :]) ** 2) * CH_W).sum(axis=2)
+        e1 = (((x - c1q[:, None, :]) ** 2) * CH_W).sum(axis=2)
+        m = e1 < e0
+    n1 = m.sum(axis=1, keepdims=True).astype(np.float32)
+    n0 = 16.0 - n1
+    c1 = (x * m[:, :, None]).sum(axis=1) / np.maximum(n1, 1.0)
+    c0 = (x * ~m[:, :, None]).sum(axis=1) / np.maximum(n0, 1.0)
+    c1 = np.where(n1 > 0, c1, c0)
+    c0 = np.where(n0 > 0, c0, c1)
+    btc_c0 = np.clip(np.rint(c0), 0, 31).astype(np.uint8)
+    btc_c1 = np.clip(np.rint(c1), 0, 31).astype(np.uint8)
+    btc_rec = np.where(m[:, :, None], btc_c1[:, None, :], btc_c0[:, None, :])
+    d_btc = wsse(x, btc_rec)
+    btc_mask = (m.astype(np.uint32) << np.arange(16, dtype=np.uint32)).sum(axis=1).astype(np.uint16)
 
-        mean = cur_f.mean(axis=1)  # (nblocks,3)
-        var = ((cur_f - mean[:, None, :]) ** 2).sum(axis=(1, 2))
-        is_flat = (~is_skip) & (var < self.flat_t)
+    return {
+        "flat_c": flat_c, "d_flat": d_flat,
+        "btc_c0": btc_c0, "btc_c1": btc_c1, "btc_mask": btc_mask, "d_btc": d_btc,
+    }
 
-        need_vq = ~(is_skip | is_flat)
-        block_max = cur_blocks.max(axis=1).astype(np.int16)
-        block_min = cur_blocks.min(axis=1).astype(np.int16)
-        block_chan_spread = (block_max - block_min).max(axis=1)
-        block_is_gray = block_chan_spread < 2.0
 
-        modes = np.zeros(nblocks, dtype=np.uint8)
-        modes[is_flat] = 1
+def btc_reconstruct(c0, c1, mask):
+    """c0,c1: (k,3) uint8, mask: (k,) uint16 -> (k,16,3) uint8."""
+    bits = ((mask[:, None].astype(np.uint32) >> np.arange(16, dtype=np.uint32)) & 1).astype(bool)
+    return np.where(bits[:, :, None], c1[:, None, :], c0[:, None, :]).astype(np.uint8)
 
-        flat_vals = np.clip(np.round(mean[is_flat]), 0, 31).astype(np.uint8)
 
-        vq_candidates = np.nonzero(need_vq)[0]
-        vq_idx_out = np.zeros(0, dtype=np.int32)
-        is_vq = np.zeros(nblocks, dtype=bool)
-        if len(vq_candidates) > 0:
-            cand_flat = cur_f[vq_candidates].reshape(len(vq_candidates), -1).astype(np.float32)
-            # squared L2 distance to every codebook entry
-            d2 = ((cand_flat[:, None, :] - self._cb_flat[None, :, :]) ** 2).sum(axis=2)
-            disallow = block_is_gray[vq_candidates][:, None] & (~self._cb_is_gray[None, :])
-            d2 = np.where(disallow, np.inf, d2)
-            best_idx = d2.argmin(axis=1)
-            best_d2 = d2[np.arange(len(vq_candidates)), best_idx]
-            good = best_d2 < self.vq_t
-            vq_block_positions = vq_candidates[good]
-            is_vq[vq_block_positions] = True
-            modes[vq_block_positions] = 2
-            vq_idx_out = best_idx[good].astype(np.int32)
+def train_codebook(sample_blocks, n_clusters=256, seed=0):
+    """sample_blocks: (N,16,3) uint8 drawn from across the video (textured
+    blocks only -- FLAT/BTC already cover flat and two-tone areas).
+    Clusters in channel-weighted space. Returns (n_clusters,16,3) uint8."""
+    n = sample_blocks.shape[0]
+    if n == 0:
+        return np.zeros((n_clusters, 16, 3), dtype=np.uint8)
+    k = min(n_clusters, n)
+    feats = (sample_blocks.astype(np.float32) * _SQRT_W).reshape(n, -1)
+    km = MiniBatchKMeans(n_clusters=k, random_state=seed, batch_size=max(2048, k * 16),
+                         n_init=3, max_iter=100)
+    km.fit(feats)
+    centers = (km.cluster_centers_.reshape(k, 16, 3) / _SQRT_W)
+    cb = np.clip(np.rint(centers), 0, 31).astype(np.uint8)
+    if k < n_clusters:
+        cb = np.concatenate([cb, np.repeat(cb[:1], n_clusters - k, axis=0)], axis=0)
+    return cb
 
-        is_raw = need_vq & (~is_vq)
-        modes[is_raw] = 3
-        raw_blocks = cur_blocks[is_raw]
 
-        return modes, flat_vals, vq_idx_out, raw_blocks
+class VQSearcher:
+    """Nearest codebook entry (weighted squared error) for many blocks at once."""
+
+    def __init__(self, codebook):
+        self.cb = codebook
+        c = (codebook.astype(np.float32) * _SQRT_W).reshape(codebook.shape[0], -1)
+        self.c = c
+        self.c_norm = (c * c).sum(axis=1)
+
+    def search(self, blocks):
+        x = (blocks.astype(np.float32) * _SQRT_W).reshape(blocks.shape[0], -1)
+        d2 = (x * x).sum(axis=1)[:, None] - 2.0 * (x @ self.c.T) + self.c_norm[None, :]
+        idx = d2.argmin(axis=1)
+        best = np.maximum(d2[np.arange(len(idx)), idx], 0.0)
+        return idx.astype(np.uint8), best.astype(np.float32)
+
+
+def choose_modes(d_skip, d_flat, d_vq, d_btc, lam, allow_skip=True):
+    """Rate-distortion choice per block. Returns (nb,) uint8 modes."""
+    J = np.stack([
+        d_skip if allow_skip else np.full_like(d_flat, np.inf),
+        d_flat + lam * MODE_BYTES[MODE_FLAT],
+        d_vq + lam * MODE_BYTES[MODE_VQ],
+        d_btc + lam * MODE_BYTES[MODE_BTC],
+        np.full_like(d_flat, lam * MODE_BYTES[MODE_RAW]),
+    ], axis=1)
+    return J.argmin(axis=1).astype(np.uint8)
