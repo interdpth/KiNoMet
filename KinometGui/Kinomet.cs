@@ -220,15 +220,15 @@ namespace KinometGui
             string encoderScript = FindKvc1Encoder();
             if (encoderScript == null)
             {
-                Console.WriteLine($"Could not find kvc1_tools\\kvc1_encoder.py next to {AppDomain.CurrentDomain.BaseDirectory} or in any parent folder. Rebuild so the scripts are copied to the output folder.");
+                Debug.WriteLine($"Could not find kvc1_tools\\kvc1_encoder.py next to {AppDomain.CurrentDomain.BaseDirectory} or in any parent folder. Rebuild so the scripts are copied to the output folder.");
                 return;
             }
             string encoderArgs = $"\"{encoderScript}\" \"{Processing}\\{tmpVideo}\" \"{kvc1Path}\" --fps {targetFps}";
             string encoderLog = RunPython(encoderArgs, out int encoderExit);
-            Console.WriteLine(encoderLog);
+            Debug.WriteLine(encoderLog);
             if (encoderExit != 0 || !File.Exists(kvc1Path))
             {
-                Console.WriteLine($"kvc1_encoder.py failed (exit code {encoderExit}). Its output is above; it needs Python 3 with numpy and scikit-learn (pip install numpy scikit-learn).");
+                Debug.WriteLine($"kvc1_encoder.py failed (exit code {encoderExit}). Its output is above; it needs Python 3 with numpy and scikit-learn (pip install numpy scikit-learn).");
                 return;
             }
 
