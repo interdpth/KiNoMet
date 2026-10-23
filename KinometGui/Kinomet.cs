@@ -217,24 +217,83 @@ namespace KinometGui
             // scikit-learn on PATH (see that tool's own requirements).
             string kvc1Path = $"{Processing}\\{fn}.kvc1";
             if (File.Exists(kvc1Path)) File.Delete(kvc1Path);
-            string toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "kvc1_tools");
-            var PSI3 = new ProcessStartInfo
+            string encoderScript = FindKvc1Encoder();
+            if (encoderScript == null)
             {
-                FileName = "python3",
-                UseShellExecute = true,
-                CreateNoWindow = true,
-                Arguments = $"\"{Path.Combine(toolsDir, "kvc1_encoder.py")}\" \"{Processing}\\{tmpVideo}\" \"{kvc1Path}\" --fps {targetFps}"
-            };
-            var P3 = Process.Start(PSI3);
-            P3.WaitForExit();
-            if (!File.Exists(kvc1Path))
+                Console.WriteLine($"Could not find kvc1_tools\\kvc1_encoder.py next to {AppDomain.CurrentDomain.BaseDirectory} or in any parent folder. Rebuild so the scripts are copied to the output folder.");
+                return;
+            }
+            string encoderArgs = $"\"{encoderScript}\" \"{Processing}\\{tmpVideo}\" \"{kvc1Path}\" --fps {targetFps}";
+            string encoderLog = RunPython(encoderArgs, out int encoderExit);
+            Console.WriteLine(encoderLog);
+            if (encoderExit != 0 || !File.Exists(kvc1Path))
             {
-                Console.WriteLine("kvc1_encoder.py did not produce an output file -- check it ran and python3/numpy/scikit-learn are installed.");
+                Console.WriteLine($"kvc1_encoder.py failed (exit code {encoderExit}). Its output is above; it needs Python 3 with numpy and scikit-learn (pip install numpy scikit-learn).");
                 return;
             }
 
             ROM.MakeSource("VideoFile", File.ReadAllBytes(kvc1Path), $"{OutputFolder}");
             ROM.Write(OutputFolder, "VideoFile");
+        }
+
+        /// <summary>
+        /// Locates kvc1_tools\kvc1_encoder.py: normally copied next to the exe by
+        /// the build, but walks up parent folders too so running from bin\Debug
+        /// against the source tree also works.
+        /// </summary>
+        private static string FindKvc1Encoder()
+        {
+            var dir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
+            while (dir != null)
+            {
+                foreach (var sub in new[] { "kvc1_tools", Path.Combine("KinoMetGUI", "kvc1_tools") })
+                {
+                    string candidate = Path.Combine(dir.FullName, sub, "kvc1_encoder.py");
+                    if (File.Exists(candidate)) return candidate;
+                }
+                dir = dir.Parent;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Runs a Python 3 script, trying the Windows "py -3" launcher first, then
+        /// "python", then "python3" (on Windows "python3" is often only the Store
+        /// stub). Returns combined stdout+stderr so failures are visible.
+        /// </summary>
+        private static string RunPython(string args, out int exitCode)
+        {
+            string lastError = "";
+            foreach (var (exe, prefix) in new[] { ("py", "-3 "), ("python", ""), ("python3", "") })
+            {
+                try
+                {
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = exe,
+                        Arguments = prefix + args,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                    };
+                    var p = Process.Start(psi);
+                    var outTask = p.StandardOutput.ReadToEndAsync();
+                    string err = p.StandardError.ReadToEnd();
+                    p.WaitForExit();
+                    string output = outTask.Result + err;
+                    // 9009 = Windows "command not found" (e.g. the Store python stub); try the next one.
+                    if (p.ExitCode == 9009) { lastError = $"{exe}: not a working Python install"; continue; }
+                    exitCode = p.ExitCode;
+                    return $"[{exe} {prefix}]\n{output}";
+                }
+                catch (System.ComponentModel.Win32Exception ex)
+                {
+                    lastError = $"{exe}: {ex.Message}";
+                }
+            }
+            exitCode = -1;
+            return "No Python 3 interpreter found (tried py -3, python, python3). Last error: " + lastError;
         }
     }
 }
