@@ -147,8 +147,8 @@ namespace KinometGui.Properties
                 bw.Close();
             }
 
-            ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
-            ROM.Write(OutputFolder, fn);
+            // Shipped as a raw binary (GBA links data/<fn>.bin; Windows loads it at runtime).
+            File.Copy($"{OutputFolder}\\{fn}.raw", $"{OutputFolder}\\{fn}.bin", true);
             Debug.Write(JsonConvert.SerializeObject(aHdr));
         }
 
@@ -292,8 +292,8 @@ namespace KinometGui.Properties
                 });
 
                 Console.WriteLine($"Saved {saved} bytes thanks to pointers");
-                ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
-                ROM.Write(OutputFolder, fn);
+                // Shipped as a raw binary (GBA links data/<fn>.bin; Windows loads it at runtime).
+                File.Copy($"{OutputFolder}\\{fn}.raw", $"{OutputFolder}\\{fn}.bin", true);
 
             }
         }
@@ -445,8 +445,8 @@ namespace KinometGui.Properties
                 {
                     Console.WriteLine($"{key} found {found[key].count} times with a size of {found[key].len}");
                 });
-                ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
-                ROM.Write(OutputFolder, fn);
+                // Shipped as a raw binary (GBA links data/<fn>.bin; Windows loads it at runtime).
+                File.Copy($"{OutputFolder}\\{fn}.raw", $"{OutputFolder}\\{fn}.bin", true);
 
                 return;
             }
@@ -541,8 +541,8 @@ namespace KinometGui.Properties
 
             Console.WriteLine($"MP3 audio: {mp3Bytes.Length} bytes @ {mp3Bitrate}kbps");
 
-            ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
-            ROM.Write(OutputFolder, fn);
+            // Shipped as a raw binary (GBA links data/<fn>.bin; Windows loads it at runtime).
+            File.Copy($"{OutputFolder}\\{fn}.raw", $"{OutputFolder}\\{fn}.bin", true);
         }
 
         // Step/index tables and the encode algorithm below MUST stay bit-for-bit
@@ -685,8 +685,8 @@ namespace KinometGui.Properties
             double ratio = encoded.Length > 0 ? (double)srcStream.Count / encoded.Length : 0;
             Console.WriteLine($"ADPCM audio: {srcStream.Count} PCM bytes -> {encoded.Length} bytes ({ratio:0.00}x)");
 
-            ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
-            ROM.Write(OutputFolder, fn);
+            // Shipped as a raw binary (GBA links data/<fn>.bin; Windows loads it at runtime).
+            File.Copy($"{OutputFolder}\\{fn}.raw", $"{OutputFolder}\\{fn}.bin", true);
         }
 
         // Step/index tables and the encode algorithm below MUST stay bit-for-bit

@@ -154,8 +154,7 @@ namespace KinometGui
             var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = true, CreateNoWindow = true, Arguments = $"-fflags discardcorrupt -i {Processing}\\{tmpVideo} -vf mpdecimate -c:v cinepak -max_strips 5 -q 30 -s 240x160 -ar {KinoSettings.SampleRate} -an {Processing}\\{fn}_final.avi" };
             var P = Process.Start(PSI);
             P.WaitForExit();
-            ROM.MakeSource("VideoFile", File.ReadAllBytes($"{Processing}\\{fn}_final.avi"), $"{OutputFolder}");
-            ROM.Write(OutputFolder, "VideoFile");
+            File.Copy($"{Processing}\\{fn}_final.avi", $"{OutputFolder}\\VideoFile.bin", true);
         }
 
         /// <summary>
@@ -230,8 +229,9 @@ namespace KinometGui
                 return;
             }
 
-            ROM.MakeSource("VideoFile", File.ReadAllBytes(kvc1Path), $"{OutputFolder}");
-            ROM.Write(OutputFolder, "VideoFile");
+            // Raw binary: GBA links data/VideoFile.bin, Windows loads it at runtime.
+            File.Copy(kvc1Path, $"{OutputFolder}\\VideoFile.bin", true);
+            Debug.WriteLine($"Wrote {OutputFolder}\\VideoFile.bin and audio_outputmain.bin -- copy both into KinoMetGBA\\data (and next to KinometWindows.exe).");
         }
 
         /// <summary>
