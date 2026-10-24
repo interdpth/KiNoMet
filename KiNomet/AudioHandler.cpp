@@ -113,13 +113,12 @@ AudioKinometPacket* AudioHandler::ProcessPackets()
 	AudioKinometPacket* curPack = GetCurrentPacket();
 	if (curPack != nullptr && curPack->tracked >= curPack->len)
 	{
-		free(packets[0]);
-		for (size_t i = 1; i < packets.size(); i++)
-		{
-			memcpy(&packets[i - 1], &packets[i], sizeof(AudioKinometPacket));
-		}
-
-		if (packets.size())packets.pop_back();//bringing all entries forward.
+		// Drop the finished packet. (This used to memcpy sizeof(AudioKinometPacket)
+		// bytes per slot of a vector of *pointers*, overrunning the vector's heap
+		// storage and clobbering the AudioV4 object's vtable on GBA -- the next
+		// virtual call then jumped into data.) Packets come from `new`, so delete.
+		delete packets[0];
+		packets.erase(packets.begin());
 		curPack = GetCurrentPacket();
 		if (curPack == nullptr) return nullptr;
 		curPack->tracked = 0;
@@ -132,7 +131,7 @@ void AudioHandler::ClearAudio()
 {
 	while (packets.size())
 	{
-		free(packets[packets.size() - 1]);
+		delete packets[packets.size() - 1];
 		packets.pop_back();
 	}
 }

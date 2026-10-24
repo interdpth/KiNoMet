@@ -50,3 +50,7 @@ KinometWindows/videoplayback.mp4
 KinoMetGBA/Steamboat_Willie_final.avi
 KinoMetGBA/VideoFile.cpp
 KinoMetGBA/VideoFile.h
+
+# Python bytecode
+__pycache__/
+*.pyc

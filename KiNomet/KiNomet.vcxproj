@@ -169,6 +169,10 @@
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="UserInterface.cpp" />
     <ClCompile Include="VideoKinometPacket.cpp" />
+    <ClCompile Include="AudioV4.cpp" />
+    <ClCompile Include="adpcm_decode.c" />
+    <ClCompile Include="kvc1_decode.c" />
+    <ClCompile Include="kvc1_load.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AudioHandler.h" />
@@ -197,6 +201,10 @@
     <ClInclude Include="tonc_asminc.h" />
     <ClInclude Include="UserInterface.h" />
     <ClInclude Include="VideoKinometPacket.h" />
+    <ClInclude Include="AudioV4.h" />
+    <ClInclude Include="adpcm_decode.h" />
+    <ClInclude Include="kvc1_decode.h" />
+    <ClInclude Include="kvc1_load.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Coding Culture.txt" />

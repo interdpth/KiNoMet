@@ -65,6 +65,9 @@ namespace KinometGui.Properties
                 case 3:
                     RenderAudioV3();
                     break;
+                case 4:
+                    RenderAudioV4();
+                    break;
             }
         }
         private List<sbyte> DecodeFile(FileInfo srcAudio)
@@ -141,8 +144,8 @@ namespace KinometGui.Properties
                 bw.Close();
             }
 
-            ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
-            ROM.Write(OutputFolder, fn);
+            // Shipped as a raw binary (GBA links data/<fn>.bin; Windows loads it at runtime).
+            File.Copy($"{OutputFolder}\\{fn}.raw", $"{OutputFolder}\\{fn}.bin", true);
             Debug.Write(JsonConvert.SerializeObject(aHdr));
         }
 
@@ -286,8 +289,8 @@ namespace KinometGui.Properties
                 });
 
                 Console.WriteLine($"Saved {saved} bytes thanks to pointers");
-                ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
-                ROM.Write(OutputFolder, fn);
+                // Shipped as a raw binary (GBA links data/<fn>.bin; Windows loads it at runtime).
+                File.Copy($"{OutputFolder}\\{fn}.raw", $"{OutputFolder}\\{fn}.bin", true);
 
             }
         }
@@ -439,8 +442,8 @@ namespace KinometGui.Properties
                 {
                     Console.WriteLine($"{key} found {found[key].count} times with a size of {found[key].len}");
                 });
-                ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
-                ROM.Write(OutputFolder, fn);
+                // Shipped as a raw binary (GBA links data/<fn>.bin; Windows loads it at runtime).
+                File.Copy($"{OutputFolder}\\{fn}.raw", $"{OutputFolder}\\{fn}.bin", true);
 
                 return;
             }
@@ -535,8 +538,152 @@ namespace KinometGui.Properties
 
             Console.WriteLine($"MP3 audio: {mp3Bytes.Length} bytes @ {mp3Bitrate}kbps");
 
-            ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
-            ROM.Write(OutputFolder, fn);
+            // Shipped as a raw binary (GBA links data/<fn>.bin; Windows loads it at runtime).
+            File.Copy($"{OutputFolder}\\{fn}.raw", $"{OutputFolder}\\{fn}.bin", true);
+        }
+
+        // Step/index tables and the encode algorithm below MUST stay bit-for-bit
+        // identical to KiNomet/adpcm_decode.c's kAdpcmStepTable/kAdpcmIndexTable/
+        // adpcm_decode(). Both sides were derived from, and checked bit-exact
+        // against, the same Python reference prototype before either was
+        // written -- see adpcm_decode.h's module comment for why this is a
+        // from-scratch 8-bit-domain table rather than the standard 16-bit IMA
+        // table scaled down. If you touch one side, mirror the change on the
+        // other, or every AudioV4 track will decode to noise.
+        private static readonly int[] AdpcmStepTable = {
+              1,  2,  3,  4,  5,  6,  7,  8,  9, 10,
+             11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+             21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+             31, 32, 33, 34, 35, 36, 38, 42, 46, 51,
+             57, 63, 69, 77, 85, 94,104,115,127,
+        };
+        private static readonly int[] AdpcmIndexTable = { -1, -1, -1, -1, 2, 4, 6, 8 };
+
+        private static int AdpcmClamp(int v, int lo, int hi) => v < lo ? lo : (v > hi ? hi : v);
+
+        /// <summary>
+        /// Encodes 8-bit signed PCM into the 4-bit ADPCM nibble stream AudioV4 /
+        /// adpcm_decode.c expect (2 samples/byte, high nibble first). valpred/index
+        /// persist across the WHOLE track, matching adpcm_state_t's lifetime on the
+        /// decode side (AudioV4.h) -- resetting them per chunk would re-sync against
+        /// a decoder that never resets and audibly degrade quality at every frame
+        /// boundary. The nibble stream itself IS flushed to a byte boundary at the
+        /// end of every chunkSize-sample chunk (padding with a zero low nibble if
+        /// chunkSize happens to be odd for this fps), because AudioV4::DecodeMore()
+        /// also starts each GetNextFrame() call on a fresh byte. chunkSize = freq/fps
+        /// is even for this project's actual fps targets (e.g. 10512/15 = 700), so
+        /// that padding is a correctness guard for other fps values, not a
+        /// routinely-exercised path.
+        /// </summary>
+        private static byte[] AdpcmEncodeTrack(List<sbyte> pcm, int targetFps)
+        {
+            int chunkSize = targetFps > 0 ? freq / targetFps : freq;
+            if (chunkSize < 1) chunkSize = 1;
+
+            using (MemoryStream outStream = new MemoryStream())
+            {
+                int valpred = 0;
+                int index = 0;
+                int pos = 0;
+                int n = pcm.Count;
+
+                while (pos < n)
+                {
+                    int take = Math.Min(chunkSize, n - pos);
+                    int step = AdpcmStepTable[index];
+                    int? pendingHi = null;
+
+                    for (int i = 0; i < take; i++)
+                    {
+                        int sample = pcm[pos + i];
+                        int diff = sample - valpred;
+                        int sign = diff < 0 ? 8 : 0;
+                        if (sign != 0) diff = -diff;
+
+                        int vpdiff = step >> 3;
+                        int delta = 0;
+                        int d = diff;
+                        int t = step;
+                        if (d >= t) { delta = 4; d -= t; vpdiff += t; }
+                        t >>= 1;
+                        if (d >= t) { delta |= 2; d -= t; vpdiff += t; }
+                        t >>= 1;
+                        if (d >= t) { delta |= 1; vpdiff += t; }
+
+                        if (sign != 0) valpred -= vpdiff; else valpred += vpdiff;
+                        valpred = AdpcmClamp(valpred, -128, 127);
+
+                        delta |= sign;
+                        index = AdpcmClamp(index + AdpcmIndexTable[delta & 7], 0, AdpcmStepTable.Length - 1);
+                        step = AdpcmStepTable[index];
+
+                        if (pendingHi == null)
+                        {
+                            pendingHi = delta;
+                        }
+                        else
+                        {
+                            outStream.WriteByte((byte)(((pendingHi.Value << 4) & 0xF0) | (delta & 0x0F)));
+                            pendingHi = null;
+                        }
+                    }
+                    if (pendingHi != null)
+                    {
+                        outStream.WriteByte((byte)((pendingHi.Value << 4) & 0xF0));
+                    }
+
+                    pos += take;
+                }
+
+                return outStream.ToArray();
+            }
+        }
+
+        /// <summary>
+        /// Stores audio as 4-bit ADPCM (see adpcm_decode.h/.c, AudioV4.h/.cpp).
+        /// Half the size of raw 8-bit PCM (AudioV0/V1/V2's uncompressed case) with
+        /// much better quality than those codecs' RLE/LZ-on-raw-PCM fallback, and --
+        /// unlike AudioV3/MP3, whose real GBA decoder is still a stub -- actually
+        /// produces audible output on real hardware today. See AudioV4.h's class
+        /// comment for the full tradeoff.
+        /// </summary>
+        private void RenderAudioV4()
+        {
+            FileInfo srcAudio = new FileInfo(srcFile);
+
+            List<sbyte> srcStream = DecodeFile(srcAudio);
+            if (srcStream == null)
+            {
+                Console.WriteLine($"{srcAudio.Extension} is an unsupported format");
+                return;
+            }
+
+            byte[] encoded = AdpcmEncodeTrack(srcStream, fps);
+
+            AudioHeader aHdr = new AudioHeader(0x41555634, (uint)encoded.Length, (uint)srcAudio.Length, (ushort)audiov, (ushort)fps, (uint)freq);
+
+            string fn = srcAudio.Name.Replace(srcAudio.Extension, "");
+            if (File.Exists($"{OutputFolder}\\{fn}.raw")) File.Delete($"{OutputFolder}\\{fn}.raw");
+            using (FileStream fs = new FileStream($"{OutputFolder}\\{fn}.raw", FileMode.OpenOrCreate))
+            using (BinaryWriter bw = new BinaryWriter(fs))
+            {
+                byte[] fbuffer = new byte[AudioHeader.GetHdrSize()];
+                Util.Memset(fbuffer, 0, fbuffer.Length);
+                bw.Write(fbuffer);
+
+                bw.Write(encoded);
+
+                aHdr.compressedlength = (uint)encoded.Length;
+                aHdr.Write(bw);
+
+                bw.Close();
+            }
+
+            double ratio = encoded.Length > 0 ? (double)srcStream.Count / encoded.Length : 0;
+            Console.WriteLine($"ADPCM audio: {srcStream.Count} PCM bytes -> {encoded.Length} bytes ({ratio:0.00}x)");
+
+            // Shipped as a raw binary (GBA links data/<fn>.bin; Windows loads it at runtime).
+            File.Copy($"{OutputFolder}\\{fn}.raw", $"{OutputFolder}\\{fn}.bin", true);
         }
     }
 }

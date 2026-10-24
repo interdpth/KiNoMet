@@ -128,6 +128,7 @@ $(BUILD):
 ifdef offset
 	sed 's/^        rom     : ORIGIN = 0x08XXXXXX, LENGTH = 32M$$/        rom     : ORIGIN = $(offset), LENGTH = 32M/' linker_base.lsc > linker.lsc
 endif
+	@[ -f $(DATA)/VideoFile.bin ] && [ -f $(DATA)/audio_outputmain.bin ] || { echo "Missing $(DATA)/VideoFile.bin and/or $(DATA)/audio_outputmain.bin -- copy them from the KinometGui output folder."; exit 1; }
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 ifdef offset
@@ -164,6 +165,15 @@ $(OFILES_SOURCES) : $(HFILES)
 soundbank.bin soundbank.h : $(AUDIOFILES)
 #---------------------------------------------------------------------------------
 	@mmutil $^ -osoundbank.bin -hsoundbank.h
+
+#---------------------------------------------------------------------------------
+# raw binaries in data/ (VideoFile.bin, audio_outputmain.bin from the GUI).
+# bin2o exports <name>_bin / <name>_bin_end / <name>_bin_size, 4-byte aligned.
+#---------------------------------------------------------------------------------
+%.bin.o	%_bin.h :	%.bin
+#---------------------------------------------------------------------------------
+	@echo $(notdir $<)
+	@$(bin2o)
 
 #---------------------------------------------------------------------------------
 %.bgf.o	%_bgf.h :	%.bgf

@@ -1,8 +1,19 @@
 
 #include "..\KiNomet\KiNoMet.h"
-#include "VideoFile.h"
-
-#include "audio_outputmain.h"
+#include "..\KiNomet\kvc1_load.h"
+// Video and audio are linked in as raw binaries from data/ (VideoFile.bin,
+// audio_outputmain.bin) by the Makefile's bin2o rule, not C arrays.
+extern "C"
+{
+	extern const unsigned char VideoFile_bin[];
+	extern const unsigned char VideoFile_bin_end[];
+	extern const unsigned char audio_outputmain_bin[];
+	extern const unsigned char audio_outputmain_bin_end[];
+}
+#define VideoFile VideoFile_bin
+#define VideoFile_size ((int)(VideoFile_bin_end - VideoFile_bin))
+#define audio_outputmain audio_outputmain_bin
+#define audio_outputmain_size ((int)(audio_outputmain_bin_end - audio_outputmain_bin))
 #include "..\KiNomet\Gba.h"
 #include <stdio.h>
 #include "../KiNomet/AudioHandler.h"
@@ -116,11 +127,20 @@ void Setup(VideoKinometPacket* packet)
 
 	(*display_control) = (0x400 | screenType);
 
-	//if (screenType == 5)
-	//{
-	//	BG2X = 0xAC;
-	//	BG2Y = -80;
-	//}
+	if (screenType == 5)
+	{
+		// Smaller videos (e.g. KVC1 half-resolution 120x80) play from mode 5's
+		// 160-wide framebuffer; the BG2 affine matrix stretches them to fill the
+		// 240x160 screen in hardware (8.8 fixed point: texels per screen pixel).
+		int w = packet->DisplaySize.w ? packet->DisplaySize.w : 160;
+		int h = packet->DisplaySize.h ? packet->DisplaySize.h : 128;
+		*(volatile short*)0x04000020 = (short)((w << 8) / 240);   // BG2PA
+		*(volatile short*)0x04000022 = 0;                          // BG2PB
+		*(volatile short*)0x04000024 = 0;                          // BG2PC
+		*(volatile short*)0x04000026 = (short)((h << 8) / 160);   // BG2PD
+		*(volatile int*)0x04000028 = 0;                            // BG2X
+		*(volatile int*)0x0400002C = 0;                            // BG2Y
+	}
 	canDmaImage = 1;
 	/* create custom interrupt handler for vblank - whole point is to turn off sound at right time
 	   * we disable interrupts while changing them, to avoid breaking things */
@@ -248,7 +268,9 @@ void VideoLoader()
 
 	SetupAudio();
 	//.StartPlaying();
-	LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);// 
+	// KVC1-C replaces Cinepak -- see KiNomet/kvc1_load.cpp. VideoFile is
+	// data/VideoFile.bin, written by the GUI's kvc1_tools encoder.
+	LoadKvc1((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);
 	return;
 }
 
