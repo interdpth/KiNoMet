@@ -36,6 +36,8 @@ BLOCK = 4
 MODE_SKIP, MODE_FLAT, MODE_VQ, MODE_BTC, MODE_RAW, MODE_PAINT, MODE_PAL4 = 0, 1, 2, 3, 4, 5, 6
 N_MODES = 7
 MODE_BYTES = np.array([0, 2, 1, 6, 32, 4, 12], dtype=np.float32)
+# Greyscale videos store each colour as one 5-bit grey byte instead of a u16.
+MODE_BYTES_GRAY = np.array([0, 1, 1, 4, 16, 3, 8], dtype=np.float32)
 
 # Per-channel weights for the distortion measure (R, G, B): the eye is most
 # sensitive to green, least to blue.
@@ -76,6 +78,20 @@ def rgb888_to_555(frame888, dither=False):
         f = f + tile[:, :, None]
         return (np.clip(f, 0, 255).astype(np.uint8) >> 3).astype(np.uint8)
     return np.clip(np.rint(f * (31.0 / 255.0)), 0, 31).astype(np.uint8)
+
+
+def rgb888_to_gray555(frame888):
+    """frame888: (H,W,3) uint8 -> (H,W,3) uint8 with R=G=B = grey level 0..31
+    (Rec.601 luma). Kept 3-channel so all block analysis is unchanged."""
+    y = frame888.astype(np.float32) @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+    g = np.clip(np.rint(y * (31.0 / 255.0)), 0, 31).astype(np.uint8)
+    return np.repeat(g[:, :, None], 3, axis=2)
+
+
+def grayness(frame888, tol=16):
+    """Fraction of pixels whose R/G/B differ by at most tol (0..255 scale)."""
+    f = frame888.astype(np.int16)
+    return float(((f.max(axis=2) - f.min(axis=2)) <= tol).mean())
 
 
 def pack555(rgb):
@@ -244,9 +260,11 @@ class VQSearcher:
         return idx.astype(np.uint8), best.astype(np.float32)
 
 
-def choose_modes(w, d_skip, d_flat, d_vq, d_btc, d_paint, d_pal4, lam, allow_skip=True):
+def choose_modes(w, d_skip, d_flat, d_vq, d_btc, d_paint, d_pal4, lam, allow_skip=True,
+                 mode_bytes=MODE_BYTES):
     """Rate-distortion choice per block: argmin of w*D + lam*bytes.
     w: (nb,) persistence weight. Returns (nb,) uint8 modes."""
+    MODE_BYTES = mode_bytes  # noqa: N806 (per-call: colour or greyscale record sizes)
     J = np.stack([
         w * d_skip if allow_skip else np.full_like(d_flat, np.inf),
         w * d_flat + lam * MODE_BYTES[MODE_FLAT],

@@ -35,6 +35,7 @@ typedef struct {
     const uint8_t *codebook;   // n_codebook * 16 little-endian u16 pixels
     uint16_t width, height, blocks_w, nblocks;
     uint8_t  fps;
+    uint8_t  gray;             // header flag: colours are 1-byte grey levels
     uint32_t n_frames;
     uint32_t frame;            // frames decoded so far
     uint8_t *buf;
@@ -48,9 +49,10 @@ typedef struct {
 int kvc1_reader_init(kvc1_reader_t *rd, const uint8_t *file, uint32_t size,
                      uint8_t *buf, uint32_t bufsize);
 
-// Decodes the next frame into framebuffer16 (width*height u16, row-major).
+// Decodes the next frame into framebuffer16 (row-major u16, `stride` pixels
+// per row, stride >= width -- e.g. 160 for a 120x80 video in GBA mode 5).
 // Returns 1 if a frame was decoded, 0 after the last frame, or a KVC1_ERR_* code.
-int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16);
+int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16, int stride);
 
 // Decompresses one stored (tag 0) or BIOS-LZ77 (tag 1) payload into dst.
 void kvc1_decompress_stream(uint8_t tag, const uint8_t *src, uint8_t *dst, uint32_t declen);

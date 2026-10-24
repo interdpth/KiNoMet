@@ -127,11 +127,20 @@ void Setup(VideoKinometPacket* packet)
 
 	(*display_control) = (0x400 | screenType);
 
-	//if (screenType == 5)
-	//{
-	//	BG2X = 0xAC;
-	//	BG2Y = -80;
-	//}
+	if (screenType == 5)
+	{
+		// Smaller videos (e.g. KVC1 half-resolution 120x80) play from mode 5's
+		// 160-wide framebuffer; the BG2 affine matrix stretches them to fill the
+		// 240x160 screen in hardware (8.8 fixed point: texels per screen pixel).
+		int w = packet->DisplaySize.w ? packet->DisplaySize.w : 160;
+		int h = packet->DisplaySize.h ? packet->DisplaySize.h : 128;
+		*(volatile short*)0x04000020 = (short)((w << 8) / 240);   // BG2PA
+		*(volatile short*)0x04000022 = 0;                          // BG2PB
+		*(volatile short*)0x04000024 = 0;                          // BG2PC
+		*(volatile short*)0x04000026 = (short)((h << 8) / 160);   // BG2PD
+		*(volatile int*)0x04000028 = 0;                            // BG2X
+		*(volatile int*)0x0400002C = 0;                            // BG2Y
+	}
 	canDmaImage = 1;
 	/* create custom interrupt handler for vblank - whole point is to turn off sound at right time
 	   * we disable interrupts while changing them, to avoid breaking things */

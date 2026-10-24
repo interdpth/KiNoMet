@@ -192,9 +192,21 @@ namespace KinometGui
 
             // numframes isn't used by the ADPCM path; it's the 15fps frame count for the others.
             int numframes = (int)Math.Ceiling(GetFrames(videoFile) * (double)targetFps / Math.Max(1, GetSourceFps(videoFile)));
+            // ADPCM at the normal rate first. For long videos that would take more than
+            // KinoSettings.MaxAudioShare of the budget (Steamboat Willie: ~80%), redo it at
+            // KinoSettings.LowAudioRate so the video gets enough bytes to look decent.
+            RenderAudio.freq = RenderAudio.mffreq;
             (new RenderAudio(audiov, $"{OutputFolder}", audioSrcForRender, targetFps, numframes)).Render();
             string audioBin = $"{OutputFolder}\\audio_outputmain.bin";
             long audioBytes = File.Exists(audioBin) ? new FileInfo(audioBin).Length : 0;
+            if (audiov == 4 && audioBytes > KinoSettings.MediaBudgetBytes * KinoSettings.MaxAudioShare)
+            {
+                Debug.WriteLine($"Audio at {RenderAudio.freq} Hz is {audioBytes} bytes (over {KinoSettings.MaxAudioShare:P0} of the budget); re-encoding at {KinoSettings.LowAudioRate} Hz.");
+                RenderAudio.freq = KinoSettings.LowAudioRate;
+                (new RenderAudio(audiov, $"{OutputFolder}", audioSrcForRender, targetFps, numframes)).Render();
+                audioBytes = File.Exists(audioBin) ? new FileInfo(audioBin).Length : 0;
+                RenderAudio.freq = RenderAudio.mffreq;
+            }
 
             // Video gets whatever is left of the ROM media budget.
             long videoBudget = KinoSettings.MediaBudgetBytes - audioBytes;

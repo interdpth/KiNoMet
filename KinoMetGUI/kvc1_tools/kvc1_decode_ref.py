@@ -52,11 +52,17 @@ def decode(path):
     """Yields each frame as an (h,w) uint16 RGB555 array (copies)."""
     data = open(path, "rb").read()
     assert data[:4] == b"KVC1", "bad magic"
-    ver, fps, w, h, n_cb, n_frames, max_declen, _ = struct.unpack_from("<BBHHHIII", data, 4)
+    ver, fps, w, h, n_cb, n_frames, max_declen, flags = struct.unpack_from("<BBHHHIII", data, 4)
     assert ver == 3, f"unsupported version {ver}"
+    gray = bool(flags & 1)
+    G = np.uint16(0x421)  # grey g -> RGB555 g|g<<5|g<<10
     pos = 24
-    cb = np.frombuffer(data, dtype="<u2", count=n_cb * 16, offset=pos).reshape(n_cb, 16)
-    pos += n_cb * 32
+    if gray:
+        cb = np.frombuffer(data, dtype=np.uint8, count=n_cb * 16, offset=pos).reshape(n_cb, 16).astype(np.uint16) * G
+        pos += n_cb * 16
+    else:
+        cb = np.frombuffer(data, dtype="<u2", count=n_cb * 16, offset=pos).reshape(n_cb, 16)
+        pos += n_cb * 32
     bw, bh = w // 4, h // 4
     nb = bw * bh
     fb = np.zeros((bh, bw, 16), dtype=np.uint16)  # block-major framebuffer
@@ -72,11 +78,24 @@ def decode(path):
         ops_len, n_flat, n_btc, n_raw, n_paint, n_pal4 = struct.unpack_from("<HHHHHH", dec, 0)
         p = 12
         ops = dec[p:p + ops_len]; p += ops_len
-        flat = np.frombuffer(dec, dtype="<u2", count=n_flat, offset=p); p += 2 * n_flat
-        btc = np.frombuffer(dec, dtype="<u2", count=3 * n_btc, offset=p).reshape(n_btc, 3); p += 6 * n_btc
-        raw = np.frombuffer(dec, dtype="<u2", count=16 * n_raw, offset=p).reshape(n_raw, 16); p += 32 * n_raw
-        paint = np.frombuffer(dec, dtype="<u2", count=2 * n_paint, offset=p).reshape(n_paint, 2); p += 4 * n_paint
-        pal4 = np.frombuffer(dec, dtype=[("c", "<u2", (4,)), ("i", "<u4")], count=n_pal4, offset=p); p += 12 * n_pal4
+        if gray:
+            # Expand grey records to the same shapes as the colour ones.
+            flat = np.frombuffer(dec, dtype=np.uint8, count=n_flat, offset=p).astype(np.uint16) * G; p += n_flat
+            r = np.frombuffer(dec, dtype=[("g0", "u1"), ("g1", "u1"), ("m", "<u2")], count=n_btc, offset=p); p += 4 * n_btc
+            btc = np.stack([r["g0"].astype(np.uint16) * G, r["g1"].astype(np.uint16) * G, r["m"]], axis=1)
+            raw = np.frombuffer(dec, dtype=np.uint8, count=16 * n_raw, offset=p).reshape(n_raw, 16).astype(np.uint16) * G; p += 16 * n_raw
+            r = np.frombuffer(dec, dtype=[("g", "u1"), ("m", "<u2")], count=n_paint, offset=p); p += 3 * n_paint
+            paint = np.stack([r["g"].astype(np.uint16) * G, r["m"]], axis=1)
+            r = np.frombuffer(dec, dtype=[("g", "u1", (4,)), ("i", "<u4")], count=n_pal4, offset=p); p += 8 * n_pal4
+            pal4 = np.empty(n_pal4, dtype=[("c", "<u2", (4,)), ("i", "<u4")])
+            pal4["c"] = r["g"].astype(np.uint16) * G
+            pal4["i"] = r["i"]
+        else:
+            flat = np.frombuffer(dec, dtype="<u2", count=n_flat, offset=p); p += 2 * n_flat
+            btc = np.frombuffer(dec, dtype="<u2", count=3 * n_btc, offset=p).reshape(n_btc, 3); p += 6 * n_btc
+            raw = np.frombuffer(dec, dtype="<u2", count=16 * n_raw, offset=p).reshape(n_raw, 16); p += 32 * n_raw
+            paint = np.frombuffer(dec, dtype="<u2", count=2 * n_paint, offset=p).reshape(n_paint, 2); p += 4 * n_paint
+            pal4 = np.frombuffer(dec, dtype=[("c", "<u2", (4,)), ("i", "<u4")], count=n_pal4, offset=p); p += 12 * n_pal4
         vq = np.frombuffer(dec, dtype=np.uint8, offset=p)
         oi = fi = bi = ri = vi = pi = qi = 0
         bits = np.arange(16, dtype=np.uint16)

@@ -75,16 +75,27 @@ void LoadKvc1(unsigned char* file, int size, unsigned char* audiofile, int audio
     options->videoCallBack(&videoPack);
 
     CreateFrameBuffer(rd.width, rd.height);
-    /* CreateFrameBuffer already blacks out the screen, which SKIP blocks rely on. */
     uint16_t* fb16 = (uint16_t*)Kinomet_FrameBuffer;
+#ifdef GBA
+    /* 240x160 plays in mode 3 (stride 240). Anything smaller plays in mode 5,
+     * whose framebuffer is 160 pixels wide; handleFrame's Setup() scales it
+     * up to the full screen with the BG2 affine registers. */
+    int stride = (rd.width == 240) ? 240 : 160;
+    int rows = (rd.width == 240) ? 160 : 128;
+#else
+    int stride = rd.width;
+    int rows = rd.height;
+#endif
+    /* SKIP blocks keep what's already there, so start from black. */
+    for (int i = 0; i < stride * rows; i++) fb16[i] = 0;
 
     int readSize = 0;
     int curFrame = 0;
     while (rd.frame < rd.n_frames) {
         ProcessAudio(audio, readSize, curFrame, options);
-        if (kvc1_reader_next_frame(&rd, fb16) != 1) kvc1_halt("kvc1: corrupt video data", 0x7C1F);
+        if (kvc1_reader_next_frame(&rd, fb16, stride) != 1) kvc1_halt("kvc1: corrupt video data", 0x7C1F);
 
-        VideoKinometPacket videoPacket(screen, rd.fps, curFrame, Kinomet_FrameBuffer, (int)(rd.width * rd.height * 2));
+        VideoKinometPacket videoPacket(screen, rd.fps, curFrame, Kinomet_FrameBuffer, (int)(stride * rows * 2));
         options->videoCallBack(&videoPacket);
         curFrame++;
     }

@@ -64,6 +64,8 @@ void kvc1_decompress_stream(uint8_t tag, const uint8_t *src, uint8_t *dst, uint3
 }
 
 static uint16_t rd16(const uint8_t *p) { return (uint16_t)(p[0] | (p[1] << 8)); }
+/* Grey level 0..31 -> RGB555 with R=G=B. */
+#define KVC1_GREY(g) ((uint16_t)((g) * 0x421u))
 static uint32_t rd32(const uint8_t *p) {
     return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
@@ -81,9 +83,10 @@ int kvc1_reader_init(kvc1_reader_t *rd, const uint8_t *file, uint32_t size,
     uint16_t n_cb = rd16(file + 10);
     rd->n_frames = rd32(file + 12);
     uint32_t max_declen = rd32(file + 16);
+    rd->gray = (uint8_t)(rd32(file + 20) & 1u);
     if (max_declen > bufsize) return KVC1_ERR_BUFFER;
     rd->codebook = file + 24;
-    rd->p = file + 24 + (uint32_t)n_cb * 32u;
+    rd->p = file + 24 + (uint32_t)n_cb * (rd->gray ? 16u : 32u);
     rd->blocks_w = rd->width / 4;
     rd->nblocks = (uint16_t)(rd->blocks_w * (rd->height / 4));
     rd->frame = 0;
@@ -109,12 +112,14 @@ static int load_chunk(kvc1_reader_t *rd) {
     uint16_t n_paint = rd16(b + 8), n_pal4 = rd16(b + 10);
     rd->ops = b + 12;
     rd->ops_end = rd->ops + ops_len;
+    /* Record sizes: colour / greyscale. */
+    const uint32_t g = rd->gray;
     rd->flat = rd->ops_end;
-    rd->btc = rd->flat + 2u * n_flat;
-    rd->raw = rd->btc + 6u * n_btc;
-    rd->paint = rd->raw + 32u * n_raw;
-    rd->pal4 = rd->paint + 4u * n_paint;
-    rd->vq = rd->pal4 + 12u * n_pal4;
+    rd->btc = rd->flat + (g ? 1u : 2u) * n_flat;
+    rd->raw = rd->btc + (g ? 4u : 6u) * n_btc;
+    rd->paint = rd->raw + (g ? 16u : 32u) * n_raw;
+    rd->pal4 = rd->paint + (g ? 3u : 4u) * n_paint;
+    rd->vq = rd->pal4 + (g ? 8u : 12u) * n_pal4;
     if (rd->vq > b + dlen) return KVC1_ERR_CORRUPT;
     rd->chunk_frames_left = nfr;
     return KVC1_OK;
@@ -124,17 +129,17 @@ static void fill_block(uint16_t *fb, int stride, uint16_t c) {
     for (int r = 0; r < 4; r++, fb += stride) { fb[0] = c; fb[1] = c; fb[2] = c; fb[3] = c; }
 }
 
-int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16) {
+int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16, int stride) {
     if (rd->frame >= rd->n_frames) return 0;
     if (rd->chunk_frames_left == 0) {
         int e = load_chunk(rd);
         if (e != KVC1_OK) return e;
     }
-    const int stride = rd->width;
     const int bw = rd->blocks_w;
     const int nb = rd->nblocks;
     const uint8_t *ops = rd->ops, *flat = rd->flat, *btc = rd->btc, *raw = rd->raw, *vq = rd->vq;
     const uint8_t *paint = rd->paint, *pal4 = rd->pal4;
+    const int gray = rd->gray;
     int b = 0;
     while (b < nb) {
         if (ops >= rd->ops_end) return KVC1_ERR_CORRUPT;
@@ -148,10 +153,18 @@ int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16) {
             uint16_t *dst = framebuffer16 + (b / bw) * 4 * stride + (b % bw) * 4;
             switch (kind) {
             case 1: /* FLAT */
-                fill_block(dst, stride, rd16(flat));
-                flat += 2;
+                if (gray) { fill_block(dst, stride, KVC1_GREY(*flat)); flat += 1; }
+                else { fill_block(dst, stride, rd16(flat)); flat += 2; }
                 break;
             case 2: { /* VQ */
+                if (gray) {
+                    const uint8_t *e = rd->codebook + (uint32_t)(*vq++) * 16u;
+                    for (int r = 0; r < 4; r++, dst += stride, e += 4) {
+                        dst[0] = KVC1_GREY(e[0]); dst[1] = KVC1_GREY(e[1]);
+                        dst[2] = KVC1_GREY(e[2]); dst[3] = KVC1_GREY(e[3]);
+                    }
+                    break;
+                }
                 const uint8_t *e = rd->codebook + (uint32_t)(*vq++) * 32u;
                 for (int r = 0; r < 4; r++, dst += stride, e += 8) {
                     dst[0] = rd16(e); dst[1] = rd16(e + 2); dst[2] = rd16(e + 4); dst[3] = rd16(e + 6);
@@ -159,8 +172,9 @@ int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16) {
                 break;
             }
             case 3: { /* BTC */
-                uint16_t c0 = rd16(btc), c1 = rd16(btc + 2), m = rd16(btc + 4);
-                btc += 6;
+                uint16_t c0, c1, m;
+                if (gray) { c0 = KVC1_GREY(btc[0]); c1 = KVC1_GREY(btc[1]); m = rd16(btc + 2); btc += 4; }
+                else { c0 = rd16(btc); c1 = rd16(btc + 2); m = rd16(btc + 4); btc += 6; }
                 for (int r = 0; r < 4; r++, dst += stride, m >>= 4) {
                     dst[0] = (m & 1) ? c1 : c0;
                     dst[1] = (m & 2) ? c1 : c0;
@@ -170,13 +184,21 @@ int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16) {
                 break;
             }
             case 4: /* RAW */
+                if (gray) {
+                    for (int r = 0; r < 4; r++, dst += stride, raw += 4) {
+                        dst[0] = KVC1_GREY(raw[0]); dst[1] = KVC1_GREY(raw[1]);
+                        dst[2] = KVC1_GREY(raw[2]); dst[3] = KVC1_GREY(raw[3]);
+                    }
+                    break;
+                }
                 for (int r = 0; r < 4; r++, dst += stride, raw += 8) {
                     dst[0] = rd16(raw); dst[1] = rd16(raw + 2); dst[2] = rd16(raw + 4); dst[3] = rd16(raw + 6);
                 }
                 break;
             case 5: { /* PAINT: one colour over what's on screen */
-                uint16_t c = rd16(paint), m = rd16(paint + 2);
-                paint += 4;
+                uint16_t c, m;
+                if (gray) { c = KVC1_GREY(paint[0]); m = rd16(paint + 1); paint += 3; }
+                else { c = rd16(paint); m = rd16(paint + 2); paint += 4; }
                 for (int r = 0; r < 4; r++, dst += stride, m >>= 4) {
                     if (m & 1) dst[0] = c;
                     if (m & 2) dst[1] = c;
@@ -186,9 +208,18 @@ int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16) {
                 break;
             }
             default: { /* PAL4: 4 colours, 2-bit index per pixel */
-                uint16_t pal[4] = { rd16(pal4), rd16(pal4 + 2), rd16(pal4 + 4), rd16(pal4 + 6) };
-                uint32_t idx = rd32(pal4 + 8);
-                pal4 += 12;
+                uint16_t pal[4];
+                uint32_t idx;
+                if (gray) {
+                    pal[0] = KVC1_GREY(pal4[0]); pal[1] = KVC1_GREY(pal4[1]);
+                    pal[2] = KVC1_GREY(pal4[2]); pal[3] = KVC1_GREY(pal4[3]);
+                    idx = rd32(pal4 + 4);
+                    pal4 += 8;
+                } else {
+                    pal[0] = rd16(pal4); pal[1] = rd16(pal4 + 2); pal[2] = rd16(pal4 + 4); pal[3] = rd16(pal4 + 6);
+                    idx = rd32(pal4 + 8);
+                    pal4 += 12;
+                }
                 for (int r = 0; r < 4; r++, dst += stride, idx >>= 8) {
                     dst[0] = pal[idx & 3];
                     dst[1] = pal[(idx >> 2) & 3];
