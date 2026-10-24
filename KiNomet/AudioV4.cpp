@@ -1,6 +1,17 @@
 #include "AudioV4.h"
 #include "MemoryBuffers.h"
 
+// Decode target. Not MemoryBuffers::AudioDecompBuffer: on GBA that lives in
+// VRAM, which ignores 8-bit stores (a byte write lands in both halves of the
+// halfword), and the ADPCM decoder writes one byte per sample -- every pair
+// of samples came out duplicated. EWRAM takes byte writes; on GBA ".sbss" is
+// devkitARM's zero-initialised EWRAM section.
+#ifdef GBA
+static signed char adpcm_out[0x1000] __attribute__((section(".sbss"), aligned(4)));
+#else
+static signed char adpcm_out[0x1000];
+#endif
+
 AudioV4::AudioV4(AudioHeader* src, int frames, int (*func)()) :
 	AudioHandler(src, frames, func)
 {
@@ -54,7 +65,7 @@ IWRAM
 #endif
 AudioKinometPacket* AudioV4::GetNextFrame()
 {
-	signed char* outBuf = (signed char*)MemoryBuffers::AudioDecompBuffer;
+	signed char* outBuf = adpcm_out;
 	int outLen = DecodeMore(outBuf, chunkSize);
 
 	if (outLen == 0) return nullptr;
