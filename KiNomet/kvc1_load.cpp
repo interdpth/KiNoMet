@@ -32,17 +32,30 @@ extern void ProcessAudio(AudioManager* audio, int& readSize, int curFrame, Kinom
 #endif
 static unsigned char kvc1_chunk_buf[KVC1_CHUNK_CAP] KVC1_EWRAM_BSS __attribute__((aligned(4)));
 
-static void kvc1_halt(const char* why) {
-    /* Same loud-and-stuck convention as InitCodeBook's OOM guard in Cinepak.cpp. */
+/* Stops playback for good. On GBA it first paints the top 16 rows of the
+ * screen a solid colour so the reason is visible without a debugger:
+ *   red     = VideoFile.bin is the wrong format version (re-encode it)
+ *   yellow  = a chunk is bigger than KVC1_CHUNK_CAP (--chunk-cap mismatch)
+ *   magenta = corrupt video data
+ *   blue    = not a KVC1 file at all */
+static void kvc1_halt(const char* why, unsigned short colour) {
     (void)why;
+#ifdef GBA
+    *(volatile unsigned short*)0x04000000 = 0x0403;           /* mode 3, BG2 on */
+    volatile unsigned short* vram = (volatile unsigned short*)0x06000000;
+    for (int i = 0; i < 240 * 16; i++) vram[i] = colour;
+#else
+    (void)colour;
+#endif
     while (1) { }
 }
 
 void LoadKvc1(unsigned char* file, int size, unsigned char* audiofile, int audiofsize, KinometAviControl* options) {
     kvc1_reader_t rd;
     int err = kvc1_reader_init(&rd, file, (uint32_t)size, kvc1_chunk_buf, sizeof(kvc1_chunk_buf));
-    if (err == KVC1_ERR_BUFFER) kvc1_halt("kvc1: chunk larger than KVC1_CHUNK_CAP -- re-encode with a matching --chunk-cap");
-    if (err != KVC1_OK) kvc1_halt("kvc1: not a version 3 KVC1 file -- re-encode with the current kvc1_encoder.py");
+    if (err == KVC1_ERR_BUFFER) kvc1_halt("kvc1: chunk larger than KVC1_CHUNK_CAP -- re-encode with a matching --chunk-cap", 0x03FF);
+    if (err == KVC1_ERR_VERSION) kvc1_halt("kvc1: wrong KVC1 format version -- re-encode with the current kvc1_encoder.py", 0x001F);
+    if (err != KVC1_OK) kvc1_halt("kvc1: VideoFile.bin is not a KVC1 file", 0x7C00);
 
     rectangle screen;
     screen.x = 0; screen.y = 0;
@@ -69,7 +82,7 @@ void LoadKvc1(unsigned char* file, int size, unsigned char* audiofile, int audio
     int curFrame = 0;
     while (rd.frame < rd.n_frames) {
         ProcessAudio(audio, readSize, curFrame, options);
-        if (kvc1_reader_next_frame(&rd, fb16) != 1) kvc1_halt("kvc1: corrupt video data");
+        if (kvc1_reader_next_frame(&rd, fb16) != 1) kvc1_halt("kvc1: corrupt video data", 0x7C1F);
 
         VideoKinometPacket videoPacket(screen, rd.fps, curFrame, Kinomet_FrameBuffer, (int)(rd.width * rd.height * 2));
         options->videoCallBack(&videoPacket);
