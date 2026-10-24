@@ -213,12 +213,14 @@ namespace KinometGui
                 Debug.WriteLine($"Could not find kvc1_tools\\kvc1_encoder.py next to {AppDomain.CurrentDomain.BaseDirectory} or in any parent folder. Rebuild so the scripts are copied to the output folder.");
                 return;
             }
-            string encoderArgs = $"\"{encoderScript}\" \"{videoFile}\" \"{kvc1Path}\" --fps {targetFps} --target-bytes {videoBudget}";
-            string encoderLog = RunPython(encoderArgs, out int encoderExit);
-            Debug.WriteLine(encoderLog);
+            // Runs in its own console window with live progress; on failure the
+            // window stays open with the error until you press Enter.
+            string encoderArgs = $"\"{encoderScript}\" \"{videoFile}\" \"{kvc1Path}\" --fps {targetFps} --target-bytes {videoBudget} --pause-on-error";
+            string encoderLog = RunPython(encoderArgs, out int encoderExit, showWindow: true);
+            if (encoderLog.Length > 0) Debug.WriteLine(encoderLog);
             if (encoderExit != 0 || !File.Exists(kvc1Path))
             {
-                Debug.WriteLine($"kvc1_encoder.py failed (exit code {encoderExit}). Its output is above; it needs Python 3 with numpy and scikit-learn (pip install numpy scikit-learn).");
+                Debug.WriteLine($"kvc1_encoder.py failed (exit code {encoderExit}). Its window showed the error; it needs Python 3 with numpy and scikit-learn (py -3 -m pip install numpy scikit-learn).");
                 return;
             }
 
@@ -272,15 +274,32 @@ namespace KinometGui
         /// <summary>
         /// Runs a Python 3 script, trying the Windows "py -3" launcher first, then
         /// "python", then "python3" (on Windows "python3" is often only the Store
-        /// stub). Returns combined stdout+stderr so failures are visible.
+        /// stub). With showWindow the script gets its own console window (live
+        /// output, nothing captured, returns ""); otherwise returns combined
+        /// stdout+stderr.
         /// </summary>
-        private static string RunPython(string args, out int exitCode)
+        private static string RunPython(string args, out int exitCode, bool showWindow = false)
         {
             string lastError = "";
             foreach (var (exe, prefix) in new[] { ("py", "-3 "), ("python", ""), ("python3", "") })
             {
                 try
                 {
+                    if (showWindow)
+                    {
+                        var wpsi = new ProcessStartInfo
+                        {
+                            FileName = exe,
+                            Arguments = prefix + "-u " + args,
+                            UseShellExecute = false,
+                            CreateNoWindow = false,
+                        };
+                        var wp = Process.Start(wpsi);
+                        wp.WaitForExit();
+                        if (wp.ExitCode == 9009) { lastError = $"{exe}: not a working Python install"; continue; }
+                        exitCode = wp.ExitCode;
+                        return "";
+                    }
                     var psi = new ProcessStartInfo
                     {
                         FileName = exe,

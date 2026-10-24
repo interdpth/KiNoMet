@@ -80,6 +80,39 @@ def log(msg):
     print(f"[kvc1] {msg}", flush=True)
 
 
+class Progress:
+    """One-line percentage display, rewritten in place with \\r."""
+
+    def __init__(self, label, total):
+        self.label, self.total, self.last = label, total, -1
+        self.t0 = time.time()
+        self.update(0)
+
+    def update(self, i):
+        if self.total:
+            pct = min(100, int(100 * i / self.total))
+            if pct != self.last:
+                self.last = pct
+                print(f"\r[kvc1] {self.label}: {pct:3d}%  ({i}/{self.total})   ", end="", flush=True)
+        elif i % 50 == 0:
+            print(f"\r[kvc1] {self.label}: {i}   ", end="", flush=True)
+
+    def done(self, n=None):
+        n = self.total if n is None else n
+        print(f"\r[kvc1] {self.label}: 100%  ({n}) in {time.time() - self.t0:.0f}s   ", flush=True)
+
+
+def probe_frame_count(video_path, fps):
+    """Approximate output frame count from the source duration (for the
+    progress display only; None if ffprobe isn't available)."""
+    try:
+        out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                              "-of", "csv=p=0", video_path], capture_output=True, text=True, timeout=30)
+        return int(round(float(out.stdout.strip()) * fps))
+    except Exception:
+        return None
+
+
 def extract_frames(video_path, w, h, fps):
     """Yields (h,w,3) uint8 RGB frames from ffmpeg at the given size/fps."""
     cmd = ["ffmpeg", "-v", "error", "-i", video_path,
@@ -130,11 +163,14 @@ class Prepared:
 
 def prepare(video_path, w, h, fps, n_clusters, dither, persist_cap=45, seed=0, max_train=400000):
     t0 = time.time()
-    log(f"extracting frames via ffmpeg @ {w}x{h} {fps}fps ...")
+    log(f"step 1/4: reading video @ {w}x{h} {fps}fps")
     blocks = []
+    prog = Progress("reading frames", probe_frame_count(video_path, fps))
     for fr in extract_frames(video_path, w, h, fps):
         b, bh, bw = frame_to_blocks(rgb888_to_555(fr, dither))
         blocks.append(b)
+        prog.update(len(blocks))
+    prog.done(len(blocks))
     if not blocks:
         raise RuntimeError("no frames decoded")
     blocks = np.stack(blocks)
@@ -143,10 +179,14 @@ def prepare(video_path, w, h, fps, n_clusters, dither, persist_cap=45, seed=0, m
 
     keys = ("flat_c", "d_flat", "btc_c0", "btc_c1", "btc_mask", "d_btc", "pal4_c", "pal4_idx", "d_pal4")
     ana = {k: [] for k in keys}
+    log("step 2/4: analysing blocks")
+    prog = Progress("analysing", F)
     for f in range(F):
         a = analyze_blocks(blocks[f])
         for k in keys:
             ana[k].append(a[k])
+        prog.update(f + 1)
+    prog.done()
     ana = {k: np.stack(v) for k, v in ana.items()}
 
     # Codebook: train on textured blocks that FLAT/BTC don't already handle well.
@@ -156,20 +196,23 @@ def prepare(video_path, w, h, fps, n_clusters, dither, persist_cap=45, seed=0, m
     if len(fidx) > max_train:
         sel = rng.choice(len(fidx), size=max_train, replace=False)
         fidx, bidx = fidx[sel], bidx[sel]
-    log(f"training {n_clusters}-entry codebook on {len(fidx)} textured blocks ...")
+    log(f"step 3/4: training {n_clusters}-entry codebook on {len(fidx)} textured blocks (no percentage for this one)")
     codebook = train_codebook(blocks[fidx, bidx], n_clusters=n_clusters, seed=seed)
 
     vs = VQSearcher(codebook)
     vq_idx = np.empty((F, nb), dtype=np.uint8)
     d_vq = np.empty((F, nb), dtype=np.float32)
+    prog = Progress("matching codebook", F)
     for f in range(F):
         vq_idx[f], d_vq[f] = vs.search(blocks[f])
+        prog.update(f + 1)
+    prog.done()
     weight = persistence(blocks, cap=persist_cap) if persist_cap > 1 else np.ones((F, nb), dtype=np.float32)
     log(f"analysis done in {time.time() - t0:.1f}s")
     return Prepared(blocks, ana, vq_idx, d_vq, codebook, bh, bw, fps, weight)
 
 
-def run_pass(P, lam, chunk_cap):
+def run_pass(P, lam, chunk_cap, label="encoding"):
     """Encodes every frame at this lambda. Returns (frames, stats) where frames
     is a list of per-frame (ops, flat, btc, raw, vq) byte strings."""
     F, nb = P.blocks.shape[:2]
@@ -181,7 +224,9 @@ def run_pass(P, lam, chunk_cap):
     sse = 0.0
     bumped = 0
     frame_budget = chunk_cap - CHUNK_INNER_HDR
+    prog = Progress(label, F)
     for f in range(F):
+        prog.update(f)
         cur = P.blocks[f]
         d_skip = wsse(cur, ref)
         p_col, p_mask, d_paint = paint_candidate(cur, ref)
@@ -237,6 +282,7 @@ def run_pass(P, lam, chunk_cap):
         sse += float((d * d).sum())
         counts += np.bincount(modes, minlength=N_MODES)
 
+    prog.done()
     mse = sse / (F * nb * 48)
     psnr = 10 * math.log10(31.0 ** 2 / mse) if mse > 0 else 99.0
     return frames, {"counts": counts, "psnr": psnr, "bumped": bumped}
@@ -280,12 +326,15 @@ def _compress_one(data):
     return 0, data
 
 
-def compress_chunks(chunks, pool=None):
+def compress_chunks(chunks, pool=None, label="compressing"):
     datas = [c[1] for c in chunks]
-    if pool is not None:
-        results = pool.map(_compress_one, datas, chunksize=8)
-    else:
-        results = [_compress_one(d) for d in datas]
+    prog = Progress(label, len(datas))
+    it = pool.imap(_compress_one, datas, chunksize=4) if pool is not None else map(_compress_one, datas)
+    results = []
+    for r in it:
+        results.append(r)
+        prog.update(len(results))
+    prog.done()
     return [(c[0], c[1], tag, payload) for c, (tag, payload) in zip(chunks, results)]
 
 
@@ -336,9 +385,13 @@ def encode(video_path, out_path, w=240, h=160, fps=15, n_clusters=256, dither=Fa
         import multiprocessing as mp
         pool = mp.Pool(jobs if jobs > 0 else None)
 
+    n_attempt = [0]
+
     def attempt(l):
-        frames, stats = run_pass(P, l, chunk_cap)
-        cc = compress_chunks(build_chunks(frames, chunk_cap), pool)
+        n_attempt[0] += 1
+        tag = f"size pass {n_attempt[0]}" if target_bytes else "pass"
+        frames, stats = run_pass(P, l, chunk_cap, f"{tag}: encoding")
+        cc = compress_chunks(build_chunks(frames, chunk_cap), pool, f"{tag}: compressing")
         size = file_size(cc, n_cb)
         report(stats, size, F, fps, l)
         return size, cc, stats
@@ -348,7 +401,7 @@ def encode(video_path, out_path, w=240, h=160, fps=15, n_clusters=256, dither=Fa
             l = lam if lam is not None else 200.0
             size, cc, stats = attempt(l)
         else:
-            log(f"searching for lambda to fit {target_bytes} bytes ...")
+            log(f"step 4/4: fitting into {target_bytes} bytes (usually 3-6 passes, 12 at most)")
             lo_ok = None   # (lam, size, cc, stats) best fitting attempt
             hi_bad = None  # (lam, size) smallest-lambda... tracking bracket
             pts = []
@@ -394,7 +447,7 @@ def encode(video_path, out_path, w=240, h=160, fps=15, n_clusters=256, dither=Fa
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Encode a video to KVC1 (v2)")
+    ap = argparse.ArgumentParser(description="Encode a video to KVC1 (format v3)")
     ap.add_argument("video")
     ap.add_argument("out")
     ap.add_argument("--width", type=int, default=240)
@@ -413,11 +466,28 @@ def main():
                     help="weight a block's error by how many frames it stays on screen, up to this "
                          "many (static text/title cards get sharper); 1 disables")
     ap.add_argument("--jobs", type=int, default=0, help="LZ worker processes (0 = all cores)")
+    ap.add_argument("--pause-on-error", action="store_true",
+                    help="when run in its own window: keep it open on failure, close 5s after success")
     args = ap.parse_args()
-    encode(args.video, args.out, w=args.width, h=args.height, fps=args.fps,
-           n_clusters=args.clusters, dither=args.dither, lam=args.lam,
-           target_bytes=args.target_bytes, chunk_cap=args.chunk_cap, jobs=args.jobs,
-           persist_cap=args.persist_cap)
+    try:
+        encode(args.video, args.out, w=args.width, h=args.height, fps=args.fps,
+               n_clusters=args.clusters, dither=args.dither, lam=args.lam,
+               target_bytes=args.target_bytes, chunk_cap=args.chunk_cap, jobs=args.jobs,
+               persist_cap=args.persist_cap)
+    except BaseException:
+        if not args.pause_on_error:
+            raise
+        import traceback
+        traceback.print_exc()
+        print("\n[kvc1] FAILED -- press Enter to close this window.", flush=True)
+        try:
+            input()
+        except EOFError:
+            pass
+        sys.exit(1)
+    if args.pause_on_error:
+        print("[kvc1] done -- this window closes in 5 seconds.", flush=True)
+        time.sleep(5)
 
 
 if __name__ == "__main__":
