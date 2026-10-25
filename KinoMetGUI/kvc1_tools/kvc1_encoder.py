@@ -179,7 +179,7 @@ def probe_gray(video_path, w, h):
 
 
 def prepare(video_path, w, h, fps, n_clusters, dither, persist_cap=45, seed=0, max_train=400000,
-            color_mode="auto"):
+            color_mode="auto", cb_texture=40.0):
     t0 = time.time()
     if color_mode == "auto":
         gray = probe_gray(video_path, w, h)
@@ -213,7 +213,7 @@ def prepare(video_path, w, h, fps, n_clusters, dither, persist_cap=45, seed=0, m
     ana = {k: np.stack(v) for k, v in ana.items()}
 
     # Codebook: train on textured blocks that FLAT/BTC don't already handle well.
-    textured = np.minimum(ana["d_flat"], ana["d_btc"]) > 40.0
+    textured = np.minimum(ana["d_flat"], ana["d_btc"]) > cb_texture
     fidx, bidx = np.nonzero(textured)
     rng = np.random.default_rng(seed)
     if len(fidx) > max_train:
@@ -417,7 +417,7 @@ def report(stats, size, F, fps, lam):
 
 def encode(video_path, out_path, w=240, h=160, fps=15, n_clusters=256, dither=False,
            lam=None, target_bytes=0, chunk_cap=16384, jobs=0, persist_cap=45, color_mode="auto",
-           half_res="auto"):
+           half_res="off", cb_texture=40.0):
     if half_res == "auto" and target_bytes and w == 240 and h == 160:
         n_est = probe_frame_count(video_path, fps)
         secs = (n_est / fps) if n_est else 0
@@ -429,7 +429,8 @@ def encode(video_path, out_path, w=240, h=160, fps=15, n_clusters=256, dither=Fa
         half = half_res == "on"
     if half:
         w, h = w // 2, h // 2
-    P = prepare(video_path, w, h, fps, n_clusters, dither, persist_cap=persist_cap, color_mode=color_mode)
+    P = prepare(video_path, w, h, fps, n_clusters, dither, persist_cap=persist_cap, color_mode=color_mode,
+                cb_texture=cb_texture)
     F = P.blocks.shape[0]
     n_cb = P.codebook.shape[0]
 
@@ -517,9 +518,11 @@ def main():
     ap.add_argument("--dither", action="store_true")
     ap.add_argument("--color-mode", choices=["auto", "gray", "color"], default="auto",
                     help="greyscale stores 1-byte grey colours (much smaller); auto detects B&W video")
-    ap.add_argument("--half-res", choices=["auto", "on", "off"], default="auto",
-                    help="encode at half width/height (the GBA scales it back up); auto picks it "
-                         "when --target-bytes is tight for the video's length")
+    ap.add_argument("--half-res", choices=["auto", "on", "off"], default="off",
+                    help="encode at half width/height (the GBA scales it back up 2x). Off by "
+                         "default; auto picks it when --target-bytes is tight for the video's length")
+    ap.add_argument("--cb-texture", type=float, default=40.0,
+                    help="only blocks whose FLAT/BTC error exceeds this train the codebook")
     ap.add_argument("--persist-cap", type=int, default=45,
                     help="weight a block's error by how many frames it stays on screen, up to this "
                          "many (static text/title cards get sharper); 1 disables")
@@ -531,7 +534,8 @@ def main():
         encode(args.video, args.out, w=args.width, h=args.height, fps=args.fps,
                n_clusters=args.clusters, dither=args.dither, lam=args.lam,
                target_bytes=args.target_bytes, chunk_cap=args.chunk_cap, jobs=args.jobs,
-               persist_cap=args.persist_cap, color_mode=args.color_mode, half_res=args.half_res)
+               persist_cap=args.persist_cap, color_mode=args.color_mode, half_res=args.half_res,
+               cb_texture=args.cb_texture)
     except BaseException:
         if not args.pause_on_error:
             raise
