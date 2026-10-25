@@ -14,6 +14,8 @@ Block model: the frame is divided into 4x4-pixel blocks (240x160 -> 60x40 =
         (4 bytes) -- text typed over a static picture.
   PAL4: four colours + a 2-bit index per pixel (12 bytes) -- antialiased
         text and detailed edges that two colours can't hold.
+  MOTION: copy blocks from the previous frame shifted by (dx,dy), up to
+        +-8 px; one vector byte per run of blocks -- moving characters and pans.
 
 The mode is picked per block by minimising  w * D + lambda * R, where w is
 how many frames the block will stay on screen (capped). A letter that sits
@@ -33,11 +35,16 @@ from sklearn.cluster import MiniBatchKMeans
 
 BLOCK = 4
 
-MODE_SKIP, MODE_FLAT, MODE_VQ, MODE_BTC, MODE_RAW, MODE_PAINT, MODE_PAL4 = 0, 1, 2, 3, 4, 5, 6
-N_MODES = 7
-MODE_BYTES = np.array([0, 2, 1, 6, 32, 4, 12], dtype=np.float32)
+MODE_SKIP, MODE_FLAT, MODE_VQ, MODE_BTC, MODE_RAW, MODE_PAINT, MODE_PAL4, MODE_MOTION = 0, 1, 2, 3, 4, 5, 6, 7
+N_MODES = 8
+# MOTION's vector is shared by a whole run of blocks, so per block it costs a
+# fraction of a byte; 0.25 is the planning estimate (the size search uses real sizes).
+MODE_BYTES = np.array([0, 2, 1, 6, 32, 4, 12, 1.5], dtype=np.float32)
 # Greyscale videos store each colour as one 5-bit grey byte instead of a u16.
-MODE_BYTES_GRAY = np.array([0, 1, 1, 4, 16, 3, 8], dtype=np.float32)
+MODE_BYTES_GRAY = np.array([0, 1, 1, 4, 16, 3, 8, 1.5], dtype=np.float32)
+
+# MOTION vector byte: high nibble = dy + 8, low nibble = dx + 8 (each -8..7).
+MV_NONE = 0x88  # (0,0): never emitted -- that's SKIP
 
 # Per-channel weights for the distortion measure (R, G, B): the eye is most
 # sensitive to green, least to blue.
@@ -260,8 +267,100 @@ class VQSearcher:
         return idx.astype(np.uint8), best.astype(np.float32)
 
 
+def motion_search(blocks, bh, bw, radius=4, progress=None):
+    """Best whole-pixel shift per block against the previous *source* frame
+    (lambda-independent, so it's done once). blocks: (F,nb,16,3) uint8.
+    Only shifts whose source block lies fully inside the frame are allowed,
+    so the decoder never clips. Returns (F,nb) uint8 vector codes (MV_NONE
+    where nothing is usable, always for frame 0)."""
+    F, nb = blocks.shape[:2]
+    h, w = bh * BLOCK, bw * BLOCK
+    lw = np.array([0.3, 0.59, 0.11], dtype=np.float32)
+    by = (np.arange(nb) // bw) * BLOCK
+    bx = (np.arange(nb) % bw) * BLOCK
+    shifts = [(dx, dy) for dy in range(-radius, radius + 1) for dx in range(-radius, radius + 1) if dx or dy]
+    valid = {(dx, dy): (bx + dx >= 0) & (bx + dx + 3 < w) & (by + dy >= 0) & (by + dy + 3 < h) for dx, dy in shifts}
+    mv = np.full((F, nb), MV_NONE, dtype=np.uint8)
+    prev = None
+    for f in range(F):
+        lum = blocks_to_frame(blocks[f].astype(np.float32) @ lw[:, None], bh, bw)[:, :, 0]
+        if prev is not None:
+            cur_b = lum.reshape(bh, BLOCK, bw, BLOCK).transpose(0, 2, 1, 3).reshape(nb, 16)
+            best = np.full(nb, np.inf, dtype=np.float32)
+            code = np.full(nb, MV_NONE, dtype=np.uint8)
+            pad = np.pad(prev, radius, mode="edge")
+            for dx, dy in shifts:
+                sh = pad[radius + dy:radius + dy + h, radius + dx:radius + dx + w]
+                d = ((cur_b - sh.reshape(bh, BLOCK, bw, BLOCK).transpose(0, 2, 1, 3).reshape(nb, 16)) ** 2).sum(axis=1)
+                d = np.where(valid[(dx, dy)], d, np.inf)
+                better = d < best
+                best = np.where(better, d, best)
+                code = np.where(better, ((dy + 8) << 4) | (dx + 8), code).astype(np.uint8)
+            mv[f] = code
+        prev = lum
+        if progress:
+            progress(f + 1)
+    return mv
+
+
+class MotionSearcher:
+    """Per-frame motion search against the *reconstructed* previous frame
+    (what the decoder will actually copy from). Luma SSE, whole-pixel shifts,
+    source block always inside the frame."""
+
+    def __init__(self, bh, bw, radius=4):
+        self.bh, self.bw = bh, bw
+        nb = bh * bw
+        self.h, self.w = bh * BLOCK, bw * BLOCK
+        by = (np.arange(nb) // bw) * BLOCK
+        bx = (np.arange(nb) % bw) * BLOCK
+        self.r = radius
+        self.shifts = [(dx, dy) for dy in range(-radius, radius + 1) for dx in range(-radius, radius + 1) if dx or dy]
+        self.valid = [(bx + dx >= 0) & (bx + dx + 3 < self.w) & (by + dy >= 0) & (by + dy + 3 < self.h)
+                      for dx, dy in self.shifts]
+        self.lw = np.array([0.3, 0.59, 0.11], dtype=np.float32)
+
+    def search(self, cur_blocks, ref_blocks):
+        bh, bw, r, h, w = self.bh, self.bw, self.r, self.h, self.w
+        nb = bh * bw
+        cur = (cur_blocks.astype(np.float32) @ self.lw)                       # (nb,16)
+        prev = blocks_to_frame(ref_blocks.astype(np.float32) @ self.lw[:, None], bh, bw)[:, :, 0]
+        pad = np.pad(prev, r, mode="edge")
+        best = np.full(nb, np.inf, dtype=np.float32)
+        code = np.full(nb, MV_NONE, dtype=np.uint8)
+        for (dx, dy), ok in zip(self.shifts, self.valid):
+            sh = pad[r + dy:r + dy + h, r + dx:r + dx + w].reshape(bh, BLOCK, bw, BLOCK).transpose(0, 2, 1, 3).reshape(nb, 16)
+            d = np.where(ok, ((cur - sh) ** 2).sum(axis=1), np.inf)
+            better = d < best
+            best = np.where(better, d, best)
+            code = np.where(better, ((dy + 8) << 4) | (dx + 8), code).astype(np.uint8)
+        return code
+
+
+class MotionGather:
+    """Builds each block's MOTION candidate from a reconstructed frame."""
+
+    def __init__(self, bh, bw):
+        nb = bh * bw
+        k = np.arange(16)
+        self.yy = ((np.arange(nb) // bw) * BLOCK)[:, None] + (k // 4)[None, :]
+        self.xx = ((np.arange(nb) % bw) * BLOCK)[:, None] + (k % 4)[None, :]
+        self.bh, self.bw = bh, bw
+
+    def gather(self, ref_blocks, codes):
+        """ref_blocks: (nb,16,3) previous reconstructed frame; codes: (nb,) uint8.
+        Returns (nb,16,3) uint8 candidates (meaningless where codes == MV_NONE)."""
+        img = blocks_to_frame(ref_blocks, self.bh, self.bw)
+        dy = (codes.astype(np.int32) >> 4) - 8
+        dx = (codes.astype(np.int32) & 15) - 8
+        ok = codes != MV_NONE
+        dy = np.where(ok, dy, 0)
+        dx = np.where(ok, dx, 0)
+        return img[self.yy + dy[:, None], self.xx + dx[:, None]]
+
+
 def choose_modes(w, d_skip, d_flat, d_vq, d_btc, d_paint, d_pal4, lam, allow_skip=True,
-                 mode_bytes=MODE_BYTES):
+                 mode_bytes=MODE_BYTES, d_motion=None):
     """Rate-distortion choice per block: argmin of w*D + lam*bytes.
     w: (nb,) persistence weight. Returns (nb,) uint8 modes."""
     MODE_BYTES = mode_bytes  # noqa: N806 (per-call: colour or greyscale record sizes)
@@ -273,5 +372,7 @@ def choose_modes(w, d_skip, d_flat, d_vq, d_btc, d_paint, d_pal4, lam, allow_ski
         np.full_like(d_flat, lam * MODE_BYTES[MODE_RAW]),
         (w * d_paint + lam * MODE_BYTES[MODE_PAINT]) if allow_skip else np.full_like(d_flat, np.inf),
         w * d_pal4 + lam * MODE_BYTES[MODE_PAL4],
+        (w * d_motion + lam * MODE_BYTES[MODE_MOTION]) if (allow_skip and d_motion is not None)
+        else np.full_like(d_flat, np.inf),
     ], axis=1)
     return J.argmin(axis=1).astype(np.uint8)

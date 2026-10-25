@@ -74,7 +74,8 @@ int kvc1_reader_init(kvc1_reader_t *rd, const uint8_t *file, uint32_t size,
                      uint8_t *buf, uint32_t bufsize) {
     if (size < 24 || file[0] != 'K' || file[1] != 'V' || file[2] != 'C' || file[3] != '1')
         return KVC1_ERR_MAGIC;
-    if (file[4] != 3) return KVC1_ERR_VERSION;
+    if (file[4] != 3 && file[4] != 4) return KVC1_ERR_VERSION;
+    rd->version = file[4];
     rd->file = file;
     rd->size = size;
     rd->fps = file[5];
@@ -84,6 +85,8 @@ int kvc1_reader_init(kvc1_reader_t *rd, const uint8_t *file, uint32_t size,
     rd->n_frames = rd32(file + 12);
     uint32_t max_declen = rd32(file + 16);
     rd->gray = (uint8_t)(rd32(file + 20) & 1u);
+    rd->motion = (uint8_t)((rd32(file + 20) >> 1) & 1u);
+    rd->prev = 0;
     if (max_declen > bufsize) return KVC1_ERR_BUFFER;
     rd->codebook = file + 24;
     rd->p = file + 24 + (uint32_t)n_cb * (rd->gray ? 16u : 32u);
@@ -110,7 +113,8 @@ static int load_chunk(kvc1_reader_t *rd) {
     const uint8_t *b = rd->buf;
     uint16_t ops_len = rd16(b), n_flat = rd16(b + 2), n_btc = rd16(b + 4), n_raw = rd16(b + 6);
     uint16_t n_paint = rd16(b + 8), n_pal4 = rd16(b + 10);
-    rd->ops = b + 12;
+    uint16_t n_mot = rd->version >= 4 ? rd16(b + 12) : 0;
+    rd->ops = b + (rd->version >= 4 ? 14 : 12);
     rd->ops_end = rd->ops + ops_len;
     /* Record sizes: colour / greyscale. */
     const uint32_t g = rd->gray;
@@ -119,7 +123,8 @@ static int load_chunk(kvc1_reader_t *rd) {
     rd->raw = rd->btc + (g ? 4u : 6u) * n_btc;
     rd->paint = rd->raw + (g ? 16u : 32u) * n_raw;
     rd->pal4 = rd->paint + (g ? 3u : 4u) * n_paint;
-    rd->vq = rd->pal4 + (g ? 8u : 12u) * n_pal4;
+    rd->mot = rd->pal4 + (g ? 8u : 12u) * n_pal4;
+    rd->vq = rd->mot + n_mot;
     if (rd->vq > b + dlen) return KVC1_ERR_CORRUPT;
     rd->chunk_frames_left = nfr;
     return KVC1_OK;
@@ -138,7 +143,10 @@ int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16, int strid
     const int bw = rd->blocks_w;
     const int nb = rd->nblocks;
     const uint8_t *ops = rd->ops, *flat = rd->flat, *btc = rd->btc, *raw = rd->raw, *vq = rd->vq;
-    const uint8_t *paint = rd->paint, *pal4 = rd->pal4;
+    const uint8_t *paint = rd->paint, *pal4 = rd->pal4, *mot = rd->mot;
+    const uint8_t *frame_ops = ops;   /* for the previous-frame update below */
+    const int w = rd->width, h = rd->height;
+    if (rd->motion && !rd->prev) return KVC1_ERR_BUFFER;
     const int gray = rd->gray;
     int b = 0;
     while (b < nb) {
@@ -148,7 +156,21 @@ int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16, int strid
         int kind = op >> 5;
         if (b + n > nb) return KVC1_ERR_CORRUPT;
         if (kind == 0) { b += n; continue; } /* SKIP: keep what's on screen */
-        if (kind == 7) return KVC1_ERR_CORRUPT;
+        if (kind == 7) { /* MOTION: n blocks from the previous frame, one shared shift */
+            if (!rd->prev) return KVC1_ERR_CORRUPT;
+            uint8_t v = *mot++;
+            int dy = (v >> 4) - 8, dx = (v & 15) - 8;
+            for (; n > 0; n--, b++) {
+                int sx = (b % bw) * 4 + dx, sy = (b / bw) * 4 + dy;
+                if (sx < 0 || sy < 0 || sx + 4 > w || sy + 4 > h) return KVC1_ERR_CORRUPT;
+                const uint16_t *src = rd->prev + sy * w + sx;
+                uint16_t *dst = framebuffer16 + (b / bw) * 4 * stride + (b % bw) * 4;
+                for (int r = 0; r < 4; r++, dst += stride, src += w) {
+                    dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; dst[3] = src[3];
+                }
+            }
+            continue;
+        }
         for (; n > 0; n--, b++) {
             uint16_t *dst = framebuffer16 + (b / bw) * 4 * stride + (b % bw) * 4;
             switch (kind) {
@@ -232,6 +254,26 @@ int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16, int strid
         }
     }
     if (b != nb) return KVC1_ERR_CORRUPT;
+    if (rd->motion) {
+        /* Bring the previous-frame copy up to date: SKIP blocks are already
+         * identical, so only blocks drawn this frame need copying. */
+        int bb = 0;
+        for (const uint8_t *o = frame_ops; o < ops; o++) {
+            int n = (*o & 31) + 1;
+            if ((*o >> 5) != 0) {
+                for (int k = 0; k < n; k++) {
+                    int blk = bb + k;
+                    const uint16_t *src = framebuffer16 + (blk / bw) * 4 * stride + (blk % bw) * 4;
+                    uint16_t *dst = rd->prev + (blk / bw) * 4 * w + (blk % bw) * 4;
+                    for (int r = 0; r < 4; r++, src += stride, dst += w) {
+                        dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; dst[3] = src[3];
+                    }
+                }
+            }
+            bb += n;
+        }
+    }
+    rd->mot = mot;
     rd->ops = ops; rd->flat = flat; rd->btc = btc; rd->raw = raw; rd->vq = vq;
     rd->paint = paint; rd->pal4 = pal4;
     rd->chunk_frames_left--;

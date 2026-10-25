@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-// KVC1 (format version 3) decoder core, plain C, shared verbatim by the GBA
+// KVC1 (format versions 3 and 4) decoder core, plain C, shared verbatim by the GBA
 // and Windows builds. File format: KinoMetGUI/kvc1_tools/kvc1_encoder.py's
 // module docstring. Python reference decoder: kvc1_decode_ref.py.
 //
@@ -36,16 +36,22 @@ typedef struct {
     uint16_t width, height, blocks_w, nblocks;
     uint8_t  fps;
     uint8_t  gray;             // header flag: colours are 1-byte grey levels
+    uint8_t  version;          // 3 or 4
+    uint8_t  motion;           // header flag: MOTION blocks, needs `prev`
+    uint16_t *prev;            // caller-supplied width*height copy of the previous
+                               // frame; required when `motion` is set (else NULL)
     uint32_t n_frames;
     uint32_t frame;            // frames decoded so far
     uint8_t *buf;
     uint32_t bufsize;
     uint32_t chunk_frames_left;
-    const uint8_t *ops, *ops_end, *flat, *btc, *raw, *paint, *pal4, *vq;
+    const uint8_t *ops, *ops_end, *flat, *btc, *raw, *paint, *pal4, *mot, *vq;
 } kvc1_reader_t;
 
 // Parses the file header. buf must be 4-byte aligned (the GBA BIOS LZ77 call
-// writes words). Returns KVC1_OK or a KVC1_ERR_* code.
+// writes words). Returns KVC1_OK or a KVC1_ERR_* code. If rd->motion is set
+// afterwards, point rd->prev at width*height u16 of RAM (contents don't
+// matter) before decoding.
 int kvc1_reader_init(kvc1_reader_t *rd, const uint8_t *file, uint32_t size,
                      uint8_t *buf, uint32_t bufsize);
 

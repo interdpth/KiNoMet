@@ -31,6 +31,9 @@ extern void ProcessAudio(AudioManager* audio, int& readSize, int curFrame, Kinom
 #define KVC1_EWRAM_BSS
 #endif
 static unsigned char kvc1_chunk_buf[KVC1_CHUNK_CAP] KVC1_EWRAM_BSS __attribute__((aligned(4)));
+/* Copy of the previous frame for MOTION blocks (75KB of EWRAM, only touched
+ * by files that use MOTION). */
+static uint16_t kvc1_prev_buf[240 * 160] KVC1_EWRAM_BSS __attribute__((aligned(4)));
 
 /* Stops playback for good. On GBA it first paints the top 16 rows of the
  * screen a solid colour so the reason is visible without a debugger:
@@ -56,6 +59,10 @@ void LoadKvc1(unsigned char* file, int size, unsigned char* audiofile, int audio
     if (err == KVC1_ERR_BUFFER) kvc1_halt("kvc1: chunk larger than KVC1_CHUNK_CAP -- re-encode with a matching --chunk-cap", 0x03FF);
     if (err == KVC1_ERR_VERSION) kvc1_halt("kvc1: wrong KVC1 format version -- re-encode with the current kvc1_encoder.py", 0x001F);
     if (err != KVC1_OK) kvc1_halt("kvc1: VideoFile.bin is not a KVC1 file", 0x7C00);
+    if (rd.motion) {
+        if ((int)rd.width * rd.height > 240 * 160) kvc1_halt("kvc1: MOTION video larger than 240x160", 0x03FF);
+        rd.prev = kvc1_prev_buf;
+    }
 
     rectangle screen;
     screen.x = 0; screen.y = 0;

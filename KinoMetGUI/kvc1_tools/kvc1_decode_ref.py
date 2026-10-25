@@ -53,7 +53,7 @@ def decode(path):
     data = open(path, "rb").read()
     assert data[:4] == b"KVC1", "bad magic"
     ver, fps, w, h, n_cb, n_frames, max_declen, flags = struct.unpack_from("<BBHHHIII", data, 4)
-    assert ver == 3, f"unsupported version {ver}"
+    assert ver in (3, 4), f"unsupported version {ver}"
     gray = bool(flags & 1)
     G = np.uint16(0x421)  # grey g -> RGB555 g|g<<5|g<<10
     pos = 24
@@ -67,6 +67,11 @@ def decode(path):
     nb = bw * bh
     fb = np.zeros((bh, bw, 16), dtype=np.uint16)  # block-major framebuffer
     flatfb = fb.reshape(nb, 16)
+    # MOTION reads the previous frame as a plain image (rows of w pixels).
+    prev = np.zeros((h, w), dtype=np.uint16)
+    k = np.arange(16)
+    yy = ((np.arange(nb) // bw) * 4)[:, None] + (k // 4)[None, :]
+    xx = ((np.arange(nb) % bw) * 4)[:, None] + (k % 4)[None, :]
     done = 0
     while done < n_frames:
         tag, nfr, _, clen, dlen = struct.unpack_from("<BBHII", data, pos)
@@ -75,8 +80,12 @@ def decode(path):
         pos += (clen + 3) & ~3
         dec = lz_decompress(payload) if tag == 1 else payload
         assert len(dec) == dlen <= max_declen, "chunk size mismatch"
-        ops_len, n_flat, n_btc, n_raw, n_paint, n_pal4 = struct.unpack_from("<HHHHHH", dec, 0)
-        p = 12
+        if ver >= 4:
+            ops_len, n_flat, n_btc, n_raw, n_paint, n_pal4, n_mot = struct.unpack_from("<7H", dec, 0)
+            p = 14
+        else:
+            ops_len, n_flat, n_btc, n_raw, n_paint, n_pal4 = struct.unpack_from("<6H", dec, 0)
+            n_mot, p = 0, 12
         ops = dec[p:p + ops_len]; p += ops_len
         if gray:
             # Expand grey records to the same shapes as the colour ones.
@@ -96,11 +105,13 @@ def decode(path):
             raw = np.frombuffer(dec, dtype="<u2", count=16 * n_raw, offset=p).reshape(n_raw, 16); p += 32 * n_raw
             paint = np.frombuffer(dec, dtype="<u2", count=2 * n_paint, offset=p).reshape(n_paint, 2); p += 4 * n_paint
             pal4 = np.frombuffer(dec, dtype=[("c", "<u2", (4,)), ("i", "<u4")], count=n_pal4, offset=p); p += 12 * n_pal4
+        mot = np.frombuffer(dec, dtype=np.uint8, count=n_mot, offset=p); p += n_mot
         vq = np.frombuffer(dec, dtype=np.uint8, offset=p)
-        oi = fi = bi = ri = vi = pi = qi = 0
+        oi = fi = bi = ri = vi = pi = qi = mi = 0
         bits = np.arange(16, dtype=np.uint16)
         for _ in range(nfr):
             b = 0
+            changed = np.zeros(nb, dtype=bool)
             while b < nb:
                 op = ops[oi]; oi += 1
                 n = (op & 31) + 1
@@ -126,14 +137,24 @@ def decode(path):
                     e = pal4[qi:qi + n]; qi += n
                     sel = (e["i"][:, None] >> (2 * bits.astype(np.uint32))) & 3
                     flatfb[b:b + n] = np.take_along_axis(e["c"], sel.astype(np.int64), axis=1)
-                else:
-                    raise AssertionError("bad op kind 7")
+                else:              # MOTION: from the previous frame, one shared shift per op
+                    v = int(mot[mi]); mi += 1
+                    dy = (v >> 4) - 8
+                    dx = (v & 15) - 8
+                    sy, sx = yy[b:b + n] + dy, xx[b:b + n] + dx
+                    assert sy.min() >= 0 and sx.min() >= 0 and sy.max() < h and sx.max() < w, "MOTION source outside frame"
+                    flatfb[b:b + n] = prev[sy, sx]
+                if kind != 0:
+                    changed[b:b + n] = True
                 b += n
             assert b == nb, "op run crossed a frame boundary"
-            yield fb.reshape(bh, bw, 4, 4).transpose(0, 2, 1, 3).reshape(h, w).copy()
+            img = fb.reshape(bh, bw, 4, 4).transpose(0, 2, 1, 3).reshape(h, w)
+            # Bring the previous-frame copy up to date (only blocks that changed).
+            prev[yy[changed], xx[changed]] = flatfb[changed]
+            yield img.copy()
             done += 1
         assert oi == len(ops) and fi == len(flat) and bi == len(btc) and ri == len(raw) and vi == len(vq) \
-            and pi == len(paint) and qi == len(pal4), \
+            and pi == len(paint) and qi == len(pal4) and mi == len(mot), \
             "chunk has leftover data"
     assert pos == len(data), f"trailing bytes in file ({len(data) - pos})"
 

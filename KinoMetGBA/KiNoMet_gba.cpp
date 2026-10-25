@@ -248,6 +248,12 @@ IWRAM bool handleFrame(VideoKinometPacket* packet)
 
 void VideoLoader()
 {
+	// Cartridge timing: the power-on default (4/2 ROM wait states, no prefetch)
+	// roughly halves the speed of everything running from ROM -- including the
+	// KVC1 decoder, which fell behind 15fps on busy gameplay. 0x4317 is the
+	// standard setting almost every commercial game uses (3/1 wait states,
+	// prefetch buffer on).
+	*(volatile unsigned short*)0x04000204 = 0x4317;
 	// Was hardcoded to 10512 ("For nows"), so the DMA/Timer0 playback clock never matched
 	// whatever sample rate the audio was actually encoded at unless it happened to be
 	// exactly 10512Hz -- e.g. AudioV3 (MP3) tracks are 11025Hz, which would play ~4.6% too
