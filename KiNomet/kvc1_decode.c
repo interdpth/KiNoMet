@@ -86,7 +86,7 @@ int kvc1_reader_init(kvc1_reader_t *rd, const uint8_t *file, uint32_t size,
     uint32_t max_declen = rd32(file + 16);
     rd->gray = (uint8_t)(rd32(file + 20) & 1u);
     rd->motion = (uint8_t)((rd32(file + 20) >> 1) & 1u);
-    rd->prev = 0;
+    rd->scratch = 0;
     if (max_declen > bufsize) return KVC1_ERR_BUFFER;
     rd->codebook = file + 24;
     rd->p = file + 24 + (uint32_t)n_cb * (rd->gray ? 16u : 32u);
@@ -144,35 +144,73 @@ int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16, int strid
     const int nb = rd->nblocks;
     const uint8_t *ops = rd->ops, *flat = rd->flat, *btc = rd->btc, *raw = rd->raw, *vq = rd->vq;
     const uint8_t *paint = rd->paint, *pal4 = rd->pal4, *mot = rd->mot;
-    const uint8_t *frame_ops = ops;   /* for the previous-frame update below */
     const int w = rd->width, h = rd->height;
-    if (rd->motion && !rd->prev) return KVC1_ERR_BUFFER;
+    const uint16_t *mscr = rd->scratch;
+    if (rd->motion) {
+        /* Pass 1: the framebuffer still holds the whole previous frame, so
+         * gather every MOTION block's source into scratch before anything is
+         * drawn. (No other block kind reads another block's pixels.) */
+        if (!rd->scratch) return KVC1_ERR_BUFFER;
+        const uint8_t *o = ops, *mv = mot;
+        uint16_t *out = rd->scratch;
+        unsigned int count = 0;
+        int bb = 0, bx = 0, by = 0;   /* block index and its column/row (no divides: the GBA has no divider) */
+        while (bb < nb) {
+            if (o >= rd->ops_end) return KVC1_ERR_CORRUPT;
+            int n = (*o & 31) + 1;
+            if (bb + n > nb) return KVC1_ERR_CORRUPT;
+            if ((*o >> 5) == 7) {
+                uint8_t v = *mv++;
+                int dy = (v >> 4) - 8, dx = (v & 15) - 8;
+                if ((count += (unsigned int)n) > KVC1_MOTION_CAP) return KVC1_ERR_CORRUPT;
+                for (int k = 0; k < n; k++) {
+                    int sx = bx * 4 + dx, sy = by * 4 + dy;
+                    if (sx < 0 || sy < 0 || sx + 4 > w || sy + 4 > h) return KVC1_ERR_CORRUPT;
+                    const uint16_t *src = framebuffer16 + sy * stride + sx;
+                    for (int r = 0; r < 4; r++, src += stride, out += 4) {
+                        out[0] = src[0]; out[1] = src[1]; out[2] = src[2]; out[3] = src[3];
+                    }
+                    if (++bx == bw) { bx = 0; by++; }
+                }
+            } else {
+                bx += n;
+                while (bx >= bw) { bx -= bw; by++; }
+            }
+            bb += n;
+            o++;
+        }
+    }
     const int gray = rd->gray;
-    int b = 0;
+    const int row_step = 4 * stride;
+    int b = 0, bx = 0;
+    uint16_t *row = framebuffer16;    /* top-left of the current block row */
     while (b < nb) {
         if (ops >= rd->ops_end) return KVC1_ERR_CORRUPT;
         uint8_t op = *ops++;
         int n = (op & 31) + 1;
         int kind = op >> 5;
         if (b + n > nb) return KVC1_ERR_CORRUPT;
-        if (kind == 0) { b += n; continue; } /* SKIP: keep what's on screen */
-        if (kind == 7) { /* MOTION: n blocks from the previous frame, one shared shift */
-            if (!rd->prev) return KVC1_ERR_CORRUPT;
-            uint8_t v = *mot++;
-            int dy = (v >> 4) - 8, dx = (v & 15) - 8;
+        if (kind == 0) { /* SKIP: keep what's on screen */
+            b += n;
+            bx += n;
+            while (bx >= bw) { bx -= bw; row += row_step; }
+            continue;
+        }
+        if (kind == 7) { /* MOTION: place the blocks gathered in pass 1 */
+            if (!mscr) return KVC1_ERR_CORRUPT;
+            mot++;
             for (; n > 0; n--, b++) {
-                int sx = (b % bw) * 4 + dx, sy = (b / bw) * 4 + dy;
-                if (sx < 0 || sy < 0 || sx + 4 > w || sy + 4 > h) return KVC1_ERR_CORRUPT;
-                const uint16_t *src = rd->prev + sy * w + sx;
-                uint16_t *dst = framebuffer16 + (b / bw) * 4 * stride + (b % bw) * 4;
-                for (int r = 0; r < 4; r++, dst += stride, src += w) {
-                    dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; dst[3] = src[3];
+                uint16_t *dst = row + bx * 4;
+                for (int r = 0; r < 4; r++, dst += stride, mscr += 4) {
+                    dst[0] = mscr[0]; dst[1] = mscr[1]; dst[2] = mscr[2]; dst[3] = mscr[3];
                 }
+                if (++bx == bw) { bx = 0; row += row_step; }
             }
             continue;
         }
         for (; n > 0; n--, b++) {
-            uint16_t *dst = framebuffer16 + (b / bw) * 4 * stride + (b % bw) * 4;
+            uint16_t *dst = row + bx * 4;
+            if (++bx == bw) { bx = 0; row += row_step; }
             switch (kind) {
             case 1: /* FLAT */
                 if (gray) { fill_block(dst, stride, KVC1_GREY(*flat)); flat += 1; }
@@ -254,25 +292,6 @@ int kvc1_reader_next_frame(kvc1_reader_t *rd, uint16_t *framebuffer16, int strid
         }
     }
     if (b != nb) return KVC1_ERR_CORRUPT;
-    if (rd->motion) {
-        /* Bring the previous-frame copy up to date: SKIP blocks are already
-         * identical, so only blocks drawn this frame need copying. */
-        int bb = 0;
-        for (const uint8_t *o = frame_ops; o < ops; o++) {
-            int n = (*o & 31) + 1;
-            if ((*o >> 5) != 0) {
-                for (int k = 0; k < n; k++) {
-                    int blk = bb + k;
-                    const uint16_t *src = framebuffer16 + (blk / bw) * 4 * stride + (blk % bw) * 4;
-                    uint16_t *dst = rd->prev + (blk / bw) * 4 * w + (blk % bw) * 4;
-                    for (int r = 0; r < 4; r++, src += stride, dst += w) {
-                        dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; dst[3] = src[3];
-                    }
-                }
-            }
-            bb += n;
-        }
-    }
     rd->mot = mot;
     rd->ops = ops; rd->flat = flat; rd->btc = btc; rd->raw = raw; rd->vq = vq;
     rd->paint = paint; rd->pal4 = pal4;

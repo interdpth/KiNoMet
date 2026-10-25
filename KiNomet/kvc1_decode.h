@@ -21,6 +21,9 @@ extern "C" {
 // default --chunk-cap; init fails if the file needs more than bufsize.
 
 #define KVC1_CHUNK_CAP 16384u
+// Most MOTION blocks any one frame may contain (the encoder guarantees it);
+// the decoder needs KVC1_MOTION_CAP * 16 u16 of scratch for them.
+#define KVC1_MOTION_CAP 512u
 
 #define KVC1_OK            0
 #define KVC1_ERR_MAGIC    -1
@@ -38,8 +41,8 @@ typedef struct {
     uint8_t  gray;             // header flag: colours are 1-byte grey levels
     uint8_t  version;          // 3 or 4
     uint8_t  motion;           // header flag: MOTION blocks, needs `prev`
-    uint16_t *prev;            // caller-supplied width*height copy of the previous
-                               // frame; required when `motion` is set (else NULL)
+    uint16_t *scratch;         // caller-supplied KVC1_MOTION_CAP*16 u16, required
+                               // when `motion` is set (else NULL)
     uint32_t n_frames;
     uint32_t frame;            // frames decoded so far
     uint8_t *buf;
@@ -50,8 +53,10 @@ typedef struct {
 
 // Parses the file header. buf must be 4-byte aligned (the GBA BIOS LZ77 call
 // writes words). Returns KVC1_OK or a KVC1_ERR_* code. If rd->motion is set
-// afterwards, point rd->prev at width*height u16 of RAM (contents don't
-// matter) before decoding.
+// afterwards, point rd->scratch at KVC1_MOTION_CAP*16 u16 of RAM before
+// decoding. (MOTION copies from the previous frame, which is still in the
+// framebuffer when a frame starts: the decoder gathers those blocks into
+// scratch first, then draws -- no second frame buffer needed.)
 int kvc1_reader_init(kvc1_reader_t *rd, const uint8_t *file, uint32_t size,
                      uint8_t *buf, uint32_t bufsize);
 

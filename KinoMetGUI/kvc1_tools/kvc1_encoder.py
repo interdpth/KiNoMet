@@ -53,6 +53,7 @@ Decoded chunk:
                      others keep what's on screen)                 [u8, u16 mask]
   pal4[n_pal4]       4 x u16 colours, u32 indices (2 bits per pixel, pixel k
                      at bits 2k..2k+1)                             [4 x u8, u32]
+  (at most 512 MOTION blocks per frame -- the decoder's scratch size)
   motion[n_motion]   u8 vector, ONE PER MOTION OP (shared by the op's n
                      blocks): high nibble dy+8, low nibble dx+8 (-8..7);
                      each block is copied from the PREVIOUS frame at
@@ -88,6 +89,7 @@ VERSION = 4
 HEADER_SIZE = 24
 CHUNK_HDR_SIZE = 12
 CHUNK_INNER_HDR = 14
+MOTION_CAP = 512   # most MOTION blocks per frame (decoder scratch = KVC1_MOTION_CAP)
 # Below this many bits per pixel per second at 240x160, encode at 120x80 and
 # let the GBA scale it 2x: tested on Steamboat Willie (0.5 bpps) this scored
 # 25.9 dB against 24.1 dB at full res for the same bytes; the ALIE trailer
@@ -286,6 +288,14 @@ def run_pass(P, lam, chunk_cap, label="encoding"):
         while True:
             modes = choose_modes(w, d_skip, a["d_flat"][f], P.d_vq[f], a["d_btc"][f], d_paint,
                                  a["d_pal4"][f], lf, allow_skip=f > 0, mode_bytes=mb, d_motion=d_motion)
+            if d_motion is not None and int((modes == MODE_MOTION).sum()) > MOTION_CAP:
+                # Keep the MOTION_CAP motion blocks with the lowest distortion.
+                idx = np.flatnonzero(modes == MODE_MOTION)
+                drop = idx[np.argsort(d_motion[idx])[MOTION_CAP:]]
+                d_mot2 = d_motion.copy()
+                d_mot2[drop] = np.inf
+                modes = choose_modes(w, d_skip, a["d_flat"][f], P.d_vq[f], a["d_btc"][f], d_paint,
+                                     a["d_pal4"][f], lf, allow_skip=f > 0, mode_bytes=mb, d_motion=d_mot2)
             m_flat = modes == MODE_FLAT
             m_vq = modes == MODE_VQ
             m_btc = modes == MODE_BTC

@@ -122,7 +122,10 @@ IWRAM void SetupAudio()
 void Setup(VideoKinometPacket* packet)
 {
 	int screenType = (packet->DisplaySize.h == 160 && packet->DisplaySize.w == 240 ? 3 : 5);
-	fps = ((int)(packet->FramesPerSecond)) + 1;//we don't use rect early on, fps gets packed into rect.
+	// Was FramesPerSecond + 1, which ran a 15fps video at 16fps -- ~7% fast, so the
+	// picture drifted ahead of the audio (13s by the end of a 3-minute video).
+	fps = (int)(packet->FramesPerSecond);
+	if (fps < 1) fps = 15;
 
 
 	(*display_control) = (0x400 | screenType);
