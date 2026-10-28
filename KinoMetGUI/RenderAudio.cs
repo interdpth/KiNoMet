@@ -68,6 +68,9 @@ namespace KinometGui.Properties
                 case 4:
                     RenderAudioV4();
                     break;
+                case 5:
+                    RenderAudioV5();
+                    break;
             }
         }
         private List<sbyte> DecodeFile(FileInfo srcAudio)
@@ -681,6 +684,157 @@ namespace KinometGui.Properties
 
             double ratio = encoded.Length > 0 ? (double)srcStream.Count / encoded.Length : 0;
             Console.WriteLine($"ADPCM audio: {srcStream.Count} PCM bytes -> {encoded.Length} bytes ({ratio:0.00}x)");
+
+            ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
+            ROM.Write(OutputFolder, fn);
+        }
+
+        // Step/index tables and the encode algorithm below MUST stay bit-for-bit
+        // identical to KiNomet/adpcm3_decode.c's kAdpcm3StepTable/kAdpcm3IndexTable/
+        // adpcm3_decode(). Both sides were derived from, and checked bit-exact
+        // against, the same Python reference prototype before either was written.
+        // AudioV5 is a 3-bit sibling of AudioV4's 4-bit ADPCM above: sign bit +
+        // 2-bit magnitude (4 levels) instead of sign + 3-bit magnitude (8 levels),
+        // so these tables are NOT AdpcmStepTable/AdpcmIndexTable truncated -- they
+        // were re-picked by a fresh search (see AudioV5.h's class comment for the
+        // measured size/SNR tradeoff) because halving the magnitude resolution
+        // changes which step sizes are actually reachable per adaptation step. If
+        // you touch one side, mirror the change on the other, or every AudioV5
+        // track will decode to noise.
+        private static readonly int[] Adpcm3StepTable = {
+              1,  2,  3,  4,  5,  6,  7,  8,  9, 10,
+             11, 12, 13, 14, 15, 16, 18, 20, 23, 26,
+             30, 34, 39, 44, 50, 57, 65, 74, 84, 96,
+            109,124,
+        };
+        private static readonly int[] Adpcm3IndexTable = { -2, -1, 1, 1 };
+        private const int Adpcm3CodesPerWord = 10;
+
+        /// <summary>
+        /// Encodes 8-bit signed PCM into the 3-bit ADPCM code stream AudioV5 /
+        /// adpcm3_decode.c expect: codes packed 10-per-32-bit-little-endian-word
+        /// (3 bits each, low 30 bits of the word; top 2 bits always zero), every
+        /// word fully self-contained so the decoder can pull a whole group of 10
+        /// samples from a single aligned 32-bit load (see adpcm3_decode.h's module
+        /// comment for why -- this is the part of the design that keeps the extra
+        /// compression from costing meaningful decode-side CPU).
+        ///
+        /// valpred/index persist across the WHOLE track, exactly like
+        /// AdpcmEncodeTrack above -- only the WORD boundary is flushed at the end
+        /// of every chunkSize-sample chunk (zero-padding the final partial group
+        /// of codes up to a full word if chunkSize isn't a multiple of 10), because
+        /// AudioV5::DecodeMore() needs every chunk it reads to start on a 4-byte-
+        /// aligned offset. Resetting valpred/index per chunk (instead of just the
+        /// packing) would re-sync against a decoder that never resets and audibly
+        /// degrade quality at every frame boundary, same as AudioV4.
+        /// </summary>
+        private static byte[] Adpcm3EncodeTrack(List<sbyte> pcm, int targetFps)
+        {
+            int chunkSize = targetFps > 0 ? freq / targetFps : freq;
+            if (chunkSize < 1) chunkSize = 1;
+
+            using (MemoryStream outStream = new MemoryStream())
+            {
+                int valpred = 0;
+                int index = 0;
+                int pos = 0;
+                int n = pcm.Count;
+
+                while (pos < n)
+                {
+                    int take = Math.Min(chunkSize, n - pos);
+                    int step = Adpcm3StepTable[index];
+
+                    uint word = 0;
+                    int codesInWord = 0;
+
+                    for (int i = 0; i < take; i++)
+                    {
+                        int sample = pcm[pos + i];
+                        int diff = sample - valpred;
+                        int sign = diff < 0 ? 4 : 0;
+                        if (sign != 0) diff = -diff;
+
+                        int vpdiff = step >> 2;
+                        int mag = 0;
+                        int d = diff;
+                        int t = step;
+                        if (d >= t) { mag = 2; d -= t; vpdiff += t; }
+                        t >>= 1;
+                        if (d >= t) { mag |= 1; vpdiff += t; }
+
+                        if (sign != 0) valpred -= vpdiff; else valpred += vpdiff;
+                        valpred = AdpcmClamp(valpred, -128, 127);
+
+                        int code = sign | mag;
+                        index = AdpcmClamp(index + Adpcm3IndexTable[mag], 0, Adpcm3StepTable.Length - 1);
+                        step = Adpcm3StepTable[index];
+
+                        word |= ((uint)code & 7) << (3 * codesInWord);
+                        codesInWord++;
+                        if (codesInWord == Adpcm3CodesPerWord)
+                        {
+                            outStream.Write(BitConverter.GetBytes(word), 0, 4);
+                            word = 0;
+                            codesInWord = 0;
+                        }
+                    }
+                    if (codesInWord > 0)
+                    {
+                        // Flush this chunk's final partial group, zero-padded, to
+                        // its own whole word -- the alignment contract
+                        // AudioV5::DecodeMore() relies on between chunks.
+                        outStream.Write(BitConverter.GetBytes(word), 0, 4);
+                    }
+
+                    pos += take;
+                }
+
+                return outStream.ToArray();
+            }
+        }
+
+        /// <summary>
+        /// Stores audio as 3-bit ADPCM (see adpcm3_decode.h/.c, AudioV5.h/.cpp).
+        /// 2.5:1 over raw 8-bit PCM -- 25% smaller than AudioV4's 4-bit ADPCM for
+        /// the same source -- traded against ~1.4dB lower measured SNR. Pick this
+        /// over AudioV4 when the extra headroom in a size budget matters more than
+        /// the small extra quantization noise; see AudioV5.h's class comment.
+        /// </summary>
+        private void RenderAudioV5()
+        {
+            FileInfo srcAudio = new FileInfo(srcFile);
+
+            List<sbyte> srcStream = DecodeFile(srcAudio);
+            if (srcStream == null)
+            {
+                Console.WriteLine($"{srcAudio.Extension} is an unsupported format");
+                return;
+            }
+
+            byte[] encoded = Adpcm3EncodeTrack(srcStream, fps);
+
+            AudioHeader aHdr = new AudioHeader(0x41555635, (uint)encoded.Length, (uint)srcAudio.Length, (ushort)audiov, (ushort)fps, (uint)freq);
+
+            string fn = srcAudio.Name.Replace(srcAudio.Extension, "");
+            if (File.Exists($"{OutputFolder}\\{fn}.raw")) File.Delete($"{OutputFolder}\\{fn}.raw");
+            using (FileStream fs = new FileStream($"{OutputFolder}\\{fn}.raw", FileMode.OpenOrCreate))
+            using (BinaryWriter bw = new BinaryWriter(fs))
+            {
+                byte[] fbuffer = new byte[AudioHeader.GetHdrSize()];
+                Util.Memset(fbuffer, 0, fbuffer.Length);
+                bw.Write(fbuffer);
+
+                bw.Write(encoded);
+
+                aHdr.compressedlength = (uint)encoded.Length;
+                aHdr.Write(bw);
+
+                bw.Close();
+            }
+
+            double ratio = encoded.Length > 0 ? (double)srcStream.Count / encoded.Length : 0;
+            Console.WriteLine($"ADPCM3 audio: {srcStream.Count} PCM bytes -> {encoded.Length} bytes ({ratio:0.00}x)");
 
             ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
             ROM.Write(OutputFolder, fn);

@@ -5,6 +5,7 @@
 #include "AudioV2.h"
 #include "AudioV3.h"
 #include "AudioV4.h"
+#include "AudioV5.h"
 
 
 class AudioManager
