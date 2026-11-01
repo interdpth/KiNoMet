@@ -135,11 +135,14 @@ def build_gray_palette(frames888, n_levels=24, sample_stride=7, n_iter=40):
     frames888: (N,H,W) or (N,H,W,3) uint8. Returns (n_levels,) float64
     array of gray levels in 0..255, sorted ascending.
     """
-    if frames888.ndim == 4:
-        luma = frames888[..., :3].astype(np.float64).mean(axis=-1)
+    # Subsample frames BEFORE converting: converting the whole video to
+    # float64 first cost ~1MB/frame and ran out of memory on long clips at
+    # higher fps.
+    sub = frames888[::sample_stride]
+    if sub.ndim == 4:
+        sample = sub[..., :3].astype(np.float32).mean(axis=-1).ravel()
     else:
-        luma = frames888.astype(np.float64)
-    sample = luma[::sample_stride].ravel()
+        sample = sub.ravel()
     hist, edges = np.histogram(sample, bins=256, range=(0, 256))
     centers = (edges[:-1] + edges[1:]) / 2
     levels = np.linspace(sample.min(), sample.max(), n_levels)
@@ -174,13 +177,20 @@ def quantize_to_palette(frames888, palette31):
     nearest-level via thresholding at the midpoints (palette is sorted, so
     this is an O(1)-per-pixel searchsorted instead of an O(N*levels)
     broadcast)."""
-    if frames888.ndim == 4:
-        luma = frames888[..., :3].astype(np.float64).mean(axis=-1) / 255.0 * 31.0
-    else:
-        luma = frames888.astype(np.float64) / 255.0 * 31.0
-    midpoints = (palette31[:-1].astype(np.float64) + palette31[1:].astype(np.float64)) / 2.0
-    idx = np.searchsorted(midpoints, luma, side="right")
-    return idx.astype(np.uint8)
+    midpoints = (palette31[:-1].astype(np.float32) + palette31[1:].astype(np.float32)) / 2.0
+    out = np.empty(frames888.shape[:3], dtype=np.uint8)
+    # One chunk of frames at a time, so memory stays ~1 byte/pixel for the
+    # whole video instead of a float64 copy of all of it at once.
+    chunk = 64
+    for s in range(0, frames888.shape[0], chunk):
+        f = frames888[s:s + chunk]
+        if f.ndim == 4:
+            luma = f[..., :3].astype(np.float32).mean(axis=-1)
+        else:
+            luma = f.astype(np.float32)
+        luma *= 31.0 / 255.0
+        out[s:s + chunk] = np.searchsorted(midpoints, luma, side="right")
+    return out
 
 
 def train_gray_codebook(qframes_idx, n_clusters=256, sample_stride=5,

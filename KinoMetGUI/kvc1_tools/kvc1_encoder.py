@@ -98,21 +98,23 @@ COLOR_RGB555 = 0
 COLOR_GRAY_PALETTE = 1
 
 
-def extract_frames(video_path, w, h, fps, tmp_raw):
-    """Runs ffmpeg once to produce a raw rgb24 stream at (w,h)@fps, returns an
-    (N,h,w,3) uint8 array."""
+def extract_frames(video_path, w, h, fps, tmp_raw, gray=False):
+    """Runs ffmpeg once to produce a raw stream at (w,h)@fps. Returns an
+    (N,h,w,3) uint8 RGB array, or (N,h,w) uint8 luma when gray=True (a third
+    of the memory, which matters: every frame of the video is held at once)."""
+    pix_fmt, chans = ("gray", 1) if gray else ("rgb24", 3)
     cmd = [
         "ffmpeg", "-y", "-i", video_path,
         "-vf", f"fps={fps},scale={w}:{h}:flags=bicubic",
-        "-pix_fmt", "rgb24", "-f", "rawvideo", tmp_raw,
+        "-pix_fmt", pix_fmt, "-f", "rawvideo", tmp_raw,
     ]
     subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     raw = np.fromfile(tmp_raw, dtype=np.uint8)
-    frame_bytes = w * h * 3
+    frame_bytes = w * h * chans
     n = len(raw) // frame_bytes
     if n * frame_bytes != len(raw):
         raw = raw[:n * frame_bytes]
-    return raw.reshape(n, h, w, 3)
+    return raw.reshape((n, h, w) if gray else (n, h, w, 3))
 
 
 def best_compress(data: bytes):
@@ -169,7 +171,9 @@ def encode(video_path, out_path, w=240, h=160, fps=15, n_clusters=256, gop=15,
     off = dither_offsets(h, w) if dither else np.zeros((h, w), dtype=np.float32)
 
     print("[kvc1] quantizing to RGB555 (dithered)" if dither else "[kvc1] quantizing to RGB555")
-    frames555 = np.empty((n_frames, h, w, 3), dtype=np.uint8)
+    # In place: frames555 reuses frames888's buffer, so the whole video is
+    # held once rather than twice.
+    frames555 = frames888
     for i in range(n_frames):
         frames555[i] = rgb888_to_555_dithered(frames888[i], off)
     del frames888
@@ -274,7 +278,7 @@ def encode_grayscale(video_path, out_path, w=240, h=160, fps=15, n_clusters=256,
     tmp_raw = os.path.join(tmp_dir, "_kvc1_tmp_raw.rgb24")
 
     print(f"[kvc1-gray] extracting frames via ffmpeg @ {w}x{h} {fps}fps ...")
-    frames888 = extract_frames(video_path, w, h, fps, tmp_raw)
+    frames888 = extract_frames(video_path, w, h, fps, tmp_raw, gray=True)
     try:
         os.remove(tmp_raw)
     except OSError:
@@ -388,7 +392,9 @@ def main():
     if grayscale is None:
         tmp_dir = os.path.dirname(os.path.abspath(args.out)) or "."
         tmp_raw = os.path.join(tmp_dir, "_kvc1_tmp_probe.rgb24")
-        probe = extract_frames(args.video, args.width, args.height, args.fps, tmp_raw)
+        # 1 fps is plenty to judge color vs gray, and avoids decoding the whole
+        # video into memory a second time just for this check.
+        probe = extract_frames(args.video, args.width, args.height, 1, tmp_raw)
         try:
             os.remove(tmp_raw)
         except OSError:
