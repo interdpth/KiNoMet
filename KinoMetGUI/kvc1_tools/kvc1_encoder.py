@@ -77,7 +77,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gba_lz77  # noqa: E402
 from kvc1_codec import (  # noqa: E402
     MODE_MOTION, MV_NONE, MotionSearcher, MotionGather,
-    MODE_BYTES, MODE_BYTES_GRAY, rgb888_to_gray555, grayness,
+    MODE_BYTES, MODE_BYTES_GRAY, rgb888_to_gray555, grayness, levels_lut,
     MODE_FLAT, MODE_VQ, MODE_BTC, MODE_RAW, MODE_PAINT, MODE_PAL4, N_MODES,
     frame_to_blocks, rgb888_to_555, pack555, wsse, analyze_blocks,
     btc_reconstruct, pal4_reconstruct, paint_candidate, paint_reconstruct,
@@ -199,19 +199,48 @@ def probe_gray(video_path, w, h):
     return bool(vals) and min(vals) >= 0.995
 
 
+def probe_levels(video_path, w, h, gamma=1.0):
+    """Global black/white points of the whole video (1 frame per second,
+    0.3/99.7 percentiles of luma) -> levels_lut, or None if the video already
+    uses (nearly) the full range. Global, not per frame, so fades and dark
+    scenes keep their intended brightness relative to the rest."""
+    hist = np.zeros(256, dtype=np.int64)
+    for fr in extract_frames(video_path, w, h, 1):
+        y = fr.astype(np.float32) @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+        hist += np.bincount(np.clip(np.rint(y), 0, 255).astype(np.int64).ravel(), minlength=256)
+    if hist.sum() == 0:
+        return None, (0, 255)
+    cdf = np.cumsum(hist) / hist.sum()
+    lo = int(np.searchsorted(cdf, 0.003))
+    hi = int(np.searchsorted(cdf, 0.997))
+    if hi - lo < 64:          # nearly-flat video: stretching would only amplify noise
+        return None, (lo, hi)
+    if lo <= 6 and hi >= 249 and gamma == 1.0:
+        return None, (lo, hi)
+    return levels_lut(lo, hi, gamma), (lo, hi)
+
+
 def prepare(video_path, w, h, fps, n_clusters, dither, persist_cap=45, seed=0, max_train=400000,
-            color_mode="auto", cb_texture=40.0, motion=True, motion_radius=4):
+            color_mode="auto", cb_texture=40.0, motion=True, motion_radius=4, levels="auto", gamma=1.0):
     t0 = time.time()
     if color_mode == "auto":
         gray = probe_gray(video_path, w, h)
         log(f"colour check: {'greyscale -- using 1-byte grey colours' if gray else 'colour'}")
     else:
         gray = color_mode == "gray"
+    lut = None
+    if gray and levels == "auto":
+        lut, (lo, hi) = probe_levels(video_path, w, h, gamma)
+        if lut is not None:
+            log(f"levels: source black/white points {lo}/{hi} -> stretched to full range"
+                + (f", gamma {gamma:g}" if gamma != 1.0 else ""))
+        else:
+            log(f"levels: source already uses {lo}..{hi}, left as is")
     log(f"step 1/4: reading video @ {w}x{h} {fps}fps{' (greyscale)' if gray else ''}")
     blocks = []
     prog = Progress("reading frames", probe_frame_count(video_path, fps))
     for fr in extract_frames(video_path, w, h, fps):
-        b, bh, bw = frame_to_blocks(rgb888_to_gray555(fr) if gray else rgb888_to_555(fr, dither))
+        b, bh, bw = frame_to_blocks(rgb888_to_gray555(fr, lut) if gray else rgb888_to_555(fr, dither))
         blocks.append(b)
         prog.update(len(blocks))
     prog.done(len(blocks))
@@ -459,7 +488,7 @@ def report(stats, size, F, fps, lam):
 
 def encode(video_path, out_path, w=240, h=160, fps=15, n_clusters=256, dither=False,
            lam=None, target_bytes=0, chunk_cap=16384, jobs=0, persist_cap=45, color_mode="auto",
-           half_res="off", cb_texture=40.0, motion=True):
+           half_res="off", cb_texture=40.0, motion=True, levels="auto", gamma=1.0):
     if half_res == "auto" and target_bytes and w == 240 and h == 160:
         n_est = probe_frame_count(video_path, fps)
         secs = (n_est / fps) if n_est else 0
@@ -472,7 +501,7 @@ def encode(video_path, out_path, w=240, h=160, fps=15, n_clusters=256, dither=Fa
     if half:
         w, h = w // 2, h // 2
     P = prepare(video_path, w, h, fps, n_clusters, dither, persist_cap=persist_cap, color_mode=color_mode,
-                cb_texture=cb_texture, motion=motion)
+                cb_texture=cb_texture, motion=motion, levels=levels, gamma=gamma)
     F = P.blocks.shape[0]
     n_cb = P.codebook.shape[0]
 
@@ -563,6 +592,11 @@ def main():
     ap.add_argument("--half-res", choices=["auto", "on", "off"], default="off",
                     help="encode at half width/height (the GBA scales it back up 2x). Off by "
                          "default; auto picks it when --target-bytes is tight for the video's length")
+    ap.add_argument("--levels", choices=["auto", "off"], default="auto",
+                    help="greyscale: stretch the video's black/white points to the full range "
+                         "(old film transfers are washed out; costs no bytes)")
+    ap.add_argument("--gamma", type=float, default=1.0,
+                    help="greyscale midtone gamma after the levels stretch (<1 brightens, for the dark GBA screen)")
     ap.add_argument("--no-motion", dest="motion", action="store_false",
                     help="don't use MOTION blocks (writes no previous-frame dependency)")
     ap.add_argument("--cb-texture", type=float, default=40.0,
@@ -579,7 +613,7 @@ def main():
                n_clusters=args.clusters, dither=args.dither, lam=args.lam,
                target_bytes=args.target_bytes, chunk_cap=args.chunk_cap, jobs=args.jobs,
                persist_cap=args.persist_cap, color_mode=args.color_mode, half_res=args.half_res,
-               cb_texture=args.cb_texture, motion=args.motion)
+               cb_texture=args.cb_texture, motion=args.motion, levels=args.levels, gamma=args.gamma)
     except BaseException:
         if not args.pause_on_error:
             raise

@@ -87,12 +87,27 @@ def rgb888_to_555(frame888, dither=False):
     return np.clip(np.rint(f * (31.0 / 255.0)), 0, 31).astype(np.uint8)
 
 
-def rgb888_to_gray555(frame888):
+def rgb888_to_gray555(frame888, lut=None):
     """frame888: (H,W,3) uint8 -> (H,W,3) uint8 with R=G=B = grey level 0..31
-    (Rec.601 luma). Kept 3-channel so all block analysis is unchanged."""
+    (Rec.601 luma). Kept 3-channel so all block analysis is unchanged.
+    lut: optional (256,) float32 levels map applied to luma first (see
+    levels_lut)."""
     y = frame888.astype(np.float32) @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+    if lut is not None:
+        y = lut[np.clip(np.rint(y), 0, 255).astype(np.uint8)]
     g = np.clip(np.rint(y * (31.0 / 255.0)), 0, 31).astype(np.uint8)
     return np.repeat(g[:, :, None], 3, axis=2)
+
+
+def levels_lut(lo, hi, gamma=1.0):
+    """(256,) float32 map stretching [lo,hi] to [0,255] with an optional gamma
+    (<1 brightens midtones). Old film transfers rarely reach true black or
+    white -- typically ~30..210 -- and the GBA screen is dark, so without this
+    the whole picture sits in a flat grey band and wastes most of the 32
+    grey levels. Costs nothing in the bitstream."""
+    x = np.arange(256, dtype=np.float32)
+    t = np.clip((x - lo) / max(1.0, hi - lo), 0.0, 1.0)
+    return (255.0 * t ** gamma).astype(np.float32)
 
 
 def grayness(frame888, tol=16):
