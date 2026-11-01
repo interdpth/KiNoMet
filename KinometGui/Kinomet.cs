@@ -225,7 +225,7 @@ namespace KinometGui
             int encoderExit = RunPython(encoderArgs);
             if (encoderExit != 0 || !File.Exists(kvc1Path))
             {
-                Debug.WriteLine($"kvc1_encoder.py failed (exit code {encoderExit}); see its output above. " +
+                Debug.WriteLine($"kvc1_encoder.py failed (exit code {encoderExit}); its console window showed the error. " +
                                 "It needs Python 3 with numpy and scikit-learn: py -3 -m pip install numpy scikit-learn");
                 return;
             }
@@ -255,12 +255,50 @@ namespace KinometGui
         }
 
         /// <summary>
-        /// Runs a Python 3 script, trying the "py -3" launcher, then "python", then
-        /// "python3" (on Windows "python3" is often just the Microsoft Store stub,
-        /// which exits 9009). Script output is streamed live to the Debug output
-        /// window. Returns the exit code, or -1 if no interpreter could be started.
+        /// Runs a Python 3 script in its own console window so its progress is
+        /// visible live. On success the window lingers a few seconds so the final
+        /// summary (mode mix, file size) can be read; on failure it stays open with
+        /// the error until a key is pressed. Returns the script's exit code, or -1
+        /// if no working Python 3 interpreter was found.
         /// </summary>
         private static int RunPython(string args)
+        {
+            string[] interp = FindPython();
+            if (interp == null)
+            {
+                Debug.WriteLine("No Python 3 interpreter found (tried py -3, python, python3).");
+                return -1;
+            }
+            Debug.WriteLine($"Running: {interp[0]} {interp[1]}-u {args}");
+
+            // cmd /s strips only the outer quotes, so the inner quoted paths survive.
+            // /v:on enables !rc! so the exit code is read after the script finishes.
+            string cmdLine =
+                $"\"\"{interp[0]}\" {interp[1]}-u {args}" +
+                " & set \"rc=!errorlevel!\"" +
+                " & if !rc!==0 (echo. & echo KVC1 encode finished. & timeout /t 5 & exit /b 0)" +
+                " else (echo. & echo KVC1 encode FAILED with exit code !rc! -- press any key to close. & pause >nul & exit /b !rc!)\"";
+            var psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = "/v:on /s /c " + cmdLine,
+                UseShellExecute = false,
+                CreateNoWindow = false,
+            };
+            using (var p = Process.Start(psi))
+            {
+                p.WaitForExit();
+                Debug.WriteLine($"kvc1_encoder.py exited with code {p.ExitCode}");
+                return p.ExitCode;
+            }
+        }
+
+        /// <summary>
+        /// Returns { exe, argPrefix } for the first working Python 3: the "py -3"
+        /// launcher, then "python", then "python3" (on Windows "python3" is often
+        /// just the Microsoft Store stub, which exits 9009 without running anything).
+        /// </summary>
+        private static string[] FindPython()
         {
             var interpreters = new[] { new[] { "py", "-3 " }, new[] { "python", "" }, new[] { "python3", "" } };
             foreach (var interp in interpreters)
@@ -270,26 +308,21 @@ namespace KinometGui
                     var psi = new ProcessStartInfo
                     {
                         FileName = interp[0],
-                        Arguments = interp[1] + "-u " + args,
+                        Arguments = interp[1] + "--version",
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         CreateNoWindow = true,
                     };
-                    using (var p = new Process { StartInfo = psi })
+                    using (var p = Process.Start(psi))
                     {
-                        p.OutputDataReceived += (s, e) => { if (e.Data != null) Debug.WriteLine(e.Data); };
-                        p.ErrorDataReceived += (s, e) => { if (e.Data != null) Debug.WriteLine(e.Data); };
-                        p.Start();
-                        p.BeginOutputReadLine();
-                        p.BeginErrorReadLine();
+                        var outTask = p.StandardOutput.ReadToEndAsync();
+                        string err = p.StandardError.ReadToEnd();
                         p.WaitForExit();
-                        if (p.ExitCode == 9009)
-                        {
-                            Debug.WriteLine($"{interp[0]}: not a working Python install, trying the next one");
-                            continue;
-                        }
-                        return p.ExitCode;
+                        string ver = (outTask.Result + err).Trim();
+                        if (p.ExitCode == 0 && ver.StartsWith("Python 3"))
+                            return interp;
+                        Debug.WriteLine($"{interp[0]}: not a working Python 3 ({ver})");
                     }
                 }
                 catch (System.ComponentModel.Win32Exception ex)
@@ -297,8 +330,7 @@ namespace KinometGui
                     Debug.WriteLine($"{interp[0]}: {ex.Message}");
                 }
             }
-            Debug.WriteLine("No Python 3 interpreter found (tried py -3, python, python3).");
-            return -1;
+            return null;
         }
     }
 }
