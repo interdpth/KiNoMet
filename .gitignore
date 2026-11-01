@@ -1,5 +1,7 @@
 Debug/
 Build/
+__pycache__/
+*.pyc
 KiNomet/rawfile*
 x64
 */bin/*
