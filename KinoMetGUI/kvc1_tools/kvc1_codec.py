@@ -102,6 +102,188 @@ def train_codebook(all_blocks555, n_clusters=256, n_reserved_mono=2, seed=0,
     return np.concatenate([reserved, trained], axis=0)
 
 
+def frame_to_blocks_mono(frame_idx):
+    """Single-channel counterpart to frame_to_blocks, for palette-index
+    frames (H,W) uint8 instead of (H,W,3). Returns (nblocks,16) uint8."""
+    h, w = frame_idx.shape
+    bh, bw = h // BLOCK, w // BLOCK
+    b = frame_idx.reshape(bh, BLOCK, bw, BLOCK).transpose(0, 2, 1, 3)
+    return b.reshape(bh * bw, BLOCK * BLOCK), bh, bw
+
+
+def blocks_to_frame_mono(blocks, bh, bw):
+    """Inverse of frame_to_blocks_mono. blocks: (bh*bw,16) uint8."""
+    b = blocks.reshape(bh, bw, BLOCK, BLOCK).transpose(0, 2, 1, 3)
+    return b.reshape(bh * BLOCK, bw * BLOCK)
+
+
+def build_gray_palette(frames888, n_levels=24, sample_stride=7, n_iter=40):
+    """Lloyd-Max scalar quantizer on the whole video's luma histogram --
+    minimizes SSE for a given number of gray levels, which matters because
+    every distortion decision downstream (skip/flat/vq thresholds) is also
+    SSE-based. This is the grayscale-content counterpart to RGB555 dithered
+    quantization: for genuinely monochrome source (R=G=B, e.g. a black and
+    white cel-animation short), spending all the available levels on luma
+    directly beats splitting fixed RGB555 bit-depth across 3 redundant
+    channels and then having to dither away the resulting banding. No
+    dithering is used here at all -- with 16-32 levels placed optimally on
+    the real histogram (rather than fixed uniform steps), banding is far
+    less of a problem than it is for a uniform quantizer, and dithering
+    noise was the actual root cause of the "noisy mush in flat regions"
+    quality complaint that motivated adding this path in the first place.
+
+    frames888: (N,H,W) or (N,H,W,3) uint8. Returns (n_levels,) float64
+    array of gray levels in 0..255, sorted ascending.
+    """
+    if frames888.ndim == 4:
+        luma = frames888[..., :3].astype(np.float64).mean(axis=-1)
+    else:
+        luma = frames888.astype(np.float64)
+    sample = luma[::sample_stride].ravel()
+    hist, edges = np.histogram(sample, bins=256, range=(0, 256))
+    centers = (edges[:-1] + edges[1:]) / 2
+    levels = np.linspace(sample.min(), sample.max(), n_levels)
+    for _ in range(n_iter):
+        d = np.abs(centers[:, None] - levels[None, :])
+        assign = d.argmin(axis=1)
+        new_levels = levels.copy()
+        for k in range(n_levels):
+            mask = assign == k
+            if mask.any():
+                w = hist[mask]
+                c = centers[mask]
+                new_levels[k] = (w * c).sum() / w.sum()
+        if np.allclose(new_levels, levels, atol=0.01):
+            levels = new_levels
+            break
+        levels = new_levels
+    return np.sort(levels)
+
+
+def gray_palette_to_rgb555(levels255):
+    """Converts Lloyd-Max levels (0..255 float) to the 0..31 RGB555-domain
+    byte values actually stored in the file and used by the GBA decoder
+    (so the decoder only ever needs a cheap palette[idx] lookup already in
+    the native 5-bit-per-channel scale, no runtime 8->5 bit rescale)."""
+    return np.clip(np.round(levels255 / 255.0 * 31.0), 0, 31).astype(np.uint8)
+
+
+def quantize_to_palette(frames888, palette31):
+    """frames888: (N,H,W) or (N,H,W,3) uint8 luma/RGB. palette31: (L,) uint8
+    sorted ascending, 0..31 domain. Returns (N,H,W) uint8 palette indices,
+    nearest-level via thresholding at the midpoints (palette is sorted, so
+    this is an O(1)-per-pixel searchsorted instead of an O(N*levels)
+    broadcast)."""
+    if frames888.ndim == 4:
+        luma = frames888[..., :3].astype(np.float64).mean(axis=-1) / 255.0 * 31.0
+    else:
+        luma = frames888.astype(np.float64) / 255.0 * 31.0
+    midpoints = (palette31[:-1].astype(np.float64) + palette31[1:].astype(np.float64)) / 2.0
+    idx = np.searchsorted(midpoints, luma, side="right")
+    return idx.astype(np.uint8)
+
+
+def train_gray_codebook(qframes_idx, n_clusters=256, sample_stride=5,
+                         blocks_per_frame_sample=400, seed=0, var_bias_thresh=2.0):
+    """qframes_idx: (N,H,W) uint8 palette indices (NOT RGB555 triples).
+    Returns (n_clusters,16) uint8 codebook, each row 16 palette indices for
+    one 4x4 block (block-scan order matching frame_to_blocks' flattening).
+
+    Samples are biased toward higher-variance (non-flat) blocks -- flat
+    regions are already handled by FLAT mode, so the codebook's whole job
+    is to earn its keep on edges/gradients/dither the flat mode can't
+    reach, same reasoning as the RGB555 codebook's mono-reservation (just
+    applied at sampling time here instead of via reserved entries, since
+    there's no "wrong hue" failure mode to guard against in a single-
+    channel palette)."""
+    from sklearn.cluster import MiniBatchKMeans
+    rng = np.random.default_rng(seed)
+    n = qframes_idx.shape[0]
+    samples = []
+    for t in range(0, n, sample_stride):
+        blocks, bh, bw = frame_to_blocks_mono(qframes_idx[t])
+        b = blocks.astype(np.float32)
+        var = b.var(axis=1)
+        hi = np.where(var > var_bias_thresh)[0]
+        lo = np.where(var <= var_bias_thresh)[0]
+        if lo.size:
+            lo = rng.choice(lo, size=min(lo.size, max(1, hi.size // 8) + 20), replace=False)
+        pick = np.concatenate([hi, lo])
+        if pick.size > blocks_per_frame_sample:
+            pick = rng.choice(pick, size=blocks_per_frame_sample, replace=False)
+        samples.append(b[pick])
+    X = np.concatenate(samples, axis=0)
+    km = MiniBatchKMeans(n_clusters=n_clusters, random_state=seed, batch_size=max(1024, n_clusters * 8),
+                          n_init=3, max_iter=100)
+    km.fit(X)
+    return np.clip(np.round(km.cluster_centers_), 0, 31).astype(np.uint8)
+
+
+class GrayFrameClassifier:
+    """Grayscale-palette counterpart to FrameClassifier: blocks are (16,)
+    palette-index arrays instead of (16,3) RGB555 triples, distances are
+    plain SSE over palette indices (same scale as the RGB555 version's
+    thresholds happen to use, since both are SSE over 0..31-ish values --
+    skip/flat/vq_t are NOT directly portable between the two classes
+    despite the coincidence, because index-space SSE and RGB555-triple SSE
+    accumulate over a different number of terms; thresholds are retuned
+    independently for this path, see kvc1_encoder.py)."""
+
+    def __init__(self, codebook, skip_t=0, flat_t=48, vq_t=400):
+        self.codebook = codebook  # (C,16) uint8
+        self.n_clusters = codebook.shape[0]
+        self.skip_t = skip_t
+        self.flat_t = flat_t
+        self.vq_t = vq_t
+        self._cb_f = codebook.astype(np.float32)
+        self._cb_sq = (self._cb_f ** 2).sum(axis=1)
+
+    def encode_frame(self, cur_blocks, prev_blocks):
+        """cur_blocks, prev_blocks: (nblocks,16) uint8 palette indices
+        (prev_blocks may be None for frame 0). Returns modes (nblocks,)
+        uint8, flat_vals (nflat,) uint8, vq_idx (nvq,) int32, raw_blocks
+        (nraw,16) uint8 -- in block-scan order."""
+        nblocks = cur_blocks.shape[0]
+        cur_f = cur_blocks.astype(np.int32)
+
+        if prev_blocks is not None:
+            diff = ((cur_f - prev_blocks.astype(np.int32)) ** 2).sum(axis=1)
+            is_skip = diff <= self.skip_t
+        else:
+            is_skip = np.zeros(nblocks, dtype=bool)
+
+        flat_val = np.clip(np.round(cur_f.mean(axis=1)), 0, 31).astype(np.int32)
+        flat_sse = ((cur_f - flat_val[:, None]) ** 2).sum(axis=1)
+        is_flat = (~is_skip) & (flat_sse <= self.flat_t)
+
+        need_vq = ~(is_skip | is_flat)
+        modes = np.zeros(nblocks, dtype=np.uint8)
+        modes[is_flat] = 1
+        flat_vals = flat_val[is_flat].astype(np.uint8)
+
+        vq_idx_out = np.zeros(0, dtype=np.int32)
+        is_vq = np.zeros(nblocks, dtype=bool)
+        vq_candidates = np.nonzero(need_vq)[0]
+        if len(vq_candidates) > 0:
+            cand_f = cur_f[vq_candidates].astype(np.float32)
+            cand_sq = (cand_f ** 2).sum(axis=1)
+            dots = cand_f @ self._cb_f.T
+            d2 = cand_sq[:, None] - 2 * dots + self._cb_sq[None, :]
+            best_idx = d2.argmin(axis=1)
+            best_d2 = d2[np.arange(len(vq_candidates)), best_idx]
+            good = best_d2 <= self.vq_t
+            vq_positions = vq_candidates[good]
+            is_vq[vq_positions] = True
+            modes[vq_positions] = 2
+            vq_idx_out = best_idx[good].astype(np.int32)
+
+        is_raw = need_vq & (~is_vq)
+        modes[is_raw] = 3
+        raw_blocks = cur_blocks[is_raw]
+
+        return modes, flat_vals, vq_idx_out, raw_blocks
+
+
 class FrameClassifier:
     """Holds the codebook and precomputed per-entry stats, classifies/encodes
     one frame at a time against the previous frame's RGB555 pixels."""
