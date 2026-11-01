@@ -836,8 +836,8 @@ namespace KinometGui.Properties
             double ratio = encoded.Length > 0 ? (double)srcStream.Count / encoded.Length : 0;
             Console.WriteLine($"ADPCM3 audio: {srcStream.Count} PCM bytes -> {encoded.Length} bytes ({ratio:0.00}x)");
 
-            ROM.MakeSource(fn, File.ReadAllBytes($"{OutputFolder}\\{fn}.raw"), OutputFolder);
-            ROM.Write(OutputFolder, fn);
+            // Shipped as a raw binary (GBA links data/<fn>.bin; Windows loads it at runtime).
+            File.Copy($"{OutputFolder}\\{fn}.raw", $"{OutputFolder}\\{fn}.bin", true);
         }
     }
 }
