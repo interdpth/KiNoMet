@@ -25,17 +25,23 @@ namespace KinometGui
 
         public int GetFrames(string videoFile)
         {
-            var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = false, RedirectStandardError = true, RedirectStandardOutput = true, CreateNoWindow = true, Arguments = $"-i {videoFile} -map 0:v:0 -c copy -f null -" };
-            var P = Process.Start(PSI);
-            P.WaitForExit();
+            var PSI = new ProcessStartInfo { FileName = "ffmpeg.exe", UseShellExecute = false, RedirectStandardError = true, RedirectStandardOutput = true, CreateNoWindow = true, Arguments = $"-hide_banner -i \"{videoFile}\" -map 0:v:0 -c copy -f null -" };
+            string read;
+            using (var P = Process.Start(PSI))
+            {
+                // Read both pipes before waiting, or ffmpeg can block on a full stderr pipe.
+                var stdoutTask = P.StandardOutput.ReadToEndAsync();
+                string stderr = P.StandardError.ReadToEnd();
+                P.WaitForExit();
+                read = stdoutTask.Result + stderr;
+            }
 
-            string read = P.StandardOutput.ReadToEnd() + P.StandardError.ReadToEnd();
-
-            int idx = read.IndexOf("frame=");
-            string news = read.Substring(idx + 6);
-            string val = news.Split(' ')[0];
-            int ret = Convert.ToInt32(val);
-            return ret;
+            // ffmpeg pads the count ("frame=  2700 fps=...") and prints many progress
+            // updates; the last one is the final total.
+            var matches = System.Text.RegularExpressions.Regex.Matches(read, @"frame=\s*(\d+)");
+            if (matches.Count == 0)
+                throw new InvalidOperationException($"ffmpeg reported no frame count for {videoFile}:\n{read}");
+            return int.Parse(matches[matches.Count - 1].Groups[1].Value);
 
         }
         AllSight sight;
@@ -209,24 +215,90 @@ namespace KinometGui
             // scikit-learn on PATH (see that tool's own requirements).
             string kvc1Path = $"{Processing}\\{fn}.kvc1";
             if (File.Exists(kvc1Path)) File.Delete(kvc1Path);
-            string toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "kvc1_tools");
-            var PSI3 = new ProcessStartInfo
+            string encoderScript = FindKvc1Encoder();
+            if (encoderScript == null)
             {
-                FileName = "python3",
-                UseShellExecute = true,
-                CreateNoWindow = true,
-                Arguments = $"\"{Path.Combine(toolsDir, "kvc1_encoder.py")}\" \"{Processing}\\{tmpVideo}\" \"{kvc1Path}\" --fps {targetFps}"
-            };
-            var P3 = Process.Start(PSI3);
-            P3.WaitForExit();
-            if (!File.Exists(kvc1Path))
+                Debug.WriteLine($"Could not find kvc1_tools\\kvc1_encoder.py next to {AppDomain.CurrentDomain.BaseDirectory} or in any parent folder.");
+                return;
+            }
+            string encoderArgs = $"\"{encoderScript}\" \"{Processing}\\{tmpVideo}\" \"{kvc1Path}\" --fps {targetFps}";
+            int encoderExit = RunPython(encoderArgs);
+            if (encoderExit != 0 || !File.Exists(kvc1Path))
             {
-                Console.WriteLine("kvc1_encoder.py did not produce an output file -- check it ran and python3/numpy/scikit-learn are installed.");
+                Debug.WriteLine($"kvc1_encoder.py failed (exit code {encoderExit}); see its output above. " +
+                                "It needs Python 3 with numpy and scikit-learn: py -3 -m pip install numpy scikit-learn");
                 return;
             }
 
             ROM.MakeSource("VideoFile", File.ReadAllBytes(kvc1Path), $"{OutputFolder}");
             ROM.Write(OutputFolder, "VideoFile");
+        }
+
+        /// <summary>
+        /// Locates kvc1_tools\kvc1_encoder.py. The build doesn't copy the scripts
+        /// next to the exe, so walk up from bin\Debug until the source tree's
+        /// KinoMetGUI\kvc1_tools folder is found.
+        /// </summary>
+        private static string FindKvc1Encoder()
+        {
+            var dir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
+            while (dir != null)
+            {
+                foreach (var sub in new[] { "kvc1_tools", Path.Combine("KinoMetGUI", "kvc1_tools") })
+                {
+                    string candidate = Path.Combine(dir.FullName, sub, "kvc1_encoder.py");
+                    if (File.Exists(candidate)) return candidate;
+                }
+                dir = dir.Parent;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Runs a Python 3 script, trying the "py -3" launcher, then "python", then
+        /// "python3" (on Windows "python3" is often just the Microsoft Store stub,
+        /// which exits 9009). Script output is streamed live to the Debug output
+        /// window. Returns the exit code, or -1 if no interpreter could be started.
+        /// </summary>
+        private static int RunPython(string args)
+        {
+            var interpreters = new[] { new[] { "py", "-3 " }, new[] { "python", "" }, new[] { "python3", "" } };
+            foreach (var interp in interpreters)
+            {
+                try
+                {
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = interp[0],
+                        Arguments = interp[1] + "-u " + args,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                    };
+                    using (var p = new Process { StartInfo = psi })
+                    {
+                        p.OutputDataReceived += (s, e) => { if (e.Data != null) Debug.WriteLine(e.Data); };
+                        p.ErrorDataReceived += (s, e) => { if (e.Data != null) Debug.WriteLine(e.Data); };
+                        p.Start();
+                        p.BeginOutputReadLine();
+                        p.BeginErrorReadLine();
+                        p.WaitForExit();
+                        if (p.ExitCode == 9009)
+                        {
+                            Debug.WriteLine($"{interp[0]}: not a working Python install, trying the next one");
+                            continue;
+                        }
+                        return p.ExitCode;
+                    }
+                }
+                catch (System.ComponentModel.Win32Exception ex)
+                {
+                    Debug.WriteLine($"{interp[0]}: {ex.Message}");
+                }
+            }
+            Debug.WriteLine("No Python 3 interpreter found (tried py -3, python, python3).");
+            return -1;
         }
     }
 }
