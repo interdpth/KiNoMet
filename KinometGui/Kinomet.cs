@@ -227,7 +227,7 @@ namespace KinometGui
             }
             // Runs in its own console window with live progress; on failure the
             // window stays open with the error until you press Enter.
-            string encoderArgs = $"\"{encoderScript}\" \"{videoFile}\" \"{kvc1Path}\" --fps {targetFps} --target-bytes {videoBudget} --pause-on-error";
+            string encoderArgs = $"\"{encoderScript}\" \"{videoFile}\" \"{kvc1Path}\" --fps {targetFps} --target-bytes {videoBudget} --half-res {KinoSettings.HalfRes} --pause-on-error";
             string encoderLog = RunPython(encoderArgs, out int encoderExit, showWindow: true);
             if (encoderLog.Length > 0) Debug.WriteLine(encoderLog);
             if (encoderExit != 0 || !File.Exists(kvc1Path))
