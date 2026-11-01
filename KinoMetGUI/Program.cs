@@ -21,8 +21,11 @@ namespace KinometGui
             {
                 // Optional 2nd arg selects the audio codec: 0/1/2 = raw/RLE variants, 3 = MP3
                 // (see RenderAudio.RenderAudioV3 / KiNomet/AudioV3.cpp -- silent on real GBA
-                // hardware today, its decoder is still a stub), 4 = ADPCM (default; see
-                // RenderAudio.RenderAudioV4 / KiNomet/AudioV4.cpp -- actually plays on GBA).
+                // hardware today, its decoder is still a stub), 4 = 4-bit ADPCM (default; see
+                // RenderAudio.RenderAudioV4 / KiNomet/AudioV4.cpp -- actually plays on GBA,
+                // 2:1 over raw PCM), 5 = 3-bit ADPCM (see RenderAudio.RenderAudioV5 /
+                // KiNomet/AudioV5.cpp -- 2.5:1, ~25% smaller than option 4 for a measured
+                // ~1.4dB SNR cost; pick this when the size budget is tight).
                 int audioType = 4;
                 if (args.Length > 1) int.TryParse(args[1], out audioType);
                 // KinometizeKvc1(), not Kinometize(): bakes video with KVC1-C (see

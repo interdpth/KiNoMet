@@ -199,7 +199,7 @@ namespace KinometGui
             (new RenderAudio(audiov, $"{OutputFolder}", audioSrcForRender, targetFps, numframes)).Render();
             string audioBin = $"{OutputFolder}\\audio_outputmain.bin";
             long audioBytes = File.Exists(audioBin) ? new FileInfo(audioBin).Length : 0;
-            if (audiov == 4 && audioBytes > KinoSettings.MediaBudgetBytes * KinoSettings.MaxAudioShare)
+            if ((audiov == 4 || audiov == 5) && audioBytes > KinoSettings.MediaBudgetBytes * KinoSettings.MaxAudioShare)
             {
                 Debug.WriteLine($"Audio at {RenderAudio.freq} Hz is {audioBytes} bytes (over {KinoSettings.MaxAudioShare:P0} of the budget); re-encoding at {KinoSettings.LowAudioRate} Hz.");
                 RenderAudio.freq = KinoSettings.LowAudioRate;
