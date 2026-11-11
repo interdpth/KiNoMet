@@ -1,6 +1,10 @@
 #pragma once
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // AudioV5: 3-bit IMA-style ADPCM (sign + 2-bit magnitude), 8-bit PCM domain.
 // See AudioV4.h/adpcm_decode.h for the 4-bit sibling this is modeled on --
 // same predictor shape (step-table lookup, adaptive index), just a narrower
@@ -54,3 +58,7 @@ typedef struct {
 // decoded codes within the last word that aren't requested are computed
 // (already in a register, essentially free) but not written out.
 void adpcm3_decode(const uint32_t *src, int nsamples, int8_t *dst, adpcm3_state_t *state);
+
+#ifdef __cplusplus
+}
+#endif
