@@ -1,13 +1,35 @@
 #include "KiNoMet.h"
 #include "../KinoMet/Cinepak.h"
-#include "VideoFile.h"
-#include "audio_outputmain.h"
+#include "../KiNomet/kvc1_load.h"
 #include "audio.h"
 #include <stdio.h>
 #include "SDL_windows.h"
 #include <SDL.h>
 #include <string>
 #include "../KiNomet/MemoryBuffers.h"
+#include <vector>
+
+// Video/audio come from VideoFile.bin and audio_outputmain.bin (written by the
+// GUI) at runtime, looked up in the working directory, then next to the exe.
+static std::vector<unsigned char> LoadBin(const char* name)
+{
+	std::vector<std::string> candidates = { name };
+	if (char* base = SDL_GetBasePath()) { candidates.push_back(std::string(base) + name); SDL_free(base); }
+	for (const std::string& path : candidates)
+	{
+		FILE* f = nullptr;
+		if (fopen_s(&f, path.c_str(), "rb") != 0 || !f) continue;
+		fseek(f, 0, SEEK_END);
+		long len = ftell(f);
+		fseek(f, 0, SEEK_SET);
+		std::vector<unsigned char> data(len > 0 ? (size_t)len : 0);
+		if (len > 0) fread(data.data(), 1, data.size(), f);
+		fclose(f);
+		return data;
+	}
+	printf("Could not open %s (looked in the working directory and next to the exe)\n", name);
+	return {};
+}
 // variable declarations
 Uint8* audio_pos; // global pointer to the audio buffer to be played
 Uint32 audio_len; // remaining length of the sample we have to play
@@ -171,7 +193,11 @@ extern "C" {
 		l.GetTicks = &GetTicks;
 		//l.init = &
 
-		LoadAVI((unsigned char*)VideoFile, VideoFile_size, (unsigned char*)audio_outputmain, audio_outputmain_size, &l);//  NULL, NULL, &l);
+		// KVC1-C replaces Cinepak -- see KiNomet/kvc1_load.cpp.
+		static std::vector<unsigned char> videoBin = LoadBin("VideoFile.bin");
+		static std::vector<unsigned char> audioBin = LoadBin("audio_outputmain.bin");
+		if (videoBin.empty() || audioBin.empty()) return 1;
+		LoadKvc1(videoBin.data(), (int)videoBin.size(), audioBin.data(), (int)audioBin.size(), &l);
 		int overallSize = codeBookSize();
 		printf("%d", maxNum);
 		printf("%x", overallSize);
