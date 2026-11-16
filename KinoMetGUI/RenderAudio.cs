@@ -26,7 +26,7 @@ namespace KinometGui.Properties
     }
     public class RenderAudio
     {
-        public static int mffreq = 10512;
+        public static int mffreq = 8000;//10512;
         public static int zmfreq = 13379;
         public static int freq = mffreq;
         // MP3 (MPEG Layer III) only supports a fixed set of sample rates. 11025Hz (MPEG-2.5)
