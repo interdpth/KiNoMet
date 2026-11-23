@@ -30,6 +30,13 @@ MAKECOLOUR16:
 .fnend
 
 
+@ GBA BIOS wrappers. These are ARM code (stated explicitly: the library build
+@ doesn't pass -mthumb to the assembler). In ARM state the BIOS reads the SWI
+@ number from bits 16-23 of the instruction, so it must be written as
+@ 0xNN0000 -- a plain "swi 0x11" here arrives as SWI 0x00 = SoftReset, which
+@ rebooted the GBA on the first LZ77 call. (Thumb code, like swiDivMod below,
+@ uses the plain 8-bit number.)
+.arm
  .globl   GBA_RLEDECOMP
 .p2align 2
 .type    GBA_RLEDECOMP,%function
@@ -37,7 +44,7 @@ MAKECOLOUR16:
 
 GBA_RLEDECOMP:
 
-swi 0x14
+swi 0x140000
 1:
     bx          lr
 .fnend
@@ -51,7 +58,7 @@ swi 0x14
 
 GBA_LZDECOMP:
 
-  swi 0x11
+  swi 0x110000
 1:
     bx          lr
 .fnend

@@ -141,6 +141,12 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <!-- KVC1-C encoder scripts; Kinomet.KinometizeKvc1 runs them from <exe dir>\kvc1_tools -->
+    <None Include="kvc1_tools\*.py">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
     <Content Include="license.txt" />
     <Content Include="Windows Logo.png" />
   </ItemGroup>

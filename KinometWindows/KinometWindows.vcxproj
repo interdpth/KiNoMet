@@ -149,10 +149,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="audio.cpp" />
-    <ClCompile Include="audio_outputmain.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SDL_windows_main.cpp" />
-    <ClCompile Include="VideoFile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\KiNomet\KiNomet.vcxproj">
@@ -161,8 +159,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="audio.h" />
-    <ClInclude Include="audio_outputmain.h" />
-    <ClInclude Include="VideoFile.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\kinometgui\windows logo.png" />
